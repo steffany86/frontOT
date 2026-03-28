@@ -1,0 +1,283 @@
+import axios, { AxiosError } from 'axios'
+import { clearSessionStorage, getSessionStorage } from '../utils/storage'
+import { useSessionStore } from '../store/sessionStore'
+
+type ApiEnvelope<T> = {
+  data: T
+  message?: string
+  timestamp?: string
+}
+
+type UnknownRecord = Record<string, unknown>
+
+const baseURL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? '/api')
+const apiVerboseEnabled = import.meta.env.VITE_API_DEBUG === 'true'
+const apiIssueLogsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_LOG_ISSUES === 'true'
+
+let unauthorizedHandler: (() => void) | null = null
+
+const maskToken = (token: string): string => {
+  if (token.length <= 10) return '***'
+  return `${token.slice(0, 6)}...${token.slice(-4)}`
+}
+
+const toPlainHeaders = (headers: unknown): Record<string, unknown> => {
+  if (!headers) return {}
+  if (typeof headers === 'object' && headers !== null) {
+    const candidate = headers as { toJSON?: () => Record<string, unknown> }
+    if (typeof candidate.toJSON === 'function') {
+      return candidate.toJSON()
+    }
+    return headers as Record<string, unknown>
+  }
+  return {}
+}
+
+const sanitizeHeaders = (headers: unknown): Record<string, unknown> => {
+  const plain = toPlainHeaders(headers)
+  return Object.fromEntries(
+    Object.entries(plain).map(([key, value]) => {
+      if (key.toLowerCase() === 'x-session-token' && typeof value === 'string') {
+        return [key, maskToken(value)]
+      }
+      return [key, value]
+    })
+  )
+}
+
+const isRecord = (value: unknown): value is UnknownRecord => {
+  return typeof value === 'object' && value !== null
+}
+
+const hasOwn = <TKey extends string>(value: UnknownRecord, key: TKey): value is UnknownRecord & Record<TKey, unknown> => {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+const isApiEnvelope = <T>(value: unknown): value is ApiEnvelope<T> => {
+  return isRecord(value) && hasOwn(value, 'data')
+}
+
+type ApiDebugSnapshot = {
+  message: string | null
+  timestamp: string | null
+  dataType: 'array' | 'object' | 'primitive' | 'null'
+  totalItems: number | null
+}
+
+const buildApiDebugSnapshot = (payload: unknown): ApiDebugSnapshot => {
+  const envelope = isApiEnvelope<unknown>(payload) ? payload : null
+  const data = envelope ? envelope.data : payload
+  const message = envelope && typeof envelope.message === 'string' ? envelope.message : null
+  const timestamp = envelope && typeof envelope.timestamp === 'string' ? envelope.timestamp : null
+
+  if (Array.isArray(data)) {
+    return {
+      message,
+      timestamp,
+      dataType: 'array',
+      totalItems: data.length,
+    }
+  }
+
+  if (data === null) {
+    return {
+      message,
+      timestamp,
+      dataType: 'null',
+      totalItems: null,
+    }
+  }
+
+  if (isRecord(data)) {
+    return {
+      message,
+      timestamp,
+      dataType: 'object',
+      totalItems: null,
+    }
+  }
+
+  return {
+    message,
+    timestamp,
+    dataType: 'primitive',
+    totalItems: null,
+  }
+}
+
+const toNonEmptyString = (value: unknown): string | null => {
+  if (typeof value === 'string' && value.trim()) return value.trim()
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  return null
+}
+
+const extractValidationFields = (payload: unknown): string[] => {
+  if (!isRecord(payload)) return []
+
+  const fields = new Set<string>()
+  const collect = (value: unknown): void => {
+    const normalized = toNonEmptyString(value)
+    if (normalized) fields.add(normalized)
+  }
+
+  const errors = payload.errors
+  if (isRecord(errors)) {
+    for (const fieldName of Object.keys(errors)) {
+      collect(fieldName)
+    }
+  } else if (Array.isArray(errors)) {
+    for (const item of errors) {
+      if (!isRecord(item)) continue
+      collect(item.field)
+      collect(item.name)
+      collect(item.param)
+    }
+  }
+
+  const fieldErrors = payload.fieldErrors
+  if (isRecord(fieldErrors)) {
+    for (const fieldName of Object.keys(fieldErrors)) {
+      collect(fieldName)
+    }
+  }
+
+  const invalidFields = payload.invalidFields
+  if (Array.isArray(invalidFields)) {
+    for (const field of invalidFields) {
+      collect(field)
+    }
+  }
+
+  return Array.from(fields)
+}
+
+const summarizeErrorPayload = (payload: unknown): { message: string | null; fields: string[] } => {
+  if (!isRecord(payload)) return { message: null, fields: [] }
+
+  const messageKeys = ['message', 'error', 'detail', 'title']
+  let message: string | null = null
+  for (const key of messageKeys) {
+    const value = payload[key]
+    const parsed = toNonEmptyString(value)
+    if (parsed) {
+      message = parsed
+      break
+    }
+  }
+
+  return {
+    message,
+    fields: extractValidationFields(payload),
+  }
+}
+
+const detectSuccessfulResponseIssue = (payload: unknown): string | null => {
+  if (payload === undefined || payload === null) {
+    return 'respuesta vacia'
+  }
+  if (isApiEnvelope<unknown>(payload) && (payload.data === undefined || payload.data === null)) {
+    return 'envelope sin data'
+  }
+  return null
+}
+
+export const unwrapApiData = <T>(payload: ApiEnvelope<T> | T): T => {
+  return isApiEnvelope<T>(payload) ? payload.data : payload
+}
+
+export const getApiErrorMessage = (error: unknown, fallback = 'Ocurrio un error al procesar la solicitud.'): string => {
+  if (axios.isAxiosError(error)) {
+    const responseData = error.response?.data
+    if (isRecord(responseData) && typeof responseData.message === 'string' && responseData.message.trim()) {
+      return responseData.message
+    }
+    if (typeof error.message === 'string' && error.message.trim()) {
+      return error.message
+    }
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return fallback
+}
+
+export const isAuthError = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return false
+  const status = error.response?.status
+  return status === 401 || status === 403
+}
+
+export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
+  unauthorizedHandler = handler
+}
+
+const httpClient = axios.create({
+  baseURL,
+})
+
+httpClient.interceptors.request.use((config) => {
+  const session = getSessionStorage()
+  if (session?.sessionToken) {
+    config.headers = config.headers ?? {}
+    config.headers['X-Session-Token'] = session.sessionToken
+  }
+  return config
+})
+
+httpClient.interceptors.response.use(
+  (response) => {
+    const method = (response.config.method ?? 'get').toUpperCase()
+    const url = `${response.config.baseURL ?? ''}${response.config.url ?? ''}`
+    if (apiVerboseEnabled) {
+      const summary = buildApiDebugSnapshot(response.data)
+      // Debug resumido: una sola linea por respuesta.
+      console.info('[API <-]', response.status, method, url, summary)
+    } else if (apiIssueLogsEnabled) {
+      const issue = detectSuccessfulResponseIssue(response.data)
+      if (issue) {
+        console.warn('[API !]', response.status, method, url, issue)
+      }
+    }
+    return response
+  },
+  (error: AxiosError) => {
+    const status = error.response?.status
+    const requestPath = typeof error.config?.url === 'string' ? error.config.url : ''
+    const isPermisosRequest = requestPath.includes('/auth/permisos')
+    if (apiIssueLogsEnabled) {
+      const method = (error.config?.method ?? 'get').toUpperCase()
+      const url = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`
+      const payloadSummary = summarizeErrorPayload(error.response?.data)
+      const message = payloadSummary.message ?? error.message ?? 'Error de API'
+      if (payloadSummary.fields.length > 0) {
+        console.warn('[API xx VALIDATION]', status ?? 'NO_STATUS', method, url, {
+          message,
+          fields: payloadSummary.fields,
+        })
+      } else {
+        console.error('[API xx]', status ?? 'NO_STATUS', method, url, { message })
+      }
+      if (apiVerboseEnabled) {
+        console.error('[API xx DETAIL]', status ?? 'NO_STATUS', method, url, {
+          params: error.config?.params ?? null,
+          body: error.config?.data ?? null,
+          headers: sanitizeHeaders(error.config?.headers),
+          response: error.response?.data ?? null,
+        })
+      }
+    }
+    if (status === 401 || (status === 403 && !isPermisosRequest)) {
+      clearSessionStorage()
+      useSessionStore.getState().clearSession()
+      unauthorizedHandler?.()
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login')
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
+export default httpClient
