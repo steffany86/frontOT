@@ -1,44 +1,93 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import axios from 'axios'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
 import Table, { type Column } from '../components/common/Table'
-import { createOtRealizada } from '../api/otApi'
-import { fetchEstados, fetchTipoMaterial, type CatalogItem } from '../api/catalogApi'
+import { fetchEstados, fetchProductos, fetchTipoMaterial, type CatalogItem } from '../api/catalogApi'
+import { createOtDetalle, fetchOtByNumero, validateCuadreRuta, validateExisteCierreAlmacen } from '../api/otApi'
+
+type UnknownRecord = Record<string, unknown>
+
+type DetailNavState = {
+  numeroOrden?: string
+  clienteNro?: string
+  fecha?: string
+  tor?: string
+  grupo?: string
+  tecnicoNombre?: string
+  idRuta?: string
+  idSucursal?: string
+  rowData?: UnknownRecord
+}
 
 type MaterialRow = {
   id: string
+  idProducto: number
   producto: string
   serie: string
   chipId: string
   cantidad: number
-  tipoMaterialId: string
+  idTipoMaterial: number
   tipoMaterialLabel: string
   entregado: boolean
 }
 
+type ProductMeta = {
+  id: string
+  label: string
+  digitosImei: number
+  digitosChipId: number
+  mascaraSerie: string
+  mascaraChipId: string
+  esSerializado: boolean
+}
+
 const normalizeKey = (value: string): string => value.replace(/[_\-\s]/g, '').toLowerCase()
 
-const readCatalogValue = (row: CatalogItem, keys: string[]): unknown => {
+const readValue = (row: UnknownRecord, keys: string[]): unknown => {
   const normalizedKeys = keys.map(normalizeKey)
-  const rowEntries = Object.entries(row)
   for (const key of keys) {
     const value = row[key]
     if (value !== undefined && value !== null && value !== '') return value
   }
-  for (const [entryKey, entryValue] of rowEntries) {
+  for (const [entryKey, entryValue] of Object.entries(row)) {
     if (!normalizedKeys.includes(normalizeKey(entryKey))) continue
     if (entryValue !== undefined && entryValue !== null && entryValue !== '') return entryValue
   }
   return undefined
 }
 
-const readCatalogString = (row: CatalogItem, keys: string[]): string => {
-  const value = readCatalogValue(row, keys)
+const readString = (row: UnknownRecord, keys: string[]): string => {
+  const value = readValue(row, keys)
   if (value === undefined || value === null) return ''
   return typeof value === 'string' ? value : String(value)
+}
+
+const readNumber = (row: UnknownRecord, keys: string[]): number | null => {
+  const value = readValue(row, keys)
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim())
+    return Number.isFinite(parsed) ? parsed : null
+  }
+  return null
+}
+
+const readBoolean = (row: UnknownRecord, keys: string[]): boolean | null => {
+  const value = readValue(row, keys)
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (['1', 'true', 'si', 'sí', 's', 'yes'].includes(normalized)) return true
+    if (['0', 'false', 'no', 'n'].includes(normalized)) return false
+  }
+  return null
 }
 
 const mapOptions = (
@@ -48,13 +97,80 @@ const mapOptions = (
 ): Array<{ value: string; label: string }> => {
   return items
     .map((item) => {
-      const id = readCatalogValue(item, idKeys)
+      const id = readValue(item, idKeys)
       if (id === undefined || id === null || id === '') return null
-      const label = readCatalogString(item, labelKeys)
+      const label = readString(item, labelKeys)
       return { value: String(id), label: label || String(id) }
     })
     .filter((item): item is { value: string; label: string } => Boolean(item))
 }
+
+const toIsoDateParam = (value?: string): string => {
+  const raw = (value ?? '').trim()
+  if (!raw) return ''
+  const iso = raw.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`
+  const dmy = raw.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
+  if (dmy) return `${dmy[3]}-${dmy[2]}-${dmy[1]}`
+  const parsed = new Date(raw)
+  if (Number.isNaN(parsed.getTime())) return raw
+  const year = String(parsed.getFullYear())
+  const month = String(parsed.getMonth() + 1).padStart(2, '0')
+  const day = String(parsed.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const buildFallbackMask = (digits: number): string => {
+  if (!Number.isFinite(digits) || digits <= 0) return ''
+  return '0'.repeat(digits)
+}
+
+const isMaskToken = (char: string): boolean => ['0', '9', '#', 'A', 'a', 'L', '?', '&', 'C'].includes(char)
+
+const isValidMaskChar = (maskChar: string, valueChar: string): boolean => {
+  if (['0', '9', '#'].includes(maskChar)) return /\d/.test(valueChar)
+  if (['A', 'a', 'L', '?'].includes(maskChar)) return /[a-z]/i.test(valueChar)
+  if (['&', 'C'].includes(maskChar)) return /[a-z0-9]/i.test(valueChar)
+  return true
+}
+
+const normalizeMaskChar = (maskChar: string, valueChar: string): string => {
+  if (['A', 'a', 'L', '?', '&', 'C'].includes(maskChar)) return valueChar.toUpperCase()
+  return valueChar
+}
+
+const applyMask = (rawValue: string, mask: string): string => {
+  if (!mask) return rawValue
+
+  const source = rawValue.replace(/\s+/g, '').toUpperCase()
+  let masked = ''
+  let sourceIndex = 0
+
+  for (let i = 0; i < mask.length; i += 1) {
+    const maskChar = mask[i]
+    if (!isMaskToken(maskChar)) {
+      if (sourceIndex >= source.length) break
+      masked += maskChar
+      continue
+    }
+
+    while (sourceIndex < source.length) {
+      const candidate = source[sourceIndex]
+      sourceIndex += 1
+      if (!isValidMaskChar(maskChar, candidate)) continue
+      masked += normalizeMaskChar(maskChar, candidate)
+      break
+    }
+
+    if (masked.length < i + 1) break
+  }
+
+  return masked
+}
+
+const countMaskTokens = (mask: string): number => Array.from(mask).filter((char) => isMaskToken(char)).length
+
+const countFilledMaskChars = (value: string): number => value.replace(/[^a-z0-9]/gi, '').length
 
 const defaultTipoMaterialOptions: Array<{ value: string; label: string }> = [
   { value: '1', label: 'Instalado' },
@@ -65,13 +181,14 @@ const defaultTipoMaterialOptions: Array<{ value: string; label: string }> = [
 const OtRealizadaPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
-  const navState = (location.state as { numeroOrden?: string } | null) ?? null
+  const navState = (location.state as DetailNavState | null) ?? null
+  const rowData = navState?.rowData ?? null
+  const numeroOrden = (navState?.numeroOrden ?? '').trim()
 
-  const [numeroOrden, setNumeroOrden] = useState((navState?.numeroOrden ?? '').trim())
   const [idEstado, setIdEstado] = useState('')
-  const [observacion, setObservacion] = useState('')
+  const observacion = ''
   const [tipoMaterialId, setTipoMaterialId] = useState('')
-  const [producto, setProducto] = useState('')
+  const [productoId, setProductoId] = useState('')
   const [serie, setSerie] = useState('')
   const [chipId, setChipId] = useState('')
   const [cantidad, setCantidad] = useState('1')
@@ -79,14 +196,56 @@ const OtRealizadaPage = () => {
   const [materialRows, setMaterialRows] = useState<MaterialRow[]>([])
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isPrevalidating, setIsPrevalidating] = useState(false)
+  const tipoMaterialSelectRef = useRef<HTMLSelectElement | null>(null)
+  const productoSelectRef = useRef<HTMLSelectElement | null>(null)
+  const serieInputRef = useRef<HTMLInputElement | null>(null)
+  const chipIdInputRef = useRef<HTMLInputElement | null>(null)
+  const cantidadInputRef = useRef<HTMLInputElement | null>(null)
+
+  const ventaQuery = useQuery({
+    queryKey: ['ot-detalle-venta', numeroOrden],
+    enabled: Boolean(numeroOrden),
+    queryFn: () => fetchOtByNumero(numeroOrden),
+  })
+
+  const venta = ventaQuery.data ?? null
+  const idRuta = useMemo(
+    () =>
+      (venta ? readNumber(venta, ['idRuta', 'Id_Ruta', 'id_ruta']) : null) ??
+      (rowData ? readNumber(rowData, ['idRuta', 'Id_Ruta', 'id_ruta', 'idGrupo', 'Id_Grupo', 'id_grupo']) : null) ??
+      (navState?.idRuta ? Number(navState.idRuta) : null),
+    [navState?.idRuta, rowData, venta]
+  )
+  const fechaTrabajo = useMemo(() => {
+    const fromVenta = venta ? readString(venta, ['fechaEjecucion', 'Fecha_Ejecucion', 'Fecha_Ejecucion']) : ''
+    const fromState = navState?.fecha ?? ''
+    return toIsoDateParam(fromVenta || fromState)
+  }, [navState?.fecha, venta])
+  const clienteVisible = useMemo(() => {
+    if (venta) {
+      const value = readNumber(venta, ['codigoCliente', 'CodigoCliente', 'clienteNro', 'Cliente_Nro'])
+      if (value !== null) return String(value)
+    }
+    return (navState?.clienteNro ?? '').trim()
+  }, [navState?.clienteNro, venta])
+  const tipoServicioId = useMemo(
+    () => (venta ? readNumber(venta, ['idTipoServicio', 'Id_TipoServicio', 'id_tiposervicio']) : null) ?? 1,
+    [venta]
+  )
 
   const estadosQuery = useQuery({
     queryKey: ['catalogos-estados-ot-detalle'],
     queryFn: fetchEstados,
   })
+  const productosQuery = useQuery({
+    queryKey: ['catalogos-productos-ot-detalle'],
+    queryFn: fetchProductos,
+  })
   const tipoMaterialQuery = useQuery({
-    queryKey: ['catalogos-tipo-material-ot-detalle'],
-    queryFn: () => fetchTipoMaterial(1),
+    queryKey: ['catalogos-tipo-material-ot-detalle', tipoServicioId],
+    queryFn: () => fetchTipoMaterial(tipoServicioId),
+    enabled: Boolean(tipoServicioId && tipoServicioId > 0),
   })
 
   const estadoOptions = useMemo(
@@ -98,6 +257,51 @@ const OtRealizadaPage = () => {
       ),
     [estadosQuery.data]
   )
+  const productoOptions = useMemo(
+    () =>
+      mapOptions(
+        productosQuery.data ?? [],
+        ['idProducto', 'Id_Producto', 'id_producto', 'id', 'Id'],
+        ['producto', 'Producto', 'nombre', 'Nombre', 'descripcion', 'Descripcion']
+      ),
+    [productosQuery.data]
+  )
+  const productMetas = useMemo<ProductMeta[]>(() => {
+    return (productosQuery.data ?? [])
+      .map((item) => {
+        const id = readValue(item, ['idProducto', 'Id_Producto', 'id_producto', 'id', 'Id'])
+        if (id === undefined || id === null || id === '') return null
+
+        const digitosImei = readNumber(item, ['digitosImei', 'DigitosImei', 'digitos_imei', 'cantidadDigitosImei']) ?? 0
+        const digitosChipId = readNumber(item, ['digitosChipId', 'DigitosChipId', 'digitos_chipid', 'cantidadDigitosChipId']) ?? 0
+        const mascaraSerie =
+          readString(item, ['mascara', 'Mascara', 'mask', 'Mask', 'mascaraSerie', 'MascaraSerie']) || buildFallbackMask(digitosImei)
+        const mascaraChipId =
+          readString(item, ['mascaraChipId', 'MascaraChipId', 'mascaraChipID', 'MascaraChipID']) || buildFallbackMask(digitosChipId)
+        const esSerializado =
+          digitosImei > 0 ||
+          readBoolean(item, ['esSerializado', 'EsSerializado', 'serializado', 'Serializado', 'tieneSerial', 'TieneSerial']) === true
+
+        return {
+          id: String(id),
+          label: readString(item, ['producto', 'Producto', 'nombre', 'Nombre', 'descripcion', 'Descripcion']) || String(id),
+          digitosImei,
+          digitosChipId,
+          mascaraSerie,
+          mascaraChipId,
+          esSerializado,
+        }
+      })
+      .filter((item): item is ProductMeta => Boolean(item))
+  }, [productosQuery.data])
+  const selectedProductMeta = useMemo(
+    () => productMetas.find((item) => item.id === productoId) ?? null,
+    [productMetas, productoId]
+  )
+  const serieMask = selectedProductMeta?.mascaraSerie ?? ''
+  const chipIdMask = selectedProductMeta?.mascaraChipId ?? ''
+  const isSerialProduct = selectedProductMeta?.esSerializado ?? false
+  const canUseChipId = isSerialProduct && (selectedProductMeta?.digitosChipId ?? 0) > 0
   const tipoMaterialOptions = useMemo(() => {
     const mapped = mapOptions(
       tipoMaterialQuery.data ?? [],
@@ -106,6 +310,52 @@ const OtRealizadaPage = () => {
     )
     return mapped.length > 0 ? mapped : defaultTipoMaterialOptions
   }, [tipoMaterialQuery.data])
+
+  useEffect(() => {
+    if (!idEstado && estadoOptions.length > 0) {
+      setIdEstado(estadoOptions[0].value)
+    }
+  }, [estadoOptions, idEstado])
+
+  useEffect(() => {
+    if (!tipoMaterialId || productoId) return
+
+    requestAnimationFrame(() => {
+      productoSelectRef.current?.focus()
+    })
+  }, [tipoMaterialId, productoId])
+
+  useEffect(() => {
+    if (!productoId) {
+      setSerie('')
+      setChipId('')
+      setCantidad('1')
+      return
+    }
+
+    setSerie('')
+    setChipId('')
+    if (isSerialProduct) {
+      setCantidad('1')
+      return
+    }
+
+    setCantidad('1')
+  }, [productoId, isSerialProduct, canUseChipId])
+
+  useEffect(() => {
+    if (!tipoMaterialId || !productoId) return
+
+    requestAnimationFrame(() => {
+      if (isSerialProduct) {
+        serieInputRef.current?.focus()
+        return
+      }
+
+      cantidadInputRef.current?.focus()
+      cantidadInputRef.current?.select()
+    })
+  }, [tipoMaterialId, productoId, isSerialProduct])
 
   const columns = useMemo<Column<MaterialRow>[]>(
     () => [
@@ -119,13 +369,7 @@ const OtRealizadaPage = () => {
         key: 'acciones',
         header: 'Accion',
         render: (row) => (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setMaterialRows((prev) => prev.filter((item) => item.id !== row.id))
-            }}
-          >
+          <Button type="button" variant="secondary" onClick={() => setMaterialRows((prev) => prev.filter((item) => item.id !== row.id))}>
             Quitar
           </Button>
         ),
@@ -136,7 +380,7 @@ const OtRealizadaPage = () => {
 
   const resetMaterialForm = () => {
     setTipoMaterialId('')
-    setProducto('')
+    setProductoId('')
     setSerie('')
     setChipId('')
     setCantidad('1')
@@ -146,20 +390,43 @@ const OtRealizadaPage = () => {
   const addMaterial = () => {
     setSuccess(null)
     setError(null)
-
     const cantidadNum = Number(cantidad)
-    if (!tipoMaterialId || !producto.trim() || !Number.isFinite(cantidadNum) || cantidadNum <= 0) {
-      setError('Para agregar material: Tipo Material, Producto y Cantidad > 0 son obligatorios.')
+    const parsedProducto = Number(productoId)
+    const parsedTipoMaterial = Number(tipoMaterialId)
+    if (!Number.isFinite(parsedProducto) || parsedProducto <= 0 || !Number.isFinite(parsedTipoMaterial) || parsedTipoMaterial <= 0) {
+      setError('Producto y Tipo Material son obligatorios.')
       return
     }
-
+    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) {
+      setError('La cantidad debe ser mayor a 0.')
+      return
+    }
     const serieTrim = serie.trim()
     const chipTrim = chipId.trim()
-    if (!serieTrim && !chipTrim) {
-      setError('Debes ingresar Serie o ChipID.')
+    if (isSerialProduct && serieMask) {
+      const expectedLength = countMaskTokens(serieMask)
+      const filledLength = countFilledMaskChars(serieTrim)
+      if (filledLength > 0 && filledLength < expectedLength) {
+        setError(`La serie debe completar la mascara ${serieMask}.`)
+        return
+      }
+    }
+    if (canUseChipId && chipIdMask) {
+      const expectedLength = countMaskTokens(chipIdMask)
+      const filledLength = countFilledMaskChars(chipTrim)
+      if (filledLength > 0 && filledLength < expectedLength) {
+        setError(`El ChipID debe completar la mascara ${chipIdMask}.`)
+        return
+      }
+    }
+    if (isSerialProduct && !serieTrim) {
+      setError('Debes ingresar la Serie del producto.')
       return
     }
-
+    if (!isSerialProduct && chipTrim) {
+      setError('Este producto no maneja ChipID.')
+      return
+    }
     const duplicate = materialRows.some(
       (row) =>
         (serieTrim && row.serie.toLowerCase() === serieTrim.toLowerCase()) ||
@@ -169,99 +436,150 @@ const OtRealizadaPage = () => {
       setError('La Serie o el ChipID ya fueron agregados.')
       return
     }
-
+    const productoLabel = productoOptions.find((option) => option.value === productoId)?.label ?? productoId
     const tipoMaterialLabel = tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label ?? tipoMaterialId
-    const next: MaterialRow = {
-      id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-      producto: producto.trim(),
-      serie: serieTrim,
-      chipId: chipTrim,
-      cantidad: cantidadNum,
-      tipoMaterialId,
-      tipoMaterialLabel,
-      entregado,
-    }
-    setMaterialRows((prev) => [...prev, next])
+    setMaterialRows((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        idProducto: parsedProducto,
+        producto: productoLabel,
+        serie: serieTrim,
+        chipId: chipTrim,
+        cantidad: cantidadNum,
+        idTipoMaterial: parsedTipoMaterial,
+        tipoMaterialLabel,
+        entregado,
+      },
+    ])
     resetMaterialForm()
   }
 
+  const runPrevalidations = async (): Promise<boolean> => {
+    if (!idRuta || idRuta <= 0) {
+      setError('No se pudo resolver la ruta para validar cierre y cuadre.')
+      return false
+    }
+    setIsPrevalidating(true)
+    try {
+      const [cierreAgenda, hasCuadreRuta] = await Promise.all([
+        validateExisteCierreAlmacen({ fecha: fechaTrabajo }),
+        validateCuadreRuta({ idRuta, fecha: fechaTrabajo }),
+      ])
+      if (cierreAgenda.bloqueado) {
+        setError(cierreAgenda.mensaje || 'No se puede registrar el detalle porque existe cierre de almacen.')
+        return false
+      }
+      if (hasCuadreRuta) {
+        setError('No se puede registrar el detalle porque la ruta ya realizo cuadre.')
+        return false
+      }
+      return true
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message ?? 'No se pudo validar cierre/cuadre antes del registro.')
+      } else {
+        setError('No se pudo validar cierre/cuadre antes del registro.')
+      }
+      return false
+    } finally {
+      setIsPrevalidating(false)
+    }
+  }
+
   const mutation = useMutation({
-    mutationFn: createOtRealizada,
-    onSuccess: () => {
+    mutationFn: createOtDetalle,
+    onSuccess: (data) => {
       setError(null)
-      setSuccess(
-        materialRows.length > 0
-          ? 'Cabecera guardada. El detalle de materiales queda en UI hasta conectar API de detalle.'
-          : 'Cabecera guardada correctamente.'
-      )
+      setSuccess(`Detalle registrado correctamente. IdVenta: ${data.idVenta ?? '-'} | OT: ${data.numeroOrden ?? numeroOrden}`)
+      setMaterialRows([])
+      resetMaterialForm()
     },
-    onError: () => {
+    onError: (err) => {
       setSuccess(null)
-      setError('No se pudo guardar. Verifica los datos de la cabecera.')
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message ?? 'No se pudo guardar el detalle.')
+        return
+      }
+      setError('No se pudo guardar el detalle.')
     },
   })
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSuccess(null)
     setError(null)
-
     const parsedEstado = Number(idEstado)
-    if (!numeroOrden.trim() || !Number.isFinite(parsedEstado) || !observacion.trim()) {
-      setError('Numero de OT, estado y observacion son requeridos.')
+    if (!numeroOrden) {
+      setError('No se encontro numero de OT para registrar el detalle.')
       return
     }
-
+    if (!Number.isFinite(parsedEstado) || parsedEstado <= 0) {
+      setError('Estado es requerido.')
+      return
+    }
+    if (materialRows.length === 0) {
+      setError('Debes agregar al menos un material.')
+      return
+    }
+    const canContinue = await runPrevalidations()
+    if (!canContinue) return
     mutation.mutate({
-      numeroOrden: numeroOrden.trim(),
+      numeroOrden,
       idEstado: parsedEstado,
       observacion: observacion.trim(),
+      materiales: materialRows.map((row) => ({
+        idProducto: row.idProducto,
+        idTipoMaterial: row.idTipoMaterial,
+        serie: row.serie,
+        chipId: row.chipId,
+        cantidad: row.cantidad,
+        entregado: row.entregado,
+      })),
     })
   }
+
+  const headerWarning = useMemo(() => {
+    if (!numeroOrden) return 'No se recibio numero de OT desde la grilla.'
+    if (ventaQuery.isError) return 'No se pudo obtener la cabecera real de la venta para esta OT.'
+    return null
+  }, [numeroOrden, ventaQuery.isError])
 
   return (
     <div className="bento-page">
       <div className="bento-page-head">
         <h2 className="text-2xl font-semibold text-slate-900">RegistrarOrdenAgenda_Detalle</h2>
-        <p className="text-sm text-slate-500">Registro de OT y detalle de materiales usados.</p>
+        <p className="text-sm text-slate-500">Registro de materiales usados para una OT ya creada.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <FormCard title="Cabecera" description="Datos generales de la orden.">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Field label="Nro Orden">
-              <input className="input-base" value={numeroOrden} onChange={(event) => setNumeroOrden(event.target.value)} />
-            </Field>
-            <Field label="Estado">
-              <select
-                className="input-base"
-                value={idEstado}
-                onChange={(event) => setIdEstado(event.target.value)}
-                disabled={estadosQuery.isLoading}
-              >
-                <option value="">{estadosQuery.isLoading ? 'Cargando estados...' : 'Selecciona estado'}</option>
-                {estadoOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Observacion">
-              <input className="input-base" value={observacion} onChange={(event) => setObservacion(event.target.value)} />
-            </Field>
+        <FormCard>
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
+              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={numeroOrden} disabled />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Cod Cliente</label>
+              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={clienteVisible} disabled />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Fecha</label>
+              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={fechaTrabajo} disabled />
+            </div>
           </div>
         </FormCard>
 
-        <FormCard title="Materiales" description="Carga de productos usados en la OT.">
-          <div className="grid gap-4 xl:grid-cols-[18rem_1fr]">
+        <FormCard title="Materiales" description="Carga del detalle que se registrara en codigo venta.">
+          <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
             <div className="space-y-3">
               <Field label="Tipo Material">
                 <select
+                  ref={tipoMaterialSelectRef}
                   className="input-base"
                   value={tipoMaterialId}
                   onChange={(event) => setTipoMaterialId(event.target.value)}
-                  disabled={tipoMaterialQuery.isLoading}
+                  disabled={tipoMaterialQuery.isLoading || Boolean(tipoMaterialId)}
                 >
                   <option value="">{tipoMaterialQuery.isLoading ? 'Cargando tipos...' : 'Selecciona tipo material'}</option>
                   {tipoMaterialOptions.map((option) => (
@@ -272,22 +590,51 @@ const OtRealizadaPage = () => {
                 </select>
               </Field>
               <Field label="Producto">
-                <input className="input-base" value={producto} onChange={(event) => setProducto(event.target.value)} />
+                <select
+                  ref={productoSelectRef}
+                  className="input-base"
+                  value={productoId}
+                  onChange={(event) => setProductoId(event.target.value)}
+                  disabled={productosQuery.isLoading}
+                >
+                  <option value="">{productosQuery.isLoading ? 'Cargando productos...' : 'Selecciona producto'}</option>
+                  {productoOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </Field>
-              <Field label="Serie">
-                <input className="input-base" value={serie} onChange={(event) => setSerie(event.target.value)} placeholder="TIG-____-______" />
+              <Field label="Serie" hint={isSerialProduct && serieMask ? `Mascara: ${serieMask}` : undefined}>
+                <input
+                  ref={serieInputRef}
+                  className={`input-base ${!isSerialProduct ? 'bg-slate-50 text-slate-400' : ''}`}
+                  value={serie}
+                  onChange={(event) => setSerie(isSerialProduct ? applyMask(event.target.value, serieMask) : event.target.value)}
+                  placeholder={isSerialProduct && serieMask ? serieMask : undefined}
+                  disabled={!isSerialProduct}
+                />
               </Field>
-              <Field label="ChipID">
-                <input className="input-base" value={chipId} onChange={(event) => setChipId(event.target.value)} />
+              <Field label="ChipID" hint={canUseChipId && chipIdMask ? `Mascara: ${chipIdMask}` : undefined}>
+                <input
+                  ref={chipIdInputRef}
+                  className={`input-base ${!canUseChipId ? 'bg-slate-50 text-slate-400' : ''}`}
+                  value={chipId}
+                  onChange={(event) => setChipId(canUseChipId ? applyMask(event.target.value, chipIdMask) : event.target.value)}
+                  placeholder={canUseChipId && chipIdMask ? chipIdMask : undefined}
+                  disabled={!canUseChipId}
+                />
               </Field>
               <Field label="Cantidad">
                 <input
-                  className="input-base text-right"
+                  ref={cantidadInputRef}
+                  className={`input-base text-right ${isSerialProduct ? 'bg-slate-50 text-slate-400' : ''}`}
                   type="number"
                   min="0"
                   step="0.01"
                   value={cantidad}
                   onChange={(event) => setCantidad(event.target.value)}
+                  disabled={isSerialProduct}
                 />
               </Field>
               <div className="flex flex-wrap gap-4 text-sm text-slate-700">
@@ -316,19 +663,18 @@ const OtRealizadaPage = () => {
           </div>
         </FormCard>
 
-        {error ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+        {headerWarning ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{headerWarning}</div>
         ) : null}
-        {success ? (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div>
-        ) : null}
+        {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
+        {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
 
         <div className="flex justify-end gap-2">
-          <Button type="button" variant="secondary" onClick={() => navigate(-1)} disabled={mutation.isPending}>
+          <Button type="button" variant="secondary" onClick={() => navigate(-1)} disabled={mutation.isPending || isPrevalidating}>
             Volver
           </Button>
-          <Button type="submit" disabled={mutation.isPending}>
-            {mutation.isPending ? 'Guardando...' : 'Guardar'}
+          <Button type="submit" disabled={mutation.isPending || isPrevalidating || ventaQuery.isLoading || !numeroOrden}>
+            {mutation.isPending || isPrevalidating ? 'Guardando...' : 'Guardar Detalle'}
           </Button>
         </div>
       </form>
