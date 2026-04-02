@@ -2882,9 +2882,9 @@ const ConformacionCuadrillaPage = () => {
               const issue = rowIssues[index]
               const shouldHighlightRowIssue = Boolean(issue?.hasIssue) && showStrictValidation && !isLocalViewMode
               const isLocalMissingInfo = Boolean(issue?.missingFields?.length) && isLocalViewMode
-              // Mantener el mismo set de campos en vista previa y en edicion
-              // para evitar saltos visuales al presionar "Editar".
-              const isCompactEditMode = true
+              // Mostrar el formulario completo para que todos los datos
+              // editables queden disponibles en el mismo flujo.
+              const isCompactEditMode = false
               const rowVehiculoOptions = row.idTecnico ? vehiculoOptionsByTecnico.get(row.idTecnico) ?? [] : []
               const rowVehiculoByValue = new Set(rowVehiculoOptions.map((option) => option.value))
               const isVehiculosLoading =

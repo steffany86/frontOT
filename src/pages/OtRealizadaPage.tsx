@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import axios from 'axios'
@@ -6,7 +6,16 @@ import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
 import Table, { type Column } from '../components/common/Table'
-import { fetchEstados, fetchProductos, fetchTipoMaterial, type CatalogItem } from '../api/catalogApi'
+import {
+  fetchChipIdBySerie,
+  fetchEstados,
+  fetchProductos,
+  fetchProductosMascara,
+  fetchTipoMaterial,
+  validarSerieSaldo,
+  validarSerieChipUnico,
+  type CatalogItem,
+} from '../api/catalogApi'
 import { createOtDetalle, fetchOtByNumero, validateCuadreRuta, validateExisteCierreAlmacen } from '../api/otApi'
 
 type UnknownRecord = Record<string, unknown>
@@ -84,7 +93,7 @@ const readBoolean = (row: UnknownRecord, keys: string[]): boolean | null => {
   if (typeof value === 'number') return value !== 0
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase()
-    if (['1', 'true', 'si', 'sí', 's', 'yes'].includes(normalized)) return true
+    if (['1', 'true', 'si', 'sÃ­', 's', 'yes'].includes(normalized)) return true
     if (['0', 'false', 'no', 'n'].includes(normalized)) return false
   }
   return null
@@ -172,6 +181,46 @@ const countMaskTokens = (mask: string): number => Array.from(mask).filter((char)
 
 const countFilledMaskChars = (value: string): number => value.replace(/[^a-z0-9]/gi, '').length
 
+const productMaskIdKeys = ['idProducto', 'Id_Producto', 'id_producto', 'id', 'Id', 'productoId']
+const productMaskSerieKeys = ['mascaraSerie', 'MascaraSerie', 'maskSerie', 'MaskSerie', 'mascara', 'Mascara', 'formatoSerie', 'FormatoSerie', 'formato', 'Formato']
+const productMaskChipKeys = [
+  'mascaraChipId',
+  'MascaraChipId',
+  'mascaraChipID',
+  'MascaraChipID',
+  'maskChipId',
+  'MaskChipId',
+  'chipMascara',
+  'ChipMascara',
+  'formatoChip',
+  'FormatoChip',
+  'chipFormato',
+  'ChipFormato',
+]
+const productMaskImeiDigitKeys = [
+  'digitosImei',
+  'DigitosImei',
+  'digitos_imei',
+  'cantidadDigitosImei',
+  'cantidad_digitos_imei',
+  'serieLength',
+  'SerieLength',
+  'longitudSerie',
+  'LongitudSerie',
+  'cantidadCaracteresSerie',
+]
+const productMaskChipDigitKeys = [
+  'digitosChipId',
+  'DigitosChipId',
+  'digitos_chipid',
+  'cantidadDigitosChipId',
+  'cantidad_digitos_chipid',
+  'chipLength',
+  'ChipLength',
+  'longitudChip',
+  'LongitudChip',
+]
+
 const defaultTipoMaterialOptions: Array<{ value: string; label: string }> = [
   { value: '1', label: 'Instalado' },
   { value: '2', label: 'Retirado' },
@@ -192,16 +241,25 @@ const OtRealizadaPage = () => {
   const [serie, setSerie] = useState('')
   const [chipId, setChipId] = useState('')
   const [cantidad, setCantidad] = useState('1')
-  const [entregado, setEntregado] = useState(false)
+  const [entregado, setEntregado] = useState(true)
   const [materialRows, setMaterialRows] = useState<MaterialRow[]>([])
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [serieValidationError, setSerieValidationError] = useState<string | null>(null)
+  const [productoBloqueado, setProductoBloqueado] = useState(false)
+  const [serieCamposBloqueados, setSerieCamposBloqueados] = useState(false)
+  const [chipCamposBloqueados, setChipCamposBloqueados] = useState(false)
+  const [allowManualChipId, setAllowManualChipId] = useState(false)
+  const [chipUniquenessState, setChipUniquenessState] = useState<'idle' | 'valid' | 'invalid'>('idle')
   const [isPrevalidating, setIsPrevalidating] = useState(false)
+  const [isAddingMaterial, setIsAddingMaterial] = useState(false)
   const tipoMaterialSelectRef = useRef<HTMLSelectElement | null>(null)
   const productoSelectRef = useRef<HTMLSelectElement | null>(null)
   const serieInputRef = useRef<HTMLInputElement | null>(null)
   const chipIdInputRef = useRef<HTMLInputElement | null>(null)
   const cantidadInputRef = useRef<HTMLInputElement | null>(null)
+  const addButtonRef = useRef<HTMLButtonElement | null>(null)
+  const lastValidatedSerieRef = useRef<{ key: string; sePuede: boolean } | null>(null)
 
   const ventaQuery = useQuery({
     queryKey: ['ot-detalle-venta', numeroOrden],
@@ -247,6 +305,10 @@ const OtRealizadaPage = () => {
     queryFn: () => fetchTipoMaterial(tipoServicioId),
     enabled: Boolean(tipoServicioId && tipoServicioId > 0),
   })
+  const productosMascaraQuery = useQuery({
+    queryKey: ['catalogos-productos-mascara'],
+    queryFn: fetchProductosMascara,
+  })
 
   const estadoOptions = useMemo(
     () =>
@@ -266,18 +328,34 @@ const OtRealizadaPage = () => {
       ),
     [productosQuery.data]
   )
+  const productoMascaraMap = useMemo(() => {
+    const map = new Map<string, CatalogItem>()
+    for (const item of productosMascaraQuery.data ?? []) {
+      const idValue = readValue(item, productMaskIdKeys)
+      if (idValue === undefined || idValue === null || idValue === '') continue
+      map.set(String(idValue), item)
+    }
+    return map
+  }, [productosMascaraQuery.data])
   const productMetas = useMemo<ProductMeta[]>(() => {
     return (productosQuery.data ?? [])
       .map((item) => {
         const id = readValue(item, ['idProducto', 'Id_Producto', 'id_producto', 'id', 'Id'])
         if (id === undefined || id === null || id === '') return null
 
-        const digitosImei = readNumber(item, ['digitosImei', 'DigitosImei', 'digitos_imei', 'cantidadDigitosImei']) ?? 0
-        const digitosChipId = readNumber(item, ['digitosChipId', 'DigitosChipId', 'digitos_chipid', 'cantidadDigitosChipId']) ?? 0
-        const mascaraSerie =
-          readString(item, ['mascara', 'Mascara', 'mask', 'Mask', 'mascaraSerie', 'MascaraSerie']) || buildFallbackMask(digitosImei)
-        const mascaraChipId =
-          readString(item, ['mascaraChipId', 'MascaraChipId', 'mascaraChipID', 'MascaraChipID']) || buildFallbackMask(digitosChipId)
+        const maskEntry = productoMascaraMap.get(String(id))
+        const digitosImeiProduct = readNumber(item, productMaskImeiDigitKeys) ?? 0
+        const digitosChipProduct = readNumber(item, productMaskChipDigitKeys) ?? 0
+        const digitosImeiMask = maskEntry ? readNumber(maskEntry, productMaskImeiDigitKeys) : null
+        const digitosChipMask = maskEntry ? readNumber(maskEntry, productMaskChipDigitKeys) : null
+        const digitosImei = digitosImeiMask ?? digitosImeiProduct
+        const digitosChipId = digitosChipMask ?? digitosChipProduct
+        const mascaraSerieFromProduct = readString(item, productMaskSerieKeys)
+        const mascaraSerieFromMask = maskEntry ? readString(maskEntry, productMaskSerieKeys) : ''
+        const mascaraChipFromProduct = readString(item, productMaskChipKeys)
+        const mascaraChipFromMask = maskEntry ? readString(maskEntry, productMaskChipKeys) : ''
+        const mascaraSerie = mascaraSerieFromMask || mascaraSerieFromProduct || buildFallbackMask(digitosImei)
+        const mascaraChipId = mascaraChipFromMask || mascaraChipFromProduct || buildFallbackMask(digitosChipId)
         const esSerializado =
           digitosImei > 0 ||
           readBoolean(item, ['esSerializado', 'EsSerializado', 'serializado', 'Serializado', 'tieneSerial', 'TieneSerial']) === true
@@ -293,15 +371,44 @@ const OtRealizadaPage = () => {
         }
       })
       .filter((item): item is ProductMeta => Boolean(item))
-  }, [productosQuery.data])
+  }, [productosQuery.data, productoMascaraMap])
   const selectedProductMeta = useMemo(
     () => productMetas.find((item) => item.id === productoId) ?? null,
     [productMetas, productoId]
   )
+  const lockProducto = () => {
+    if (productoId && !productoBloqueado) {
+      setProductoBloqueado(true)
+    }
+  }
+
+  const handleSerieFocus = () => {
+    lockProducto()
+  }
+
+  const handleCantidadFocus = () => {
+    lockProducto()
+  }
+
+  const handleChipBlur = () => {
+    if (chipId.trim()) {
+      void validateChipUniqueness(chipId)
+    }
+  }
+  const enterManualChipMode = () => {
+    setChipId('')
+    setSerieCamposBloqueados(true)
+    setChipCamposBloqueados(false)
+    setAllowManualChipId(true)
+    setChipUniquenessState('idle')
+    requestAnimationFrame(() => {
+      chipIdInputRef.current?.focus()
+    })
+  }
   const serieMask = selectedProductMeta?.mascaraSerie ?? ''
   const chipIdMask = selectedProductMeta?.mascaraChipId ?? ''
   const isSerialProduct = selectedProductMeta?.esSerializado ?? false
-  const canUseChipId = isSerialProduct && (selectedProductMeta?.digitosChipId ?? 0) > 0
+  const canUseChipId = (isSerialProduct && (selectedProductMeta?.digitosChipId ?? 0) > 0) || allowManualChipId
   const tipoMaterialOptions = useMemo(() => {
     const mapped = mapOptions(
       tipoMaterialQuery.data ?? [],
@@ -310,6 +417,278 @@ const OtRealizadaPage = () => {
     )
     return mapped.length > 0 ? mapped : defaultTipoMaterialOptions
   }, [tipoMaterialQuery.data])
+  const selectedTipoMaterialLabel =
+    tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label?.toLowerCase() ?? ''
+  const isRetiredMaterial =
+    selectedTipoMaterialLabel.includes('retirado') ||
+    selectedTipoMaterialLabel.includes('no entregado') ||
+    selectedTipoMaterialLabel.includes('noentregado')
+  const serieDisabled = !isSerialProduct || serieCamposBloqueados
+  const chipDisabled = !canUseChipId || chipCamposBloqueados
+  const serieDigitsRequired = selectedProductMeta?.digitosImei ?? 0
+  const chipDigitsRequired = selectedProductMeta?.digitosChipId ?? 0
+  const serieDigitsComplete =
+    !isSerialProduct || serieDigitsRequired <= 0 || countFilledMaskChars(serie.trim()) === serieDigitsRequired
+  const chipDigitsComplete =
+    !canUseChipId || chipDigitsRequired <= 0 || countFilledMaskChars(chipId.trim()) === chipDigitsRequired
+  const canAddMaterial =
+    !isAddingMaterial &&
+    Boolean(tipoMaterialId) &&
+    Boolean(productoId) &&
+    Number.isFinite(Number(cantidad)) &&
+    Number(cantidad) > 0 &&
+    serieDigitsComplete &&
+    chipDigitsComplete &&
+    (!canUseChipId || chipUniquenessState === 'valid') &&
+    (!isSerialProduct || Boolean(serie.trim())) &&
+    (!canUseChipId || Boolean(chipId.trim()))
+
+  const validateChipUniqueness = useCallback(
+    async (rawChip: string): Promise<boolean> => {
+      const chipTrimmed = rawChip.trim()
+      if (!chipTrimmed) {
+        setChipUniquenessState('idle')
+        return true
+      }
+
+      const serieTrimmed = serie.trim()
+      if (!serieTrimmed) {
+        setChipUniquenessState('idle')
+        return true
+      }
+
+      try {
+        const validation = await validarSerieChipUnico({
+          serie: serieTrimmed,
+          chipId: chipTrimmed,
+        })
+
+        if (validation.chipExiste && !validation.mismoRegistro) {
+          setChipUniquenessState('invalid')
+          setError('El ChipID ya esta registrado con otro serial.')
+          return false
+        }
+
+        setChipUniquenessState('valid')
+        if (error === 'El ChipID ya esta registrado con otro serial.') {
+          setError(null)
+        }
+        return true
+      } catch (validationError) {
+        console.error('No se pudo validar la unicidad del ChipID.', validationError)
+        setChipUniquenessState('invalid')
+        setError('No se pudo validar la unicidad del ChipID.')
+        return false
+      }
+    },
+    [error, serie, validarSerieChipUnico]
+  )
+
+  useEffect(() => {
+    const serieTrimmed = serie.trim()
+    const chipTrimmed = chipId.trim()
+    if (!canUseChipId || !serieTrimmed || !chipTrimmed || !serieDigitsComplete || !chipDigitsComplete) {
+      if (chipUniquenessState !== 'idle') {
+        setChipUniquenessState('idle')
+      }
+      return
+    }
+
+    if (chipUniquenessState === 'valid' || chipUniquenessState === 'invalid') {
+      return
+    }
+
+    const timer = window.setTimeout(() => {
+      void validateChipUniqueness(chipTrimmed)
+    }, 450)
+
+    return () => window.clearTimeout(timer)
+  }, [
+    canUseChipId,
+    chipDigitsComplete,
+    chipId,
+    chipUniquenessState,
+    serie,
+    serieDigitsComplete,
+    validateChipUniqueness,
+  ])
+
+  const validateSerieBalance = useCallback(
+    async (rawValue: string): Promise<boolean> => {
+      if (!isSerialProduct) {
+        setSerieValidationError(null)
+        return true
+      }
+
+      const trimmed = rawValue.trim()
+      if (!trimmed) {
+        setSerieValidationError(null)
+        lastValidatedSerieRef.current = null
+        setSerieCamposBloqueados(false)
+        setChipCamposBloqueados(false)
+        setAllowManualChipId(false)
+        setChipUniquenessState('idle')
+        return false
+      }
+
+      const currentKey = `${productoId}::${trimmed}`
+      if (lastValidatedSerieRef.current?.key === currentKey && lastValidatedSerieRef.current.sePuede) {
+        setSerieValidationError(null)
+        return true
+      }
+
+      if (serieMask) {
+        const expectedLength = countMaskTokens(serieMask)
+        if (expectedLength > 0) {
+          const filledLength = countFilledMaskChars(trimmed)
+          if (filledLength < expectedLength) {
+            setSerieValidationError(`La serie debe completar la mascara ${serieMask}.`)
+            setSerieCamposBloqueados(false)
+            setChipCamposBloqueados(false)
+            setAllowManualChipId(false)
+            setChipUniquenessState('idle')
+            return false
+          }
+        }
+      }
+
+      const parsedProducto = Number(productoId)
+      const parsedTipoMaterial = Number(tipoMaterialId)
+      if (!Number.isFinite(parsedProducto) || parsedProducto <= 0 || !Number.isFinite(parsedTipoMaterial) || parsedTipoMaterial <= 0) {
+        setSerieValidationError('Producto o Tipo Material invalido para validar la serie.')
+        setSerieCamposBloqueados(false)
+        setChipCamposBloqueados(false)
+        setAllowManualChipId(false)
+        setChipUniquenessState('idle')
+        return false
+      }
+
+      try {
+        const validation = await validarSerieSaldo({
+          serie: trimmed,
+          idProducto: parsedProducto,
+          idTipoMaterial: parsedTipoMaterial,
+          idRuta: idRuta ?? undefined,
+        })
+
+        if (!validation.sePuede) {
+          if (isRetiredMaterial) {
+            const observacion = validation.observacion?.toLowerCase() ?? ''
+            if (
+              observacion.includes('no se pudo validar') ||
+              observacion.includes('error en base de datos') ||
+              observacion.includes('no devolvio un conjunto de resultados') ||
+              observacion.includes('no existe')
+            ) {
+              setSerieValidationError(null)
+              lastValidatedSerieRef.current = { key: currentKey, sePuede: true }
+              enterManualChipMode()
+              setChipUniquenessState('idle')
+              return true
+            }
+          }
+
+          setSerieValidationError(validation.observacion ?? 'La serie no esta disponible en tu saldo.')
+          lastValidatedSerieRef.current = null
+          setSerieCamposBloqueados(false)
+          setChipCamposBloqueados(false)
+          setAllowManualChipId(false)
+          setChipUniquenessState('idle')
+          return false
+        }
+
+        lastValidatedSerieRef.current = { key: currentKey, sePuede: true }
+
+        if (canUseChipId && !chipId) {
+          let resolvedChip = validation.chipId
+          if (!resolvedChip) {
+            try {
+              const chipResponse = await fetchChipIdBySerie(trimmed)
+              resolvedChip = chipResponse.chipId
+            } catch (chipError) {
+              console.warn('No se pudo obtener chipId adicional', chipError)
+            }
+          }
+          if (resolvedChip) {
+            const formattedChip = chipIdMask ? applyMask(resolvedChip, chipIdMask) : resolvedChip
+            setChipId(formattedChip)
+          }
+        }
+
+        setSerieCamposBloqueados(true)
+        setChipCamposBloqueados(false)
+        setAllowManualChipId(false)
+        setChipUniquenessState('valid')
+        addButtonRef.current?.focus()
+        return true
+      } catch (validationError) {
+        console.error('No se pudo validar la serie contra el saldo.', validationError)
+        if (isRetiredMaterial) {
+          setSerieValidationError(null)
+          lastValidatedSerieRef.current = { key: currentKey, sePuede: true }
+          enterManualChipMode()
+          setChipUniquenessState('idle')
+          return true
+        }
+        setSerieValidationError('No se pudo validar la serie con el saldo.')
+        lastValidatedSerieRef.current = null
+        setSerieCamposBloqueados(false)
+        setChipCamposBloqueados(false)
+        setAllowManualChipId(false)
+        setChipUniquenessState('idle')
+        return false
+      }
+    },
+    [
+      canUseChipId,
+      chipId,
+      chipIdMask,
+      fetchChipIdBySerie,
+      idRuta,
+      isSerialProduct,
+      isRetiredMaterial,
+      productoId,
+      serieMask,
+      tipoMaterialId,
+      validarSerieSaldo,
+    ]
+  )
+
+  const ensureSerieValidated = useCallback(async (): Promise<boolean> => {
+    if (!isSerialProduct) return true
+    const trimmed = serie.trim()
+    if (!trimmed) {
+      setSerieValidationError('Debes ingresar la Serie del producto.')
+      return false
+    }
+    return validateSerieBalance(trimmed)
+  }, [isSerialProduct, serie, validateSerieBalance])
+
+  const handleSerieBlur = (): void => {
+    if (!isSerialProduct) return
+    const trimmed = serie.trim()
+    if (!trimmed) {
+      setSerieValidationError(null)
+      lastValidatedSerieRef.current = null
+      setSerieCamposBloqueados(false)
+      setChipCamposBloqueados(false)
+      setAllowManualChipId(false)
+      return
+    }
+    void validateSerieBalance(trimmed)
+  }
+
+  useEffect(() => {
+    lastValidatedSerieRef.current = null
+    setAllowManualChipId(false)
+    setChipUniquenessState('idle')
+  }, [productoId, tipoMaterialId])
+
+  useEffect(() => {
+    if (serieValidationError) {
+      setSerieValidationError(null)
+    }
+  }, [serie])
 
   useEffect(() => {
     if (!idEstado && estadoOptions.length > 0) {
@@ -330,11 +709,16 @@ const OtRealizadaPage = () => {
       setSerie('')
       setChipId('')
       setCantidad('1')
+      setAllowManualChipId(false)
       return
     }
 
     setSerie('')
     setChipId('')
+    setSerieCamposBloqueados(false)
+    setChipCamposBloqueados(false)
+    setAllowManualChipId(false)
+    setChipUniquenessState('idle')
     if (isSerialProduct) {
       setCantidad('1')
       return
@@ -342,6 +726,12 @@ const OtRealizadaPage = () => {
 
     setCantidad('1')
   }, [productoId, isSerialProduct, canUseChipId])
+
+  useEffect(() => {
+    if (!productoId && productoBloqueado) {
+      setProductoBloqueado(false)
+    }
+  }, [productoId, productoBloqueado])
 
   useEffect(() => {
     if (!tipoMaterialId || !productoId) return
@@ -356,6 +746,20 @@ const OtRealizadaPage = () => {
       cantidadInputRef.current?.select()
     })
   }, [tipoMaterialId, productoId, isSerialProduct])
+
+  useEffect(() => {
+    const selected = tipoMaterialOptions.find((option) => option.value === tipoMaterialId)
+    const label = selected?.label?.toLowerCase() ?? ''
+    if (label.includes('instalado')) {
+      setEntregado(true)
+      return
+    }
+    if (label.includes('retirado') || label.includes('no entregado') || label.includes('noentregado')) {
+      setEntregado(false)
+      return
+    }
+    setEntregado(true)
+  }, [tipoMaterialId, tipoMaterialOptions])
 
   const columns = useMemo<Column<MaterialRow>[]>(
     () => [
@@ -384,75 +788,95 @@ const OtRealizadaPage = () => {
     setSerie('')
     setChipId('')
     setCantidad('1')
-    setEntregado(false)
+    setEntregado(true)
+    setProductoBloqueado(false)
+    setSerieCamposBloqueados(false)
+    setChipCamposBloqueados(false)
+    setChipUniquenessState('idle')
+    setSerieValidationError(null)
   }
 
-  const addMaterial = () => {
-    setSuccess(null)
-    setError(null)
-    const cantidadNum = Number(cantidad)
-    const parsedProducto = Number(productoId)
-    const parsedTipoMaterial = Number(tipoMaterialId)
-    if (!Number.isFinite(parsedProducto) || parsedProducto <= 0 || !Number.isFinite(parsedTipoMaterial) || parsedTipoMaterial <= 0) {
-      setError('Producto y Tipo Material son obligatorios.')
-      return
-    }
-    if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) {
-      setError('La cantidad debe ser mayor a 0.')
-      return
-    }
-    const serieTrim = serie.trim()
-    const chipTrim = chipId.trim()
-    if (isSerialProduct && serieMask) {
-      const expectedLength = countMaskTokens(serieMask)
-      const filledLength = countFilledMaskChars(serieTrim)
-      if (filledLength > 0 && filledLength < expectedLength) {
-        setError(`La serie debe completar la mascara ${serieMask}.`)
+  const addMaterial = async () => {
+    setIsAddingMaterial(true)
+    try {
+      setSuccess(null)
+      setError(null)
+      const cantidadNum = Number(cantidad)
+      const parsedProducto = Number(productoId)
+      const parsedTipoMaterial = Number(tipoMaterialId)
+      if (!Number.isFinite(parsedProducto) || parsedProducto <= 0 || !Number.isFinite(parsedTipoMaterial) || parsedTipoMaterial <= 0) {
+        setError('Producto y Tipo Material son obligatorios.')
         return
       }
-    }
-    if (canUseChipId && chipIdMask) {
-      const expectedLength = countMaskTokens(chipIdMask)
-      const filledLength = countFilledMaskChars(chipTrim)
-      if (filledLength > 0 && filledLength < expectedLength) {
-        setError(`El ChipID debe completar la mascara ${chipIdMask}.`)
+      if (!Number.isFinite(cantidadNum) || cantidadNum <= 0) {
+        setError('La cantidad debe ser mayor a 0.')
         return
       }
+      const serieTrim = serie.trim()
+      const chipTrim = chipId.trim()
+      if (isSerialProduct && serieMask) {
+        const expectedLength = countMaskTokens(serieMask)
+        const filledLength = countFilledMaskChars(serieTrim)
+        if (filledLength > 0 && filledLength < expectedLength) {
+          setError(`La serie debe completar la mascara ${serieMask}.`)
+          return
+        }
+      }
+      if (canUseChipId && chipIdMask) {
+        const expectedLength = countMaskTokens(chipIdMask)
+        const filledLength = countFilledMaskChars(chipTrim)
+        if (filledLength > 0 && filledLength < expectedLength) {
+          setError(`El ChipID debe completar la mascara ${chipIdMask}.`)
+          return
+        }
+      }
+      if (isSerialProduct && !serieTrim) {
+        setError('Debes ingresar la Serie del producto.')
+        return
+      }
+      if (isRetiredMaterial && canUseChipId && !chipTrim) {
+        setError('Debes ingresar el ChipID del producto retirado.')
+        return
+      }
+      if (!canUseChipId && chipTrim) {
+        setError('Este producto no maneja ChipID.')
+        return
+      }
+      const serieValidated = await ensureSerieValidated()
+      if (!serieValidated) return
+      if ((isSerialProduct || canUseChipId) && chipTrim) {
+        const chipUnique = await validateChipUniqueness(chipTrim)
+        if (!chipUnique) return
+      }
+      const duplicate = materialRows.some(
+        (row) =>
+          (serieTrim && row.serie.toLowerCase() === serieTrim.toLowerCase()) ||
+          (chipTrim && row.chipId.toLowerCase() === chipTrim.toLowerCase())
+      )
+      if (duplicate) {
+        setError('La Serie o el ChipID ya fueron agregados.')
+        return
+      }
+      const productoLabel = productoOptions.find((option) => option.value === productoId)?.label ?? productoId
+      const tipoMaterialLabel = tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label ?? tipoMaterialId
+      setMaterialRows((prev) => [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          idProducto: parsedProducto,
+          producto: productoLabel,
+          serie: serieTrim,
+          chipId: chipTrim,
+          cantidad: cantidadNum,
+          idTipoMaterial: parsedTipoMaterial,
+          tipoMaterialLabel,
+          entregado,
+        },
+      ])
+      resetMaterialForm()
+    } finally {
+      setIsAddingMaterial(false)
     }
-    if (isSerialProduct && !serieTrim) {
-      setError('Debes ingresar la Serie del producto.')
-      return
-    }
-    if (!isSerialProduct && chipTrim) {
-      setError('Este producto no maneja ChipID.')
-      return
-    }
-    const duplicate = materialRows.some(
-      (row) =>
-        (serieTrim && row.serie.toLowerCase() === serieTrim.toLowerCase()) ||
-        (chipTrim && row.chipId.toLowerCase() === chipTrim.toLowerCase())
-    )
-    if (duplicate) {
-      setError('La Serie o el ChipID ya fueron agregados.')
-      return
-    }
-    const productoLabel = productoOptions.find((option) => option.value === productoId)?.label ?? productoId
-    const tipoMaterialLabel = tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label ?? tipoMaterialId
-    setMaterialRows((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        idProducto: parsedProducto,
-        producto: productoLabel,
-        serie: serieTrim,
-        chipId: chipTrim,
-        cantidad: cantidadNum,
-        idTipoMaterial: parsedTipoMaterial,
-        tipoMaterialLabel,
-        entregado,
-      },
-    ])
-    resetMaterialForm()
   }
 
   const runPrevalidations = async (): Promise<boolean> => {
@@ -571,8 +995,8 @@ const OtRealizadaPage = () => {
         </FormCard>
 
         <FormCard title="Materiales" description="Carga del detalle que se registrara en codigo venta.">
-          <div className="grid gap-4 xl:grid-cols-[22rem_1fr]">
-            <div className="space-y-3">
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-[0.85_1_11rem] min-w-[10rem]">
               <Field label="Tipo Material">
                 <select
                   ref={tipoMaterialSelectRef}
@@ -589,13 +1013,16 @@ const OtRealizadaPage = () => {
                   ))}
                 </select>
               </Field>
+            </div>
+            <div className="flex-[1.6_1_18rem] min-w-[16rem]">
               <Field label="Producto">
                 <select
                   ref={productoSelectRef}
                   className="input-base"
                   value={productoId}
                   onChange={(event) => setProductoId(event.target.value)}
-                  disabled={productosQuery.isLoading}
+                  onBlur={lockProducto}
+                  disabled={productosQuery.isLoading || productoBloqueado || !tipoMaterialId}
                 >
                   <option value="">{productosQuery.isLoading ? 'Cargando productos...' : 'Selecciona producto'}</option>
                   {productoOptions.map((option) => (
@@ -605,61 +1032,67 @@ const OtRealizadaPage = () => {
                   ))}
                 </select>
               </Field>
-              <Field label="Serie" hint={isSerialProduct && serieMask ? `Mascara: ${serieMask}` : undefined}>
+            </div>
+            <div className="flex-[1.1_1_13rem] min-w-[12rem]">
+              <Field label="Serie" error={serieValidationError ?? undefined}>
                 <input
                   ref={serieInputRef}
-                  className={`input-base ${!isSerialProduct ? 'bg-slate-50 text-slate-400' : ''}`}
+                  className={`input-base ${serieDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                   value={serie}
-                  onChange={(event) => setSerie(isSerialProduct ? applyMask(event.target.value, serieMask) : event.target.value)}
+                  onFocus={handleSerieFocus}
+                  onBlur={handleSerieBlur}
+                  onChange={(event) => {
+                    setSerie(isSerialProduct ? applyMask(event.target.value, serieMask) : event.target.value)
+                    setChipUniquenessState('idle')
+                  }}
                   placeholder={isSerialProduct && serieMask ? serieMask : undefined}
-                  disabled={!isSerialProduct}
+                  disabled={serieDisabled}
                 />
               </Field>
-              <Field label="ChipID" hint={canUseChipId && chipIdMask ? `Mascara: ${chipIdMask}` : undefined}>
+            </div>
+            <div className="flex-[1.1_1_13rem] min-w-[12rem]">
+              <Field label="ChipID">
                 <input
                   ref={chipIdInputRef}
-                  className={`input-base ${!canUseChipId ? 'bg-slate-50 text-slate-400' : ''}`}
+                  className={`input-base ${chipDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                   value={chipId}
-                  onChange={(event) => setChipId(canUseChipId ? applyMask(event.target.value, chipIdMask) : event.target.value)}
+                  onFocus={handleCantidadFocus}
+                  onBlur={handleChipBlur}
+                  onChange={(event) => {
+                    setChipId(canUseChipId ? applyMask(event.target.value, chipIdMask) : event.target.value)
+                    setChipUniquenessState('idle')
+                  }}
                   placeholder={canUseChipId && chipIdMask ? chipIdMask : undefined}
-                  disabled={!canUseChipId}
+                  disabled={chipDisabled}
                 />
               </Field>
+            </div>
+            <div className="flex-[0.85_1_11rem] min-w-[10rem]">
               <Field label="Cantidad">
                 <input
                   ref={cantidadInputRef}
-                  className={`input-base text-right ${isSerialProduct ? 'bg-slate-50 text-slate-400' : ''}`}
+                  className={`input-base text-right ${isSerialProduct || !productoId ? 'bg-slate-50 text-slate-400' : ''}`}
                   type="number"
                   min="0"
                   step="0.01"
                   value={cantidad}
+                  onFocus={handleCantidadFocus}
                   onChange={(event) => setCantidad(event.target.value)}
-                  disabled={isSerialProduct}
+                  disabled={isSerialProduct || !productoId}
                 />
               </Field>
-              <div className="flex flex-wrap gap-4 text-sm text-slate-700">
-                <label className="inline-flex items-center gap-2">
-                  <input type="radio" checked={entregado} onChange={() => setEntregado(true)} />
-                  Entregado
-                </label>
-                <label className="inline-flex items-center gap-2">
-                  <input type="radio" checked={!entregado} onChange={() => setEntregado(false)} />
-                  No Entregado
-                </label>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Button type="button" onClick={addMaterial}>
-                  Agregar
-                </Button>
-                <Button type="button" variant="secondary" onClick={resetMaterialForm}>
-                  Limpiar
-                </Button>
-              </div>
             </div>
-
-            <div>
-              <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." />
+            <div className="flex items-center gap-2">
+              <Button type="button" ref={addButtonRef} onClick={addMaterial} disabled={!canAddMaterial}>
+                Agregar
+              </Button>
+              <Button type="button" variant="secondary" onClick={resetMaterialForm}>
+                Limpiar
+              </Button>
             </div>
+          </div>
+          <div className="overflow-x-auto">
+            <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." />
           </div>
         </FormCard>
 
@@ -683,3 +1116,4 @@ const OtRealizadaPage = () => {
 }
 
 export default OtRealizadaPage
+
