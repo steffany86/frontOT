@@ -1456,12 +1456,28 @@ const OtRealizadaPage = () => {
     []
   )
 
-  const validarCargoUsuarioEstadoPorProc = useCallback(
-    async (codigoValue: string): Promise<{ existe: boolean; permitido: boolean; observacion?: string }> => {
+  const validarCargoUsuarioEstadoPorProc = async (
+    codigoValue: string,
+    tipoCodigo: 0 | 1
+  ): Promise<{ existe: boolean; permitido: boolean; observacion?: string }> => {
       const codigoTrim = codigoValue.trim()
       if (!codigoTrim) return { existe: false, permitido: true }
 
       const procResult = await validarCargoUsuarioConProc(codigoTrim)
+      if (procResult.endpointMissing) {
+        const rows = await buscarSerialCargoUsuario({
+          serial: tipoCodigo === 0 ? codigoTrim : '',
+          chipId: tipoCodigo === 1 ? codigoTrim : '',
+          tipoCodigo,
+        })
+        const fallback = resolverEstadoCargoUsuarioDesdeRows(rows)
+        return {
+          existe: fallback.existe,
+          permitido: fallback.permitido,
+          observacion: fallback.observacion,
+        }
+      }
+
       const selectedProducto = Number(cargoUsuarioProductoId)
       if (
         procResult.existe &&
@@ -1482,9 +1498,7 @@ const OtRealizadaPage = () => {
         permitido: procResult.sePuede,
         observacion: procResult.observacion,
       }
-    },
-    [cargoUsuarioProductoId]
-  )
+  }
 
   const resolverEstadoCargoUsuarioDesdeRows = useCallback(
     (rows: CatalogItem[]): { existe: boolean; permitido: boolean; observacion?: string; chipId?: string } => {
@@ -1636,7 +1650,7 @@ const OtRealizadaPage = () => {
       }
 
       if (serieTrim) {
-        const bySerieProc = await validarCargoUsuarioEstadoPorProc(serieTrim)
+        const bySerieProc = await validarCargoUsuarioEstadoPorProc(serieTrim, 0)
         if (!bySerieProc.permitido) {
           return {
             permitido: false,
@@ -1646,7 +1660,7 @@ const OtRealizadaPage = () => {
       }
 
       if (chipTrim) {
-        const byChipProc = await validarCargoUsuarioEstadoPorProc(chipTrim)
+        const byChipProc = await validarCargoUsuarioEstadoPorProc(chipTrim, 1)
         if (!byChipProc.permitido) {
           return {
             permitido: false,

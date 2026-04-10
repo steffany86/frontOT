@@ -163,7 +163,10 @@ type CargoUsuarioProcValidationResult = {
   chipId?: string
   serial?: string
   idProducto?: number
+  endpointMissing?: boolean
 }
+
+let cargoUsuarioProcEndpointMissing = false
 
 export const validarCargoUsuarioConProc = async (codigo: string): Promise<CargoUsuarioProcValidationResult> => {
   const codigoTrim = codigo.trim()
@@ -174,34 +177,54 @@ export const validarCargoUsuarioConProc = async (codigo: string): Promise<CargoU
     }
   }
 
-  const { data } = await api.get('/catalogos/spx_TraerDatoSerieChipIdCU', {
-    params: { serie: codigoTrim },
-  })
-  const rows = normalizeArrayResponse<CatalogItem>(data)
-  if (rows.length === 0) {
+  if (cargoUsuarioProcEndpointMissing) {
     return {
       existe: false,
       sePuede: true,
+      endpointMissing: true,
     }
   }
+  try {
+    const { data } = await api.get('/catalogos/spx_TraerDatoSerieChipIdCU', {
+      params: { serie: codigoTrim },
+    })
+    const rows = normalizeArrayResponse<CatalogItem>(data)
+    if (rows.length === 0) {
+      return {
+        existe: false,
+        sePuede: true,
+      }
+    }
 
-  const row = rows[0]
-  const existe = parseExistsFlag(pickValue(row, ['Existe', 'existe'])) ?? true
-  const sePuede = parseSeriesAllowedFlag(
-    pickValue(row, ['SePuede', 'sePuede', 'Se Puede', 'SePuedeRegistrar', 'resultado', 'Resultado'])
-  )
-  const observacion = toStringValue(pickValue(row, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle']))
-  const chipId = toStringValue(pickValue(row, ['ChipID', 'ChipId', 'chipId', 'chipid']))
-  const serial = toStringValue(pickValue(row, ['Serial', 'serial']))
-  const idProducto = toNumberValue(pickValue(row, ['Id_Producto', 'id_producto', 'IdProducto', 'idProducto', 'ProductoId']))
+    const row = rows[0]
+    const existe = parseExistsFlag(pickValue(row, ['Existe', 'existe'])) ?? true
+    const sePuede = parseSeriesAllowedFlag(
+      pickValue(row, ['SePuede', 'sePuede', 'Se Puede', 'SePuedeRegistrar', 'resultado', 'Resultado'])
+    )
+    const observacion = toStringValue(pickValue(row, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle']))
+    const chipId = toStringValue(pickValue(row, ['ChipID', 'ChipId', 'chipId', 'chipid']))
+    const serial = toStringValue(pickValue(row, ['Serial', 'serial']))
+    const idProducto = toNumberValue(pickValue(row, ['Id_Producto', 'id_producto', 'IdProducto', 'idProducto', 'ProductoId']))
 
-  return {
-    existe,
-    sePuede: existe ? sePuede ?? true : true,
-    observacion: observacion ?? undefined,
-    chipId: chipId ?? undefined,
-    serial: serial ?? undefined,
-    idProducto: idProducto ?? undefined,
+    return {
+      existe,
+      sePuede: existe ? sePuede ?? true : true,
+      observacion: observacion ?? undefined,
+      chipId: chipId ?? undefined,
+      serial: serial ?? undefined,
+      idProducto: idProducto ?? undefined,
+    }
+  } catch (error: unknown) {
+    const status = (error as { response?: { status?: number } })?.response?.status
+    if (status === 404) {
+      cargoUsuarioProcEndpointMissing = true
+      return {
+        existe: false,
+        sePuede: true,
+        endpointMissing: true,
+      }
+    }
+    throw error
   }
 }
 
