@@ -23,6 +23,7 @@ import {
 import {
   createOtCargoUsuario,
   createOtDetalle,
+  createOtRealizada,
   fetchOtByNumero,
   fetchSaldoRuta,
   validateCuadreRuta,
@@ -252,6 +253,13 @@ const readBackendErrorMessage = (error: unknown, fallback: string): string => {
   return `${message} ${pieces.join(' | ')}`
 }
 
+const normalizeObservacion = (value?: string): string => {
+  if (typeof value !== 'string') return 'SIN OBSERVACION'
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === '""' || trimmed === "''") return 'SIN OBSERVACION'
+  return trimmed
+}
+
 const formatSaldoAmount = (value: number): string => {
   if (!Number.isFinite(value)) return '0'
   return new Intl.NumberFormat('es-BO', {
@@ -347,6 +355,7 @@ const OtRealizadaPage = () => {
   const [cargoUsuarioSerieBloqueada, setCargoUsuarioSerieBloqueada] = useState(false)
   const [cargoUsuarioChipBloqueado, setCargoUsuarioChipBloqueado] = useState(false)
   const [cargoUsuarioGuardado, setCargoUsuarioGuardado] = useState(false)
+  const formLocked = detalleGuardado || cargoUsuarioGuardado
   const [cargoUsuarioError, setCargoUsuarioError] = useState<string | null>(null)
   const [cargoUsuarioSuccess, setCargoUsuarioSuccess] = useState<string | null>(null)
   const [cargoUsuarioSerieError, setCargoUsuarioSerieError] = useState<string | null>(null)
@@ -1266,13 +1275,18 @@ const OtRealizadaPage = () => {
         key: 'acciones',
         header: 'Accion',
         render: (row) => (
-          <Button type="button" variant="secondary" onClick={() => setMaterialRows((prev) => prev.filter((item) => item.id !== row.id))}>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={formLocked}
+            onClick={() => setMaterialRows((prev) => prev.filter((item) => item.id !== row.id))}
+          >
             Quitar
           </Button>
         ),
       },
     ],
-    []
+    [formLocked]
   )
 
   const cargoUsuarioColumns = useMemo<Column<CargoUsuarioRow>[]>(
@@ -1288,6 +1302,7 @@ const OtRealizadaPage = () => {
           <Button
             type="button"
             variant="secondary"
+            disabled={formLocked}
             onClick={() => {
               setCargoUsuarioRows((prev) => prev.filter((item) => item.id !== row.id))
               setCargoUsuarioGuardado(false)
@@ -1298,7 +1313,7 @@ const OtRealizadaPage = () => {
         ),
       },
     ],
-    []
+    [formLocked]
   )
 
   const resetMaterialForm = () => {
@@ -1816,7 +1831,31 @@ const OtRealizadaPage = () => {
   }
 
   const mutation = useMutation({
-    mutationFn: createOtDetalle,
+    mutationFn: async (payload: {
+      numeroOrden: string
+      idEstado: number
+      observacion: string
+      materiales: {
+        idProducto: number
+        idTipoMaterial: number
+        serie: string
+        chipId: string
+        cantidad: number
+        entregado: boolean
+      }[]
+    }) => {
+      if (payload.materiales.length > 0) {
+        return createOtDetalle(payload)
+      }
+      await createOtRealizada({
+        numeroOrden: payload.numeroOrden,
+        idEstado: payload.idEstado,
+        observacion: payload.observacion,
+      })
+      const venta = await fetchOtByNumero(payload.numeroOrden)
+      const idVenta = readNumber(venta, ['idVenta', 'Id_Venta', 'id_venta', 'id', 'Id']) ?? undefined
+      return { idVenta, numeroOrden: Number(payload.numeroOrden) }
+    },
     onSuccess: (data) => {
       setError(null)
       setSuccess(`Detalle registrado correctamente. IdVenta: ${data.idVenta ?? '-'} | OT: ${data.numeroOrden ?? numeroOrden}`)
@@ -1872,16 +1911,17 @@ const OtRealizadaPage = () => {
       setError('Estado es requerido.')
       return
     }
-    if (materialRows.length === 0) {
-      setError('Debes agregar al menos un material.')
+    if (materialRows.length === 0 && !cargoUsuarioGuardado) {
+      setError('Debes agregar al menos un material o guardar cargo usuario.')
       return
     }
     const canContinue = await runPrevalidations()
     if (!canContinue) return
+    const observacionPayload = normalizeObservacion(observacion)
     mutation.mutate({
       numeroOrden,
       idEstado: parsedEstado,
-      observacion: observacion.trim(),
+      observacion: observacionPayload,
       materiales: materialRows.map((row) => ({
         idProducto: row.idProducto,
         idTipoMaterial: row.idTipoMaterial,
@@ -1934,7 +1974,8 @@ const OtRealizadaPage = () => {
         />
 
         {activeTab === 'materiales' ? (
-          <FormCard title="Materiales" description="Carga de productos usados en la OT.">
+          <fieldset disabled={formLocked} className="m-0 min-w-0 border-0 p-0">
+            <FormCard title="Materiales" description="Carga de productos usados en la OT.">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-1 xl:col-span-1">
                 <Field label="Tipo Material">
@@ -2049,9 +2090,11 @@ const OtRealizadaPage = () => {
             <div className="overflow-x-auto">
               <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." variant="row-block" />
             </div>
-          </FormCard>
+            </FormCard>
+          </fieldset>
         ) : (
-          <FormCard title="Cargo Usuario" description="Carga de productos de cargo usuario.">
+          <fieldset disabled={formLocked} className="m-0 min-w-0 border-0 p-0">
+            <FormCard title="Cargo Usuario" description="Carga de productos de cargo usuario.">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-2 xl:col-span-6">
                 <Field label="Producto">
@@ -2219,7 +2262,8 @@ const OtRealizadaPage = () => {
                 {cargoUsuarioGuardado ? 'Guardado' : cargoUsuarioMutation.isPending ? 'Guardando...' : 'Guardar Cargo Usuario'}
               </Button>
             </div>
-          </FormCard>
+            </FormCard>
+          </fieldset>
         )}
 
         {headerWarning ? (
