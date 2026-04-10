@@ -613,15 +613,20 @@ const OtRealizadaPage = () => {
     : Number.isFinite(Number(cargoUsuarioCantidad)) && Number(cargoUsuarioCantidad) > 0
   const cargoUsuarioActiveSerie = cargoUsuarioNeedsSerie && cargoUsuarioTieneSerie
   const cargoUsuarioActiveChip = cargoUsuarioNeedsChip && cargoUsuarioTieneChipId
+  const cargoUsuarioSerieLista = cargoUsuarioActiveSerie && Boolean(cargoUsuarioSerie.trim()) && cargoUsuarioSerieDigitsComplete
+  const cargoUsuarioChipLista = cargoUsuarioActiveChip && Boolean(cargoUsuarioChipId.trim()) && cargoUsuarioChipDigitsComplete
+  const cargoUsuarioSerieFlujoOk = !cargoUsuarioActiveSerie || (cargoUsuarioSerieLista && cargoUsuarioSerieBloqueada)
+  const cargoUsuarioChipFlujoOk = !cargoUsuarioActiveChip || (cargoUsuarioChipLista && cargoUsuarioChipBloqueado)
   const cargoUsuarioSerializadoTieneAlMenosUnDato =
     !cargoUsuarioNeedsSerie ||
-    ((cargoUsuarioActiveSerie && Boolean(cargoUsuarioSerie.trim()) && cargoUsuarioSerieDigitsComplete) &&
-      (!cargoUsuarioNeedsChip ||
-        (cargoUsuarioActiveChip && Boolean(cargoUsuarioChipId.trim()) && cargoUsuarioChipDigitsComplete)))
+    cargoUsuarioSerieLista ||
+    cargoUsuarioChipLista
   const cargoUsuarioCanAdd =
     Boolean(cargoUsuarioProductoId) &&
     cargoUsuarioCantidadValid &&
-    cargoUsuarioSerializadoTieneAlMenosUnDato
+    cargoUsuarioSerializadoTieneAlMenosUnDato &&
+    cargoUsuarioSerieFlujoOk &&
+    cargoUsuarioChipFlujoOk
 
   useEffect(() => {
     if (!cargoUsuarioProductoId) {
@@ -763,8 +768,17 @@ const OtRealizadaPage = () => {
           return false
         }
 
+        if (!validation.sePuede) {
+          setChipUniquenessState('invalid')
+          setError(validation.observacion?.trim() || 'La serie y el ChipID no existen en saldo.')
+          return false
+        }
+
         setChipUniquenessState('valid')
-        if (error === 'El ChipID ya esta registrado con otro serial.') {
+        if (
+          error === 'El ChipID ya esta registrado con otro serial.' ||
+          error === 'La serie y el ChipID no existen en saldo.'
+        ) {
           setError(null)
         }
         return true
@@ -1003,6 +1017,8 @@ const OtRealizadaPage = () => {
       focusSerieField()
       return false
     }
+
+    setSerieCamposBloqueados(true)
 
     if ((needsChip || allowManualChipId) && !shouldSkipChipField) {
       focusChipField()
@@ -1442,12 +1458,12 @@ const OtRealizadaPage = () => {
   useEffect(() => {
     if (!cargoUsuarioProductoId) return
     requestAnimationFrame(() => {
-      if (cargoUsuarioActiveSerie) {
+      if (cargoUsuarioActiveSerie && !cargoUsuarioSerieBloqueada) {
         cargoUsuarioSerieRef.current?.focus()
         cargoUsuarioSerieRef.current?.select()
         return
       }
-      if (cargoUsuarioActiveChip) {
+      if (cargoUsuarioActiveChip && !cargoUsuarioChipBloqueado) {
         cargoUsuarioChipRef.current?.focus()
         cargoUsuarioChipRef.current?.select()
         return
@@ -1455,7 +1471,7 @@ const OtRealizadaPage = () => {
       cargoUsuarioCantidadRef.current?.focus()
       cargoUsuarioCantidadRef.current?.select()
     })
-  }, [cargoUsuarioActiveChip, cargoUsuarioActiveSerie, cargoUsuarioProductoId])
+  }, [cargoUsuarioActiveChip, cargoUsuarioActiveSerie, cargoUsuarioChipBloqueado, cargoUsuarioProductoId, cargoUsuarioSerieBloqueada])
 
   const handleCargoUsuarioSerieToggle = (checked: boolean) => {
     setCargoUsuarioGuardado(false)
@@ -1472,11 +1488,7 @@ const OtRealizadaPage = () => {
     setCargoUsuarioTieneChipId(checked)
     setCargoUsuarioChipError(null)
     setCargoUsuarioChipBloqueado(false)
-    if (checked) {
-      setCargoUsuarioTieneSerie(false)
-      setCargoUsuarioSerieError(null)
-      setCargoUsuarioSerieBloqueada(false)
-    } else {
+    if (!checked) {
       setCargoUsuarioChipId('')
       if (cargoUsuarioNeedsSerie) {
         setCargoUsuarioTieneSerie(true)
@@ -1490,6 +1502,9 @@ const OtRealizadaPage = () => {
     setCargoUsuarioSerie(nextValue)
     setCargoUsuarioSerieError(null)
     setCargoUsuarioSerieBloqueada(false)
+    if (cargoUsuarioActiveChip) {
+      setCargoUsuarioChipBloqueado(false)
+    }
   }
 
   const handleCargoUsuarioChipChange = (rawValue: string) => {
@@ -1499,6 +1514,61 @@ const OtRealizadaPage = () => {
     setCargoUsuarioChipError(null)
     setCargoUsuarioChipBloqueado(false)
   }
+
+  const advanceCargoUsuarioFromSerie = useCallback(async (): Promise<boolean> => {
+    if (!cargoUsuarioNeedsSerie || !cargoUsuarioTieneSerie) {
+      if (cargoUsuarioActiveChip) {
+        cargoUsuarioChipRef.current?.focus()
+        cargoUsuarioChipRef.current?.select()
+        return true
+      }
+      cargoUsuarioCantidadRef.current?.focus()
+      cargoUsuarioCantidadRef.current?.select()
+      return true
+    }
+
+    const trimmed = cargoUsuarioSerie.trim()
+    if (!trimmed) {
+      setCargoUsuarioSerieError('Debes ingresar la Serie.')
+      setCargoUsuarioSerieBloqueada(false)
+      cargoUsuarioSerieRef.current?.focus()
+      cargoUsuarioSerieRef.current?.select()
+      return false
+    }
+
+    if (!cargoUsuarioSerieDigitsComplete) {
+      setCargoUsuarioSerieError(
+        cargoUsuarioSerieMask
+          ? `La serie debe completar la mascara ${cargoUsuarioSerieMask}.`
+          : `La serie debe completar ${cargoUsuarioSerieDigitsNeeded} digitos.`
+      )
+      setCargoUsuarioSerieBloqueada(false)
+      cargoUsuarioSerieRef.current?.focus()
+      cargoUsuarioSerieRef.current?.select()
+      return false
+    }
+
+    setCargoUsuarioSerieError(null)
+    setCargoUsuarioSerieBloqueada(true)
+    if (cargoUsuarioActiveChip) {
+      setCargoUsuarioChipBloqueado(false)
+      cargoUsuarioChipRef.current?.focus()
+      cargoUsuarioChipRef.current?.select()
+      return true
+    }
+
+    cargoUsuarioCantidadRef.current?.focus()
+    cargoUsuarioCantidadRef.current?.select()
+    return true
+  }, [
+    cargoUsuarioActiveChip,
+    cargoUsuarioNeedsSerie,
+    cargoUsuarioSerie,
+    cargoUsuarioSerieDigitsComplete,
+    cargoUsuarioSerieDigitsNeeded,
+    cargoUsuarioSerieMask,
+    cargoUsuarioTieneSerie,
+  ])
 
   const advanceCargoUsuarioFromChip = useCallback(async (): Promise<boolean> => {
     if (!cargoUsuarioNeedsChip || !cargoUsuarioTieneChipId) {
@@ -1526,33 +1596,28 @@ const OtRealizadaPage = () => {
       return false
     }
 
+    setCargoUsuarioChipError(null)
     setCargoUsuarioChipBloqueado(true)
     cargoUsuarioCantidadRef.current?.focus()
     cargoUsuarioCantidadRef.current?.select()
     return true
-  }, [cargoUsuarioChipDigitsComplete, cargoUsuarioChipId, cargoUsuarioChipDigitsNeeded, cargoUsuarioChipMask, cargoUsuarioNeedsChip, cargoUsuarioTieneChipId])
+  }, [
+    cargoUsuarioChipDigitsComplete,
+    cargoUsuarioChipId,
+    cargoUsuarioChipDigitsNeeded,
+    cargoUsuarioChipMask,
+    cargoUsuarioNeedsChip,
+    cargoUsuarioTieneChipId,
+  ])
 
   const handleCargoUsuarioSerieKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
     if (event.key !== 'Tab' && event.key !== 'Enter') return
     event.preventDefault()
-    if (cargoUsuarioActiveChip) {
-      cargoUsuarioChipRef.current?.focus()
-      cargoUsuarioChipRef.current?.select()
-      return
-    }
-    cargoUsuarioCantidadRef.current?.focus()
-    cargoUsuarioCantidadRef.current?.select()
+    void advanceCargoUsuarioFromSerie()
   }
 
   const handleCargoUsuarioSerieBlur = (): void => {
-    if (cargoUsuarioTieneChipId) {
-      cargoUsuarioChipRef.current?.focus()
-      cargoUsuarioChipRef.current?.select()
-      return
-    }
-
-    cargoUsuarioCantidadRef.current?.focus()
-    cargoUsuarioCantidadRef.current?.select()
+    void advanceCargoUsuarioFromSerie()
   }
 
   const handleCargoUsuarioChipKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
@@ -1591,6 +1656,8 @@ const OtRealizadaPage = () => {
     const activeChip = cargoUsuarioActiveChip
     const serieLista = activeSerie && Boolean(serieTrim) && cargoUsuarioSerieDigitsComplete
     const chipLista = activeChip && Boolean(chipTrim) && cargoUsuarioChipDigitsComplete
+    const seriePayload = serieLista ? serieTrim : ''
+    const chipPayload = chipLista ? chipTrim : ''
 
     if (!cargoUsuarioNeedsSerie) {
       if (!cargoUsuarioCantidadValid) {
@@ -1623,14 +1690,26 @@ const OtRealizadaPage = () => {
     }
 
     if (!cargoUsuarioCanAdd) {
+      if (cargoUsuarioActiveSerie && !cargoUsuarioSerieBloqueada) {
+        setCargoUsuarioError('Completa y valida la Serie antes de agregar.')
+        cargoUsuarioSerieRef.current?.focus()
+        cargoUsuarioSerieRef.current?.select()
+        return
+      }
+      if (cargoUsuarioActiveChip && !cargoUsuarioChipBloqueado) {
+        setCargoUsuarioError('Completa y valida el ChipID antes de agregar.')
+        cargoUsuarioChipRef.current?.focus()
+        cargoUsuarioChipRef.current?.select()
+        return
+      }
       setCargoUsuarioError('Completa los datos requeridos antes de agregar.')
       return
     }
 
-    const duplicate = cargoUsuarioRows.some(
+    const duplicate = [...cargoUsuarioRows, ...materialRows].some(
       (row) =>
-        (serieTrim && row.serie.toLowerCase() === serieTrim.toLowerCase()) ||
-        (chipTrim && row.chipId.toLowerCase() === chipTrim.toLowerCase())
+        (seriePayload && row.serie.toLowerCase() === seriePayload.toLowerCase()) ||
+        (chipPayload && row.chipId.toLowerCase() === chipPayload.toLowerCase())
     )
     if (duplicate) {
       setCargoUsuarioError('La Serie o el ChipID ya fueron agregados.')
@@ -1641,7 +1720,7 @@ const OtRealizadaPage = () => {
     let existeTrim = 'No'
     if (existeHabilitado) {
       try {
-        existeTrim = await validarCargoUsuarioExistencia(serieTrim, chipTrim)
+        existeTrim = await validarCargoUsuarioExistencia(seriePayload, chipPayload)
       } catch (error) {
         console.warn('No se pudo validar existencia de cargo usuario.', error)
         existeTrim = 'No'
@@ -1655,38 +1734,13 @@ const OtRealizadaPage = () => {
         id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
         idProducto: parsedProducto,
         producto: productoLabel,
-        serie: serieTrim,
-        chipId: chipTrim,
+        serie: seriePayload,
+        chipId: chipPayload,
         cantidad: cantidadNum,
         existe: existeTrim,
       },
     ])
     resetCargoUsuarioForm()
-  }
-
-  const handleCargoUsuarioSubmit = async () => {
-    setCargoUsuarioError(null)
-    setCargoUsuarioSuccess(null)
-
-    if (!numeroOrden) {
-      setCargoUsuarioError('No se encontro numero de OT para registrar el cargo usuario.')
-      return
-    }
-    if (cargoUsuarioRows.length === 0) {
-      setCargoUsuarioError('Debes agregar al menos un producto de cargo usuario.')
-      return
-    }
-
-    cargoUsuarioMutation.mutate({
-      numeroOrden,
-      items: cargoUsuarioRows.map((row) => ({
-        idProducto: row.idProducto,
-        serie: row.serie,
-        chipId: row.chipId,
-        cantidad: row.cantidad,
-        existe: row.existe,
-      })),
-    })
   }
 
   const showSaldoPopup = useCallback(
@@ -1830,6 +1884,113 @@ const OtRealizadaPage = () => {
     }
   }
 
+  const prevalidateMaterialRowsBeforeSubmit = useCallback(async (): Promise<boolean> => {
+    if (materialRows.length === 0) return true
+
+    for (let index = 0; index < materialRows.length; index += 1) {
+      const row = materialRows[index]
+      const serieTrim = row.serie.trim()
+      const chipTrim = row.chipId.trim()
+      const rowLabel = `Fila ${index + 1} (${row.producto || `Producto ${row.idProducto}`})`
+
+      if (serieTrim) {
+        try {
+          const serieValidation = await validarSerieSaldo({
+            serie: serieTrim,
+            idProducto: row.idProducto,
+            idTipoMaterial: row.idTipoMaterial,
+            idRuta: idRuta ?? undefined,
+          })
+
+          if (!serieValidation.sePuede) {
+            setError(`${rowLabel}: ${serieValidation.observacion ?? 'La serie no esta disponible en saldo.'}`)
+            return false
+          }
+        } catch (validationError) {
+          console.error('No se pudo validar la serie de una fila antes de guardar.', validationError)
+          setError(`${rowLabel}: No se pudo validar la serie en saldo.`)
+          return false
+        }
+      }
+
+      if (serieTrim && chipTrim) {
+        try {
+          const comboValidation = await validarSerieChipUnico({
+            serie: serieTrim,
+            chipId: chipTrim,
+          })
+
+          if (comboValidation.chipExiste && !comboValidation.mismoRegistro) {
+            setError(`${rowLabel}: El ChipID ya esta registrado con otro serial.`)
+            return false
+          }
+
+          if (!comboValidation.sePuede) {
+            setError(`${rowLabel}: ${comboValidation.observacion?.trim() || 'La serie y el ChipID no existen en saldo.'}`)
+            return false
+          }
+        } catch (validationError) {
+          console.error('No se pudo validar la combinacion serie/chip de una fila antes de guardar.', validationError)
+          setError(`${rowLabel}: No se pudo validar la combinacion Serie + ChipID.`)
+          return false
+        }
+      }
+    }
+
+    return true
+  }, [idRuta, materialRows, validarSerieChipUnico, validarSerieSaldo])
+
+  const prevalidateCargoUsuarioRowsBeforeSubmit = useCallback(async (): Promise<boolean> => {
+    if (cargoUsuarioRows.length === 0) return true
+
+    const seenSerie = new Set<string>()
+    const seenChip = new Set<string>()
+    for (const row of materialRows) {
+      const serie = row.serie.trim().toLowerCase()
+      const chip = row.chipId.trim().toLowerCase()
+      if (serie) seenSerie.add(serie)
+      if (chip) seenChip.add(chip)
+    }
+
+    for (let index = 0; index < cargoUsuarioRows.length; index += 1) {
+      const row = cargoUsuarioRows[index]
+      const serieTrim = row.serie.trim()
+      const chipTrim = row.chipId.trim()
+      const rowLabel = `Fila ${index + 1} (${row.producto || `Producto ${row.idProducto}`})`
+
+      if (!serieTrim && !chipTrim) {
+        setError(`${rowLabel}: Debes registrar Serie o ChipID.`)
+        return false
+      }
+
+      const serieKey = serieTrim.toLowerCase()
+      const chipKey = chipTrim.toLowerCase()
+      if (serieKey) {
+        if (seenSerie.has(serieKey)) {
+          setError(`${rowLabel}: La Serie ya fue ingresada en el detalle.`)
+          return false
+        }
+        seenSerie.add(serieKey)
+      }
+      if (chipKey) {
+        if (seenChip.has(chipKey)) {
+          setError(`${rowLabel}: El ChipID ya fue ingresado en el detalle.`)
+          return false
+        }
+        seenChip.add(chipKey)
+      }
+
+      try {
+        // Validacion informativa contra backend: no bloquea si no existe.
+        await validarCargoUsuarioExistencia(serieTrim, chipTrim)
+      } catch (validationError) {
+        console.warn('No se pudo validar una fila de cargo usuario antes de guardar.', validationError)
+      }
+    }
+
+    return true
+  }, [cargoUsuarioRows, materialRows, validarCargoUsuarioExistencia])
+
   const mutation = useMutation({
     mutationFn: async (payload: {
       numeroOrden: string
@@ -1843,25 +2004,50 @@ const OtRealizadaPage = () => {
         cantidad: number
         entregado: boolean
       }[]
+      cargoUsuarioItems: {
+        idProducto: number
+        serie: string
+        chipId: string
+        cantidad: number
+        existe: string
+      }[]
     }) => {
       if (payload.materiales.length > 0) {
-        return createOtDetalle(payload)
+        await createOtDetalle({
+          numeroOrden: payload.numeroOrden,
+          idEstado: payload.idEstado,
+          observacion: payload.observacion,
+          materiales: payload.materiales,
+        })
+      } else {
+        await createOtRealizada({
+          numeroOrden: payload.numeroOrden,
+          idEstado: payload.idEstado,
+          observacion: payload.observacion,
+        })
       }
-      await createOtRealizada({
-        numeroOrden: payload.numeroOrden,
-        idEstado: payload.idEstado,
-        observacion: payload.observacion,
-      })
+
+      if (payload.cargoUsuarioItems.length > 0) {
+        await createOtCargoUsuario({
+          numeroOrden: payload.numeroOrden,
+          items: payload.cargoUsuarioItems,
+        })
+      }
+
       const venta = await fetchOtByNumero(payload.numeroOrden)
       const idVenta = readNumber(venta, ['idVenta', 'Id_Venta', 'id_venta', 'id', 'Id']) ?? undefined
       return { idVenta, numeroOrden: Number(payload.numeroOrden) }
     },
     onSuccess: (data) => {
       setError(null)
+      setCargoUsuarioError(null)
+      setCargoUsuarioSuccess(null)
       setSuccess(`Detalle registrado correctamente. IdVenta: ${data.idVenta ?? '-'} | OT: ${data.numeroOrden ?? numeroOrden}`)
       setDetalleGuardado(true)
       setMaterialRows([])
+      setCargoUsuarioRows([])
       resetMaterialForm()
+      resetCargoUsuarioForm()
     },
     onError: (err) => {
       setSuccess(null)
@@ -1870,31 +2056,6 @@ const OtRealizadaPage = () => {
         return
       }
       setError('No se pudo guardar el detalle.')
-    },
-  })
-
-  const cargoUsuarioMutation = useMutation({
-    mutationFn: createOtCargoUsuario,
-    onSuccess: (data) => {
-      setCargoUsuarioError(null)
-      setCargoUsuarioSuccess(`Cargo usuario registrado correctamente. Registros: ${data.guardados ?? 0}`)
-      setCargoUsuarioGuardado(true)
-      setCargoUsuarioRows([])
-      setCargoUsuarioProductoId('')
-      setCargoUsuarioProductoBloqueado(false)
-      setCargoUsuarioSerie('')
-      setCargoUsuarioChipId('')
-      setCargoUsuarioCantidad('1')
-      setCargoUsuarioSerieBloqueada(false)
-      setCargoUsuarioChipBloqueado(false)
-    },
-    onError: (err) => {
-      setCargoUsuarioSuccess(null)
-      if (axios.isAxiosError(err)) {
-        setCargoUsuarioError(err.response?.data?.message ?? 'No se pudo guardar el cargo usuario.')
-        return
-      }
-      setCargoUsuarioError('No se pudo guardar el cargo usuario.')
     },
   })
 
@@ -1911,12 +2072,16 @@ const OtRealizadaPage = () => {
       setError('Estado es requerido.')
       return
     }
-    if (materialRows.length === 0 && !cargoUsuarioGuardado) {
-      setError('Debes agregar al menos un material o guardar cargo usuario.')
+    if (materialRows.length === 0 && cargoUsuarioRows.length === 0) {
+      setError('Debes agregar al menos un material o un producto en cargo usuario.')
       return
     }
     const canContinue = await runPrevalidations()
     if (!canContinue) return
+    const rowsAreValid = await prevalidateMaterialRowsBeforeSubmit()
+    if (!rowsAreValid) return
+    const cargoRowsAreValid = await prevalidateCargoUsuarioRowsBeforeSubmit()
+    if (!cargoRowsAreValid) return
     const observacionPayload = normalizeObservacion(observacion)
     mutation.mutate({
       numeroOrden,
@@ -1929,6 +2094,13 @@ const OtRealizadaPage = () => {
         chipId: row.chipId,
         cantidad: row.cantidad,
         entregado: row.entregado,
+      })),
+      cargoUsuarioItems: cargoUsuarioRows.map((row) => ({
+        idProducto: row.idProducto,
+        serie: row.serie,
+        chipId: row.chipId,
+        cantidad: row.cantidad,
+        existe: row.existe,
       })),
     })
   }
@@ -2128,7 +2300,7 @@ const OtRealizadaPage = () => {
                             type="checkbox"
                             checked={cargoUsuarioTieneSerie}
                             onChange={(event) => handleCargoUsuarioSerieToggle(event.target.checked)}
-                            disabled={!cargoUsuarioProductoId || cargoUsuarioTieneChipId}
+                            disabled={!cargoUsuarioProductoId}
                           />
                           Serie
                         </label>
@@ -2144,7 +2316,7 @@ const OtRealizadaPage = () => {
                           onBlur={handleCargoUsuarioSerieBlur}
                           placeholder={cargoUsuarioNeedsSerie && cargoUsuarioSerieMask ? cargoUsuarioSerieMask : undefined}
                           readOnly={cargoUsuarioSerieBloqueada}
-                          disabled={!cargoUsuarioProductoId || !cargoUsuarioTieneSerie || cargoUsuarioTieneChipId}
+                          disabled={!cargoUsuarioProductoId || !cargoUsuarioTieneSerie}
                         />
                       {cargoUsuarioSerieError ? (
                         <span className="text-xs font-semibold text-rose-600">{cargoUsuarioSerieError}</span>
@@ -2245,23 +2417,6 @@ const OtRealizadaPage = () => {
               <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{cargoUsuarioSuccess}</div>
             ) : null}
 
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setActiveTab('materiales')}
-                disabled={cargoUsuarioMutation.isPending}
-              >
-                Volver a Materiales
-              </Button>
-              <Button
-                type="button"
-                onClick={handleCargoUsuarioSubmit}
-                disabled={cargoUsuarioMutation.isPending || cargoUsuarioRows.length === 0 || cargoUsuarioGuardado}
-              >
-                {cargoUsuarioGuardado ? 'Guardado' : cargoUsuarioMutation.isPending ? 'Guardando...' : 'Guardar Cargo Usuario'}
-              </Button>
-            </div>
             </FormCard>
           </fieldset>
         )}
@@ -2293,7 +2448,14 @@ const OtRealizadaPage = () => {
           <Button
             className="w-full sm:w-auto"
             type="submit"
-            disabled={mutation.isPending || isPrevalidating || ventaQuery.isLoading || !numeroOrden || detalleGuardado}
+            disabled={
+              mutation.isPending ||
+              isPrevalidating ||
+              ventaQuery.isLoading ||
+              !numeroOrden ||
+              detalleGuardado ||
+              (materialRows.length === 0 && cargoUsuarioRows.length === 0)
+            }
           >
             {detalleGuardado ? 'Guardado' : mutation.isPending || isPrevalidating ? 'Guardando...' : 'Guardar'}
           </Button>
