@@ -1455,6 +1455,180 @@ const OtRealizadaPage = () => {
     []
   )
 
+  const resolverEstadoCargoUsuarioDesdeRows = useCallback(
+    (rows: CatalogItem[]): { existe: boolean; permitido: boolean; observacion?: string; chipId?: string } => {
+      if (rows.length === 0) return { existe: false, permitido: true }
+
+      const selectedProducto = Number(cargoUsuarioProductoId)
+      const rowsCandidatas = rows.filter((item) => {
+        const idProductoRow = readNumber(item, ['idProducto', 'Id_Producto', 'id_producto', 'IdProducto', 'productoId', 'ProductoId'])
+        return Number.isFinite(selectedProducto) && selectedProducto > 0 ? idProductoRow === selectedProducto : true
+      })
+      const pool = rowsCandidatas.length > 0 ? rowsCandidatas : rows
+      const matchedRow = pool[0]
+      const estadosPermitidos = [3, 7, 12, 15, 16]
+      const normalizeDecision = (value: string): string =>
+        value
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/[^a-z0-9]/g, '')
+
+      const parseExiste = (item: CatalogItem): boolean | null => {
+        const raw = readValue(item, ['Existe', 'existe', 'ResultadoExiste', 'ExisteProducto', 'ExisteRegistro'])
+        if (raw === undefined || raw === null || raw === '') return null
+        if (typeof raw === 'boolean') return raw
+        if (typeof raw === 'number') return raw !== 0
+        if (typeof raw === 'string') {
+          const normalized = normalizeDecision(raw)
+          if (normalized.includes('noexiste')) return false
+          if (normalized.includes('existe')) return true
+          if (['0', 'false', 'no'].includes(normalized)) return false
+          if (['1', 'true', 'si'].includes(normalized)) return true
+        }
+        return null
+      }
+
+      const parseSePuede = (item: CatalogItem): boolean | null => {
+        const raw = readValue(item, [
+          'SePuede',
+          'sePuede',
+          'Se Puede',
+          'SePuedeRegistrar',
+          'Resultado',
+          'resultado',
+          'Respuesta',
+          'respuesta',
+        ])
+        if (raw === undefined || raw === null || raw === '') return null
+        if (typeof raw === 'boolean') return raw
+        if (typeof raw === 'number') return raw !== 0
+        if (typeof raw === 'string') {
+          const normalized = normalizeDecision(raw)
+          if (!normalized) return null
+          if (
+            normalized.includes('nosepuede') ||
+            normalized.includes('nosepuederegistrar') ||
+            normalized.includes('inhabilitado') ||
+            ['false', '0', 'no'].includes(normalized)
+          ) {
+            return false
+          }
+          if (
+            normalized.includes('sepuede') ||
+            normalized.includes('sepuederegistrar') ||
+            ['true', '1', 'si', 'ok', 'habilitado'].includes(normalized)
+          ) {
+            return true
+          }
+        }
+        return null
+      }
+
+      let permitido = true
+      let observacion = ''
+
+      for (const item of pool) {
+        const observacionRow = readString(item, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle'])
+        const observacionNormalized = normalizeDecision(observacionRow)
+
+        if (
+          observacionNormalized.includes('noestahabilitado') ||
+          observacionNormalized.includes('productoinhabilitado') ||
+          observacionNormalized.includes('nosepuederegistrar')
+        ) {
+          permitido = false
+          observacion = observacionRow
+          break
+        }
+
+        const sePuede = parseSePuede(item)
+        if (sePuede === false) {
+          permitido = false
+          observacion = observacionRow
+          break
+        }
+
+        const idEstado = readNumber(item, [
+          'Id_EstadoProducto',
+          'id_estadoproducto',
+          'IdEstadoProducto',
+          'idEstadoProducto',
+          'Id_Estado',
+          'id_estado',
+          'IdEstado',
+          'idEstado',
+        ])
+        if (idEstado !== null && !estadosPermitidos.includes(idEstado)) {
+          permitido = false
+          observacion = observacionRow || readString(item, ['Estado', 'estado'])
+          break
+        }
+      }
+
+      const existeMarcado = pool.map(parseExiste).find((value): value is boolean => value !== null)
+      const existe = existeMarcado ?? true
+
+      return {
+        existe,
+        permitido: existe ? permitido : true,
+        observacion: observacion || undefined,
+        chipId: readString(matchedRow, ['chipId', 'ChipId', 'ChipID', 'chipid']) || undefined,
+      }
+    },
+    [cargoUsuarioProductoId]
+  )
+
+  const buscarCargoUsuarioPorSerie = useCallback(
+    async (serieValue: string): Promise<{ existe: boolean; permitido: boolean; observacion?: string; chipId?: string }> => {
+      const serieTrim = serieValue.trim()
+      if (!serieTrim) return { existe: false, permitido: true }
+
+      const rows = await buscarSerialCargoUsuario({
+        serial: serieTrim,
+        chipId: '',
+        tipoCodigo: 0,
+      })
+
+      return resolverEstadoCargoUsuarioDesdeRows(rows)
+    },
+    [resolverEstadoCargoUsuarioDesdeRows]
+  )
+
+  const validarCargoUsuarioEstadoPermitido = useCallback(
+    async (serieValue: string, chipValue: string): Promise<{ permitido: boolean; observacion?: string }> => {
+      const serieTrim = serieValue.trim()
+      const chipTrim = chipValue.trim()
+
+      if (serieTrim) {
+        const bySerie = await buscarCargoUsuarioPorSerie(serieTrim)
+        if (!bySerie.permitido) {
+          return {
+            permitido: false,
+            observacion: bySerie.observacion,
+          }
+        }
+        if (!chipTrim) return { permitido: true, observacion: bySerie.observacion }
+      }
+
+      if (!chipTrim) {
+        return { permitido: false, observacion: 'Debes registrar Serie o ChipID.' }
+      }
+
+      const rows = await buscarSerialCargoUsuario({
+        serial: '',
+        chipId: chipTrim,
+        tipoCodigo: 1,
+      })
+      const byChip = resolverEstadoCargoUsuarioDesdeRows(rows)
+      return {
+        permitido: byChip.permitido,
+        observacion: byChip.observacion,
+      }
+    },
+    [buscarCargoUsuarioPorSerie, resolverEstadoCargoUsuarioDesdeRows]
+  )
+
   useEffect(() => {
     if (!cargoUsuarioProductoId) return
     requestAnimationFrame(() => {
@@ -1550,7 +1724,38 @@ const OtRealizadaPage = () => {
 
     setCargoUsuarioSerieError(null)
     setCargoUsuarioSerieBloqueada(true)
-    if (cargoUsuarioActiveChip) {
+    setCargoUsuarioTieneSerie(true)
+
+    if (cargoUsuarioNeedsChip) {
+      setCargoUsuarioTieneChipId(true)
+      try {
+        const found = await buscarCargoUsuarioPorSerie(trimmed)
+        if (!found.permitido) {
+          setCargoUsuarioSerieError(found.observacion?.trim() || 'El producto tiene un estado no permitido para cargo usuario.')
+          setCargoUsuarioSerieBloqueada(false)
+          cargoUsuarioSerieRef.current?.focus()
+          cargoUsuarioSerieRef.current?.select()
+          return false
+        }
+
+        if (found.existe && found.chipId) {
+          const formattedChip = cargoUsuarioChipMask ? applyMask(found.chipId, cargoUsuarioChipMask) : found.chipId
+          setCargoUsuarioChipId(formattedChip)
+          setCargoUsuarioChipError(null)
+          setCargoUsuarioChipBloqueado(true)
+          cargoUsuarioCantidadRef.current?.focus()
+          cargoUsuarioCantidadRef.current?.select()
+          return true
+        }
+      } catch (error) {
+        console.warn('No se pudo buscar chipId de cargo usuario por serie.', error)
+        setCargoUsuarioSerieError('No se pudo validar la serie para cargo usuario. Intenta nuevamente.')
+        setCargoUsuarioSerieBloqueada(false)
+        cargoUsuarioSerieRef.current?.focus()
+        cargoUsuarioSerieRef.current?.select()
+        return false
+      }
+
       setCargoUsuarioChipBloqueado(false)
       cargoUsuarioChipRef.current?.focus()
       cargoUsuarioChipRef.current?.select()
@@ -1561,8 +1766,10 @@ const OtRealizadaPage = () => {
     cargoUsuarioCantidadRef.current?.select()
     return true
   }, [
-    cargoUsuarioActiveChip,
+    buscarCargoUsuarioPorSerie,
+    cargoUsuarioChipMask,
     cargoUsuarioNeedsSerie,
+    cargoUsuarioNeedsChip,
     cargoUsuarioSerie,
     cargoUsuarioSerieDigitsComplete,
     cargoUsuarioSerieDigitsNeeded,
@@ -1596,6 +1803,22 @@ const OtRealizadaPage = () => {
       return false
     }
 
+    try {
+      const estado = await validarCargoUsuarioEstadoPermitido(cargoUsuarioSerie.trim(), trimmed)
+      if (!estado.permitido) {
+        setCargoUsuarioChipError(estado.observacion?.trim() || 'El producto tiene un estado no permitido para cargo usuario.')
+        cargoUsuarioChipRef.current?.focus()
+        cargoUsuarioChipRef.current?.select()
+        return false
+      }
+    } catch (validationError) {
+      console.warn('No se pudo validar estado permitido de cargo usuario.', validationError)
+      setCargoUsuarioChipError('No se pudo validar el estado del ChipID. Intenta nuevamente.')
+      cargoUsuarioChipRef.current?.focus()
+      cargoUsuarioChipRef.current?.select()
+      return false
+    }
+
     setCargoUsuarioChipError(null)
     setCargoUsuarioChipBloqueado(true)
     cargoUsuarioCantidadRef.current?.focus()
@@ -1607,7 +1830,9 @@ const OtRealizadaPage = () => {
     cargoUsuarioChipDigitsNeeded,
     cargoUsuarioChipMask,
     cargoUsuarioNeedsChip,
+    cargoUsuarioSerie,
     cargoUsuarioTieneChipId,
+    validarCargoUsuarioEstadoPermitido,
   ])
 
   const handleCargoUsuarioSerieKeyDown = (event: React.KeyboardEvent<HTMLInputElement>): void => {
@@ -1713,6 +1938,28 @@ const OtRealizadaPage = () => {
     )
     if (duplicate) {
       setCargoUsuarioError('La Serie o el ChipID ya fueron agregados.')
+      return
+    }
+
+    try {
+      const estado = await validarCargoUsuarioEstadoPermitido(seriePayload, chipPayload)
+      if (!estado.permitido) {
+        const message = estado.observacion?.trim() || 'El producto tiene un estado no permitido para cargo usuario.'
+        setCargoUsuarioError(message)
+        if (seriePayload) {
+          setCargoUsuarioSerieError(message)
+          cargoUsuarioSerieRef.current?.focus()
+          cargoUsuarioSerieRef.current?.select()
+        } else if (chipPayload) {
+          setCargoUsuarioChipError(message)
+          cargoUsuarioChipRef.current?.focus()
+          cargoUsuarioChipRef.current?.select()
+        }
+        return
+      }
+    } catch (validationError) {
+      console.warn('No se pudo validar estado permitido en cargo usuario.', validationError)
+      setCargoUsuarioError('No se pudo validar el estado del producto de cargo usuario. Intenta nuevamente.')
       return
     }
 
@@ -1986,10 +2233,22 @@ const OtRealizadaPage = () => {
       } catch (validationError) {
         console.warn('No se pudo validar una fila de cargo usuario antes de guardar.', validationError)
       }
+
+      try {
+        const estado = await validarCargoUsuarioEstadoPermitido(serieTrim, chipTrim)
+        if (!estado.permitido) {
+          setError(`${rowLabel}: ${estado.observacion?.trim() || 'Estado no permitido para cargo usuario.'}`)
+          return false
+        }
+      } catch (validationError) {
+        console.warn('No se pudo validar estado permitido de una fila de cargo usuario.', validationError)
+        setError(`${rowLabel}: No se pudo validar el estado para cargo usuario.`)
+        return false
+      }
     }
 
     return true
-  }, [cargoUsuarioRows, materialRows, validarCargoUsuarioExistencia])
+  }, [cargoUsuarioRows, materialRows, validarCargoUsuarioEstadoPermitido, validarCargoUsuarioExistencia])
 
   const mutation = useMutation({
     mutationFn: async (payload: {
@@ -2300,7 +2559,7 @@ const OtRealizadaPage = () => {
                             type="checkbox"
                             checked={cargoUsuarioTieneSerie}
                             onChange={(event) => handleCargoUsuarioSerieToggle(event.target.checked)}
-                            disabled={!cargoUsuarioProductoId}
+                            disabled={!cargoUsuarioProductoId || cargoUsuarioSerieBloqueada}
                           />
                           Serie
                         </label>
