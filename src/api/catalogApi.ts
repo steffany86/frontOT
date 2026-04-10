@@ -129,6 +129,18 @@ const parseSeriesAllowedFlag = (value: unknown): boolean | null => {
   return null
 }
 
+const parseExistsFlag = (value: unknown): boolean | null => {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value !== 0
+  if (typeof value === 'string') {
+    const normalized = value.replace(/\s+/g, '').toLowerCase()
+    if (['existe', 'si', 's', 'true', '1'].includes(normalized)) return true
+    if (['noexiste', 'no', 'n', 'false', '0'].includes(normalized)) return false
+  }
+  return null
+}
+
 const buildSerieSaldoResult = (row: CatalogItem): SerieSaldoValidationResult => {
   const sePuede = parseSeriesAllowedFlag(
     pickValue(row, ['SePuede', 'Se Puede', 'SePuedeRegistrar', 'SePuedeRegistrado', 'Se Puede Registrar'])
@@ -141,6 +153,55 @@ const buildSerieSaldoResult = (row: CatalogItem): SerieSaldoValidationResult => 
     observacion: toStringValue(observacion) ?? undefined,
     chipId: toStringValue(chipId) ?? undefined,
     idProducto: toNumberValue(productoId) ?? undefined,
+  }
+}
+
+type CargoUsuarioProcValidationResult = {
+  existe: boolean
+  sePuede: boolean
+  observacion?: string
+  chipId?: string
+  serial?: string
+  idProducto?: number
+}
+
+export const validarCargoUsuarioConProc = async (codigo: string): Promise<CargoUsuarioProcValidationResult> => {
+  const codigoTrim = codigo.trim()
+  if (!codigoTrim) {
+    return {
+      existe: false,
+      sePuede: true,
+    }
+  }
+
+  const { data } = await api.get('/catalogos/spx_TraerDatoSerieChipIdCU', {
+    params: { serie: codigoTrim },
+  })
+  const rows = normalizeArrayResponse<CatalogItem>(data)
+  if (rows.length === 0) {
+    return {
+      existe: false,
+      sePuede: true,
+    }
+  }
+
+  const row = rows[0]
+  const existe = parseExistsFlag(pickValue(row, ['Existe', 'existe'])) ?? true
+  const sePuede = parseSeriesAllowedFlag(
+    pickValue(row, ['SePuede', 'sePuede', 'Se Puede', 'SePuedeRegistrar', 'resultado', 'Resultado'])
+  )
+  const observacion = toStringValue(pickValue(row, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle']))
+  const chipId = toStringValue(pickValue(row, ['ChipID', 'ChipId', 'chipId', 'chipid']))
+  const serial = toStringValue(pickValue(row, ['Serial', 'serial']))
+  const idProducto = toNumberValue(pickValue(row, ['Id_Producto', 'id_producto', 'IdProducto', 'idProducto', 'ProductoId']))
+
+  return {
+    existe,
+    sePuede: existe ? sePuede ?? true : true,
+    observacion: observacion ?? undefined,
+    chipId: chipId ?? undefined,
+    serial: serial ?? undefined,
+    idProducto: idProducto ?? undefined,
   }
 }
 

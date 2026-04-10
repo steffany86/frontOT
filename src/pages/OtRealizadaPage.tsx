@@ -16,6 +16,7 @@ import {
   fetchProductosSinFungible,
   fetchProductosMascara,
   fetchTipoMaterial,
+  validarCargoUsuarioConProc,
   validarSerieSaldo,
   validarSerieChipUnico,
   type CatalogItem,
@@ -1455,6 +1456,36 @@ const OtRealizadaPage = () => {
     []
   )
 
+  const validarCargoUsuarioEstadoPorProc = useCallback(
+    async (codigoValue: string): Promise<{ existe: boolean; permitido: boolean; observacion?: string }> => {
+      const codigoTrim = codigoValue.trim()
+      if (!codigoTrim) return { existe: false, permitido: true }
+
+      const procResult = await validarCargoUsuarioConProc(codigoTrim)
+      const selectedProducto = Number(cargoUsuarioProductoId)
+      if (
+        procResult.existe &&
+        procResult.idProducto &&
+        Number.isFinite(selectedProducto) &&
+        selectedProducto > 0 &&
+        procResult.idProducto !== selectedProducto
+      ) {
+        return {
+          existe: true,
+          permitido: false,
+          observacion: `El dato pertenece a otro producto (ID ${procResult.idProducto}).`,
+        }
+      }
+
+      return {
+        existe: procResult.existe,
+        permitido: procResult.sePuede,
+        observacion: procResult.observacion,
+      }
+    },
+    [cargoUsuarioProductoId]
+  )
+
   const resolverEstadoCargoUsuarioDesdeRows = useCallback(
     (rows: CatalogItem[]): { existe: boolean; permitido: boolean; observacion?: string; chipId?: string } => {
       if (rows.length === 0) return { existe: false, permitido: true }
@@ -1600,33 +1631,35 @@ const OtRealizadaPage = () => {
       const serieTrim = serieValue.trim()
       const chipTrim = chipValue.trim()
 
-      if (serieTrim) {
-        const bySerie = await buscarCargoUsuarioPorSerie(serieTrim)
-        if (!bySerie.permitido) {
-          return {
-            permitido: false,
-            observacion: bySerie.observacion,
-          }
-        }
-        if (!chipTrim) return { permitido: true, observacion: bySerie.observacion }
-      }
-
-      if (!chipTrim) {
+      if (!serieTrim && !chipTrim) {
         return { permitido: false, observacion: 'Debes registrar Serie o ChipID.' }
       }
 
-      const rows = await buscarSerialCargoUsuario({
-        serial: '',
-        chipId: chipTrim,
-        tipoCodigo: 1,
-      })
-      const byChip = resolverEstadoCargoUsuarioDesdeRows(rows)
+      if (serieTrim) {
+        const bySerieProc = await validarCargoUsuarioEstadoPorProc(serieTrim)
+        if (!bySerieProc.permitido) {
+          return {
+            permitido: false,
+            observacion: bySerieProc.observacion,
+          }
+        }
+      }
+
+      if (chipTrim) {
+        const byChipProc = await validarCargoUsuarioEstadoPorProc(chipTrim)
+        if (!byChipProc.permitido) {
+          return {
+            permitido: false,
+            observacion: byChipProc.observacion,
+          }
+        }
+      }
+
       return {
-        permitido: byChip.permitido,
-        observacion: byChip.observacion,
+        permitido: true,
       }
     },
-    [buscarCargoUsuarioPorSerie, resolverEstadoCargoUsuarioDesdeRows]
+    [validarCargoUsuarioEstadoPorProc]
   )
 
   useEffect(() => {
@@ -1726,18 +1759,28 @@ const OtRealizadaPage = () => {
     setCargoUsuarioSerieBloqueada(true)
     setCargoUsuarioTieneSerie(true)
 
+    try {
+      const estadoSerie = await validarCargoUsuarioEstadoPermitido(trimmed, '')
+      if (!estadoSerie.permitido) {
+        setCargoUsuarioSerieError(estadoSerie.observacion?.trim() || 'El producto tiene un estado no permitido para cargo usuario.')
+        setCargoUsuarioSerieBloqueada(false)
+        cargoUsuarioSerieRef.current?.focus()
+        cargoUsuarioSerieRef.current?.select()
+        return false
+      }
+    } catch (validationError) {
+      console.warn('No se pudo validar estado permitido por proc en cargo usuario.', validationError)
+      setCargoUsuarioSerieError('No se pudo validar la serie para cargo usuario. Intenta nuevamente.')
+      setCargoUsuarioSerieBloqueada(false)
+      cargoUsuarioSerieRef.current?.focus()
+      cargoUsuarioSerieRef.current?.select()
+      return false
+    }
+
     if (cargoUsuarioNeedsChip) {
       setCargoUsuarioTieneChipId(true)
       try {
         const found = await buscarCargoUsuarioPorSerie(trimmed)
-        if (!found.permitido) {
-          setCargoUsuarioSerieError(found.observacion?.trim() || 'El producto tiene un estado no permitido para cargo usuario.')
-          setCargoUsuarioSerieBloqueada(false)
-          cargoUsuarioSerieRef.current?.focus()
-          cargoUsuarioSerieRef.current?.select()
-          return false
-        }
-
         if (found.existe && found.chipId) {
           const formattedChip = cargoUsuarioChipMask ? applyMask(found.chipId, cargoUsuarioChipMask) : found.chipId
           setCargoUsuarioChipId(formattedChip)
@@ -1775,6 +1818,7 @@ const OtRealizadaPage = () => {
     cargoUsuarioSerieDigitsNeeded,
     cargoUsuarioSerieMask,
     cargoUsuarioTieneSerie,
+    validarCargoUsuarioEstadoPermitido,
   ])
 
   const advanceCargoUsuarioFromChip = useCallback(async (): Promise<boolean> => {
