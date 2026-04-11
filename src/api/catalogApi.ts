@@ -167,6 +167,35 @@ type CargoUsuarioProcValidationResult = {
 }
 
 let cargoUsuarioProcEndpointMissing = false
+let cargoUsuarioProcCunr2EndpointMissing = false
+
+const buildCargoUsuarioProcResult = (rows: CatalogItem[]): CargoUsuarioProcValidationResult => {
+  if (rows.length === 0) {
+    return {
+      existe: false,
+      sePuede: true,
+    }
+  }
+
+  const row = rows[0]
+  const existe = parseExistsFlag(pickValue(row, ['Existe', 'existe'])) ?? true
+  const sePuede = parseSeriesAllowedFlag(
+    pickValue(row, ['SePuede', 'sePuede', 'Se Puede', 'SePuedeRegistrar', 'resultado', 'Resultado'])
+  )
+  const observacion = toStringValue(pickValue(row, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle']))
+  const chipId = toStringValue(pickValue(row, ['ChipID', 'ChipId', 'chipId', 'chipid']))
+  const serial = toStringValue(pickValue(row, ['Serial', 'serial']))
+  const idProducto = toNumberValue(pickValue(row, ['Id_Producto', 'id_producto', 'IdProducto', 'idProducto', 'ProductoId']))
+
+  return {
+    existe,
+    sePuede: existe ? sePuede ?? true : true,
+    observacion: observacion ?? undefined,
+    chipId: chipId ?? undefined,
+    serial: serial ?? undefined,
+    idProducto: idProducto ?? undefined,
+  }
+}
 
 export const validarCargoUsuarioConProc = async (codigo: string): Promise<CargoUsuarioProcValidationResult> => {
   const codigoTrim = codigo.trim()
@@ -189,35 +218,51 @@ export const validarCargoUsuarioConProc = async (codigo: string): Promise<CargoU
       params: { serie: codigoTrim },
     })
     const rows = normalizeArrayResponse<CatalogItem>(data)
-    if (rows.length === 0) {
-      return {
-        existe: false,
-        sePuede: true,
-      }
-    }
-
-    const row = rows[0]
-    const existe = parseExistsFlag(pickValue(row, ['Existe', 'existe'])) ?? true
-    const sePuede = parseSeriesAllowedFlag(
-      pickValue(row, ['SePuede', 'sePuede', 'Se Puede', 'SePuedeRegistrar', 'resultado', 'Resultado'])
-    )
-    const observacion = toStringValue(pickValue(row, ['Observacion', 'observacion', 'Mensaje', 'mensaje', 'Detalle', 'detalle']))
-    const chipId = toStringValue(pickValue(row, ['ChipID', 'ChipId', 'chipId', 'chipid']))
-    const serial = toStringValue(pickValue(row, ['Serial', 'serial']))
-    const idProducto = toNumberValue(pickValue(row, ['Id_Producto', 'id_producto', 'IdProducto', 'idProducto', 'ProductoId']))
-
-    return {
-      existe,
-      sePuede: existe ? sePuede ?? true : true,
-      observacion: observacion ?? undefined,
-      chipId: chipId ?? undefined,
-      serial: serial ?? undefined,
-      idProducto: idProducto ?? undefined,
-    }
+    return buildCargoUsuarioProcResult(rows)
   } catch (error: unknown) {
     const status = (error as { response?: { status?: number } })?.response?.status
     if (status === 404) {
       cargoUsuarioProcEndpointMissing = true
+      return {
+        existe: false,
+        sePuede: true,
+        endpointMissing: true,
+      }
+    }
+    throw error
+  }
+}
+
+export const validarCargoUsuarioConProcCunr2 = async (
+  serie: string,
+  chipId: string
+): Promise<CargoUsuarioProcValidationResult> => {
+  const serieTrim = serie.trim()
+  const chipTrim = chipId.trim()
+  if (!serieTrim || !chipTrim) {
+    return {
+      existe: false,
+      sePuede: true,
+    }
+  }
+
+  if (cargoUsuarioProcCunr2EndpointMissing) {
+    return {
+      existe: false,
+      sePuede: true,
+      endpointMissing: true,
+    }
+  }
+  try {
+    const { data } = await api.get('/catalogos/spx_TraerDatoSerieChipIdCU_CUNR2', {
+      params: { serie: serieTrim, chipId: chipTrim },
+    })
+    const rows = normalizeArrayResponse<CatalogItem>(data)
+    return buildCargoUsuarioProcResult(rows)
+  } catch (error: unknown) {
+    const status = (error as { response?: { status?: number } })?.response?.status
+    if (status === 404) {
+      cargoUsuarioProcCunr2EndpointMissing = true
       return {
         existe: false,
         sePuede: true,

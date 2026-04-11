@@ -383,7 +383,7 @@ const OtDashboardPage = () => {
 
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <Field label="Fecha">
-            <input className="input-base" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
+            <input className="input-base" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} disabled />
           </Field>
         </div>
 
