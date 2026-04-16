@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useParams } from 'react-router-dom'
 import ProtectedRoute from './ProtectedRoute'
 import MainLayout from '../components/layout/MainLayout'
 import AdminRoute from '../components/guards/AdminRoute'
@@ -20,6 +20,11 @@ import ConformacionCuadrillaPage from '../pages/ConformacionCuadrillaPage'
 import PrivilegiosPage from '../pages/admin/PrivilegiosPage'
 import ForbiddenPage from '../pages/ForbiddenPage'
 
+const LegacyOtDetailRedirect = () => {
+  const { id } = useParams()
+  return <Navigate to={id ? `/GestionOTs/${id}` : '/GestionOTs/lista'} replace />
+}
+
 const AppRoutes = () => {
   const { defaultPrivatePath, isAuthenticated } = useAuth()
 
@@ -30,16 +35,26 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to={defaultPrivatePath} replace />} />
-          <Route path="/ot" element={<OtDashboardPage />} />
-          <Route path="/ot/crear" element={<OtCreatePage />} />
-          <Route path="/ot/lista" element={<OtListPage />} />
-          <Route path="/ot/:id" element={<OtDetailPage />} />
-          <Route path="/ot/RegistrarOrdenAgenda_Detalle" element={<OtRealizadaPage />} />
-          <Route path="/ot/realizada" element={<Navigate to="/ot/RegistrarOrdenAgenda_Detalle" replace />} />
-          <Route path="/ot/RegistrarOrdenAgenda" element={<RegistrarOTAgendaPage />} />
-          <Route path="/ot/modificar" element={<OtModificarPage />} />
-          <Route path="/ot/modificar-fecha" element={<OtModificarFechaPage />} />
-          <Route path="/ot/anular" element={<OtAnularPage />} />
+          <Route path="/GestionOTs" element={<OtDashboardPage />} />
+          <Route path="/GestionOTs/crear" element={<OtCreatePage />} />
+          <Route path="/GestionOTs/lista" element={<OtListPage />} />
+          <Route path="/GestionOTs/:id" element={<OtDetailPage />} />
+          <Route path="/GestionOTs/RegistrarOrdenAgenda_Detalle" element={<OtRealizadaPage />} />
+          <Route path="/GestionOTs/realizada" element={<Navigate to="/GestionOTs/RegistrarOrdenAgenda_Detalle" replace />} />
+          <Route path="/GestionOTs/RegistrarOrdenAgenda" element={<RegistrarOTAgendaPage />} />
+          <Route path="/GestionOTs/modificar" element={<OtModificarPage />} />
+          <Route path="/GestionOTs/modificar-fecha" element={<OtModificarFechaPage />} />
+          <Route path="/GestionOTs/anular" element={<OtAnularPage />} />
+          <Route path="/ot" element={<Navigate to="/GestionOTs" replace />} />
+          <Route path="/ot/crear" element={<Navigate to="/GestionOTs/crear" replace />} />
+          <Route path="/ot/lista" element={<Navigate to="/GestionOTs/lista" replace />} />
+          <Route path="/ot/:id" element={<LegacyOtDetailRedirect />} />
+          <Route path="/ot/RegistrarOrdenAgenda_Detalle" element={<Navigate to="/GestionOTs/RegistrarOrdenAgenda_Detalle" replace />} />
+          <Route path="/ot/realizada" element={<Navigate to="/GestionOTs/RegistrarOrdenAgenda_Detalle" replace />} />
+          <Route path="/ot/RegistrarOrdenAgenda" element={<Navigate to="/GestionOTs/RegistrarOrdenAgenda" replace />} />
+          <Route path="/ot/modificar" element={<Navigate to="/GestionOTs/modificar" replace />} />
+          <Route path="/ot/modificar-fecha" element={<Navigate to="/GestionOTs/modificar-fecha" replace />} />
+          <Route path="/ot/anular" element={<Navigate to="/GestionOTs/anular" replace />} />
           <Route path="/cu-no-realizado" element={<CuNoRealizadoListPage />} />
           <Route path="/cu-no-realizado/nuevo" element={<CuNoRealizadoCreatePage />} />
           <Route path="/cu-no-realizado/:id" element={<CuNoRealizadoDetailPage />} />

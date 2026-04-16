@@ -369,7 +369,7 @@ const OtListPage = () => {
           return <span className="text-xs text-slate-400">Sin ID</span>
         }
         return (
-          <Button variant="secondary" onClick={() => navigate(`/ot/${id}`)} type="button">
+          <Button variant="secondary" onClick={() => navigate(`/GestionOTs/${id}`)} type="button">
             Agregar datos
           </Button>
         )
@@ -469,7 +469,7 @@ const OtListPage = () => {
   const handleOpenDetail = (row: OtSummary) => {
     const id = getOtId(row)
     if (!id) return
-    navigate(`/ot/${id}`)
+    navigate(`/GestionOTs/${id}`)
   }
 
   const openDayModal = (dayKey: string) => {
@@ -723,7 +723,7 @@ const OtListPage = () => {
             {buscarErrorMessage ? (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{buscarErrorMessage}</div>
             ) : (
-              <Table columns={columns} data={buscarData} emptyLabel={emptyLabel} variant="row-block" />
+              <Table columns={columns} data={buscarData} emptyLabel={emptyLabel} variant="row-block" mobileRowBlockMode="cards" />
             )}
           </div>
         </div>

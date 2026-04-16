@@ -218,6 +218,183 @@ const hasVentaForRow = (row: OtSummary, fechaFiltro: string): boolean => {
   return false
 }
 
+type NoticeTone = 'amber' | 'rose' | 'slate'
+type BlockedCategory = 'loading' | 'cierre' | 'error' | 'cuadre' | 'complete' | null
+
+const getNoticeClasses = (tone: NoticeTone, extraClassName = ''): string => {
+  const palette =
+    tone === 'rose'
+      ? 'border-rose-200 bg-rose-50 text-rose-700'
+      : tone === 'slate'
+        ? 'border-slate-200 bg-slate-50 text-slate-700'
+        : 'border-amber-200 bg-amber-50 text-amber-700'
+
+  return `${palette} ${extraClassName}`.trim()
+}
+
+type OtCardUiStateArgs = {
+  isCheckingCierreGlobal: boolean
+  hasCierreGlobal: boolean
+  cierreGlobalMessage: string
+  hasCierreGlobalError: boolean
+  isCheckingBloqueo: boolean
+  bloqueoError: boolean
+  hasCierre: boolean
+  cierreMessage: string
+  hasCuadre: boolean
+  isValidatingVenta: boolean
+  validationError: boolean
+  ventaYaRegistrada: boolean
+  isValidatingDetalle: boolean
+  detalleYaRegistrado: boolean
+}
+
+type OtCardUiState = {
+  registroBloqueado: boolean
+  finalizarDisabled: boolean
+  materialDisabled: boolean
+  finalizarTitle: string
+  materialTitle: string
+  finalizarLabel: string
+  materialLabel: string
+  blockedNotice: string | null
+  blockedNoticeTone: NoticeTone
+  blockedCategory: BlockedCategory
+  isFullyBlocked: boolean
+}
+
+const buildOtCardUiState = (args: OtCardUiStateArgs): OtCardUiState => {
+  const registroBloqueado =
+    args.hasCierreGlobal || args.hasCierre || args.hasCuadre || args.hasCierreGlobalError || args.bloqueoError
+
+  const finalizarDisabled =
+    args.isValidatingVenta || args.isCheckingCierreGlobal || args.isCheckingBloqueo || args.ventaYaRegistrada || registroBloqueado
+
+  const materialDisabled =
+    args.isValidatingDetalle ||
+    args.isCheckingCierreGlobal ||
+    args.isCheckingBloqueo ||
+    !args.ventaYaRegistrada ||
+    args.detalleYaRegistrado ||
+    registroBloqueado
+
+  const finalizarTitle = args.isCheckingCierreGlobal
+    ? 'Validando cierre de agenda...'
+    : args.hasCierreGlobal
+      ? args.cierreGlobalMessage || 'Existe cierre de almacen para la fecha seleccionada.'
+      : args.hasCierreGlobalError
+        ? 'No se pudo validar el cierre de almacen. Intente nuevamente o revise el servicio.'
+        : args.isCheckingBloqueo
+          ? 'Validando cierre/cuadre...'
+          : args.bloqueoError
+            ? 'No se pudo validar cierre o cuadre para la ruta. Intente nuevamente o revise el servicio.'
+            : args.hasCierre
+              ? args.cierreMessage || 'La ruta ya tiene cierre de almacen.'
+              : args.hasCuadre
+                ? 'La ruta ya realizo cuadre.'
+                : args.isValidatingVenta
+                  ? 'Validando venta registrada...'
+                  : args.ventaYaRegistrada
+                    ? 'Ya existe registro en tbl_venta/tbl_codigoventa para esta fila.'
+                    : args.validationError
+                      ? 'No se pudo validar venta por API en este intento.'
+                      : 'Finalizar OT'
+
+  const materialTitle = args.isCheckingCierreGlobal
+    ? 'Validando cierre de agenda...'
+    : args.hasCierreGlobal
+      ? args.cierreGlobalMessage || 'Existe cierre de almacen para la fecha seleccionada.'
+      : args.hasCierreGlobalError
+        ? 'No se pudo validar el cierre de almacen.'
+        : args.isCheckingBloqueo
+          ? 'Validando cierre/cuadre...'
+          : args.bloqueoError
+            ? 'No se pudo validar cierre o cuadre para la ruta.'
+            : args.hasCierre
+              ? args.cierreMessage || 'La ruta ya tiene cierre de almacen.'
+              : args.hasCuadre
+                ? 'La ruta ya realizo cuadre.'
+                : args.isValidatingDetalle
+                  ? 'Validando detalle en codigo venta...'
+                  : !args.ventaYaRegistrada
+                    ? 'Primero debes registrar la OT.'
+                    : args.detalleYaRegistrado
+                      ? 'Ya existe detalle en tbl_codigoventa para esta fila.'
+                      : 'Cargar Material'
+
+  const finalizarLabel =
+    args.isCheckingCierreGlobal || args.isCheckingBloqueo || args.isValidatingVenta
+      ? 'Validando...'
+      : args.hasCierreGlobal || args.hasCierre
+        ? 'Cierre Registrado'
+        : args.hasCierreGlobalError || args.bloqueoError
+          ? 'Error Validacion'
+          : args.hasCuadre
+            ? 'Cuadre Registrado'
+            : 'Finalizar OT'
+
+  const materialLabel =
+    args.isCheckingCierreGlobal || args.isCheckingBloqueo || args.isValidatingDetalle
+      ? 'Validando...'
+      : args.hasCierreGlobal || args.hasCierre
+        ? 'Cierre Registrado'
+        : args.hasCierreGlobalError || args.bloqueoError
+          ? 'Error Validacion'
+          : args.hasCuadre
+            ? 'Cuadre Registrado'
+            : 'Cargar Material'
+
+  let blockedNotice: string | null = null
+  let blockedNoticeTone: NoticeTone = 'amber'
+  let blockedCategory: BlockedCategory = null
+
+  if (finalizarDisabled && materialDisabled) {
+    if (args.isCheckingCierreGlobal || args.isCheckingBloqueo || args.isValidatingVenta || args.isValidatingDetalle) {
+      blockedNotice = 'Estamos validando cierre, cuadre y registros para esta OT. Espera unos segundos.'
+      blockedCategory = 'loading'
+      blockedNoticeTone = 'amber'
+    } else if (args.hasCierreGlobal) {
+      blockedNotice = args.cierreGlobalMessage || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.'
+      blockedCategory = 'cierre'
+      blockedNoticeTone = 'amber'
+    } else if (args.hasCierreGlobalError || args.bloqueoError || args.validationError) {
+      blockedNotice = 'No se pudo validar el estado de esta OT con el backend. Revisa el servicio e intenta nuevamente.'
+      blockedCategory = 'error'
+      blockedNoticeTone = 'rose'
+    } else if (args.hasCierre) {
+      blockedNotice = args.cierreMessage || 'No se puede continuar porque la ruta ya tiene cierre de almacen.'
+      blockedCategory = 'cierre'
+      blockedNoticeTone = 'amber'
+    } else if (args.hasCuadre) {
+      blockedNotice = 'No se puede continuar porque la ruta ya realizo cuadre.'
+      blockedCategory = 'cuadre'
+      blockedNoticeTone = 'amber'
+    } else if (args.ventaYaRegistrada && args.detalleYaRegistrado) {
+      blockedNotice = 'Esta OT ya fue finalizada y tambien ya tiene cargado el material.'
+      blockedCategory = 'complete'
+      blockedNoticeTone = 'slate'
+    } else {
+      blockedNotice = 'No hay acciones disponibles para esta OT en este momento.'
+      blockedCategory = 'complete'
+      blockedNoticeTone = 'slate'
+    }
+  }
+
+  return {
+    registroBloqueado,
+    finalizarDisabled,
+    materialDisabled,
+    finalizarTitle,
+    materialTitle,
+    finalizarLabel,
+    materialLabel,
+    blockedNotice,
+    blockedNoticeTone,
+    blockedCategory,
+    isFullyBlocked: finalizarDisabled && materialDisabled,
+  }
+}
+
 const OtDashboardPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -370,6 +547,150 @@ const OtDashboardPage = () => {
         ? 'No se pudo validar el cierre de almacen.'
         : null
 
+  const cardEntries = useMemo(
+    () =>
+      displayRows.map((row, index) => {
+        const ot = getOtCodigo(row).trim()
+        const clienteNro = getClienteNro(row).trim()
+        const fechaFila = getFecha(row).trim() || fecha
+        const tor = getTor(row).trim()
+        const estado = getEstado(row).trim() || 'pendiente'
+        const estadoBadgeClass = getEstadoBadgeClass(estado)
+        const validationKey = buildVentaValidationKey(fechaFila, ot, clienteNro)
+        const validationState = ventaValidationByKey.get(validationKey)
+        const ventaYaRegistrada = validationState?.exists ?? hasVentaForRow(row, fecha)
+        const isValidatingVenta = validationState?.isLoading ?? false
+        const validationError = validationState?.isError ?? false
+        const isValidatingDetalle = validationState?.isLoading ?? false
+        const detalleYaRegistrado = validationState?.hasDetalle ?? false
+        const idRuta = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
+        const idSucursal = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
+        const bloqueoKey = buildRegistroBloqueoKey(fechaFila, idRuta, idSucursal)
+        const bloqueoState = bloqueoByKey.get(bloqueoKey)
+        const isCheckingBloqueo = bloqueoState?.isLoading ?? false
+        const bloqueoError = bloqueoState?.isError ?? false
+        const hasCierre = bloqueoState?.hasCierre ?? false
+        const hasCuadre = bloqueoState?.hasCuadre ?? false
+        const cierreMensaje = cierreAgendaQuery.data?.mensaje?.trim() || ''
+        const hasCierreGlobal = cierreAgendaQuery.data?.bloqueado ?? false
+        const isCheckingCierreGlobal = cierreAgendaQuery.isLoading || cierreAgendaQuery.isFetching
+        const hasCierreGlobalError = cierreAgendaQuery.isError
+        const ui = buildOtCardUiState({
+          isCheckingCierreGlobal,
+          hasCierreGlobal,
+          cierreGlobalMessage: cierreMensaje,
+          hasCierreGlobalError,
+          isCheckingBloqueo,
+          bloqueoError,
+          hasCierre,
+          cierreMessage: cierreMensaje,
+          hasCuadre,
+          isValidatingVenta,
+          validationError,
+          ventaYaRegistrada,
+          isValidatingDetalle,
+          detalleYaRegistrado,
+        })
+
+        return {
+          row,
+          index,
+          ot,
+          clienteNro,
+          fechaFila,
+          tor,
+          estado,
+          estadoBadgeClass,
+          ventaYaRegistrada,
+          detalleYaRegistrado,
+          validationError,
+          idRuta,
+          idSucursal,
+          tecnicoNombre: getTecnicoNombre(row).trim() || (usuario?.nombre ?? '').trim(),
+          grupo: getGrupo(row).trim(),
+          ui,
+        }
+      }),
+    [
+      bloqueoByKey,
+      cierreAgendaQuery.data?.bloqueado,
+      cierreAgendaQuery.data?.mensaje,
+      cierreAgendaQuery.isError,
+      cierreAgendaQuery.isFetching,
+      cierreAgendaQuery.isLoading,
+      displayRows,
+      fecha,
+      usuario?.nombre,
+      ventaValidationByKey,
+    ]
+  )
+
+  const fullyBlockedSummary = useMemo(() => {
+    if (!cardEntries.length) return null
+
+    const fullyBlockedCards = cardEntries.filter((card) => card.ui.isFullyBlocked)
+    if (fullyBlockedCards.length !== cardEntries.length) return null
+
+    const countByCategory = new Map<Exclude<BlockedCategory, null>, number>()
+    for (const card of fullyBlockedCards) {
+      if (!card.ui.blockedCategory) continue
+      countByCategory.set(card.ui.blockedCategory, (countByCategory.get(card.ui.blockedCategory) ?? 0) + 1)
+    }
+
+    const firstNotice = fullyBlockedCards.find((card) => card.ui.blockedNotice)?.ui.blockedNotice ?? ''
+    const loadingCount = countByCategory.get('loading') ?? 0
+    const errorCount = countByCategory.get('error') ?? 0
+    const cierreCount = countByCategory.get('cierre') ?? 0
+    const cuadreCount = countByCategory.get('cuadre') ?? 0
+    const completeCount = countByCategory.get('complete') ?? 0
+
+    if (loadingCount > 0) {
+      return {
+        tone: 'amber' as const,
+        message: `Estamos validando las ${cardEntries.length} OT de la pantalla. Mientras termine la consulta, los botones seguiran bloqueados temporalmente.`,
+      }
+    }
+
+    if (errorCount > 0) {
+      return {
+        tone: 'rose' as const,
+        message:
+          firstNotice ||
+          'No se pudo validar el estado de cierre/cuadre con el backend. Revisa el servicio para volver a habilitar los botones.',
+      }
+    }
+
+    if (cierreCount === cardEntries.length) {
+      return {
+        tone: 'amber' as const,
+        message:
+          firstNotice ||
+          'No hay acciones disponibles porque existe cierre de almacen para la fecha seleccionada.',
+      }
+    }
+
+    if (cuadreCount === cardEntries.length) {
+      return {
+        tone: 'amber' as const,
+        message: 'No hay acciones disponibles porque todas las rutas de la lista ya realizaron cuadre.',
+      }
+    }
+
+    if (completeCount === cardEntries.length) {
+      return {
+        tone: 'slate' as const,
+        message: 'Las OT visibles ya fueron procesadas y no tienen acciones pendientes en esta pantalla.',
+      }
+    }
+
+    return {
+      tone: cierreCount + cuadreCount > 0 ? ('amber' as const) : ('slate' as const),
+      message:
+        firstNotice ||
+        'Todas las OT visibles quedaron sin acciones disponibles. Revisa cierres, cuadre o registros ya realizados.',
+    }
+  }, [cardEntries])
+
   return (
     <div className="bento-page">
       <section className="glass-panel p-4 sm:p-6">
@@ -393,7 +714,16 @@ const OtDashboardPage = () => {
 
         <div className="mt-4">
           {navError ? (
-            <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{navError}</div>
+            <div className="mb-4 break-words rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{navError}</div>
+          ) : null}
+          {fullyBlockedSummary ? (
+            <div
+              className={`mb-4 whitespace-pre-line rounded-xl border px-4 py-3 text-sm ${getNoticeClasses(
+                fullyBlockedSummary.tone
+              )}`}
+            >
+              {fullyBlockedSummary.message}
+            </div>
           ) : null}
           {cierreAgendaErrorMessage ? (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -409,98 +739,55 @@ const OtDashboardPage = () => {
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {displayRows.map((row, index) => {
-                const ot = getOtCodigo(row).trim()
-                const clienteNro = getClienteNro(row).trim()
-                const fechaFila = getFecha(row).trim() || fecha
-                const tor = getTor(row).trim()
-                const estado = getEstado(row).trim() || 'pendiente'
-                const estadoBadgeClass = getEstadoBadgeClass(estado)
-                const validationKey = buildVentaValidationKey(fechaFila, ot, clienteNro)
-                const validationState = ventaValidationByKey.get(validationKey)
-                const ventaYaRegistrada = validationState?.exists ?? hasVentaForRow(row, fecha)
-                const isValidatingVenta = validationState?.isLoading ?? false
-                const validationError = validationState?.isError ?? false
-                const isValidatingDetalle = validationState?.isLoading ?? false
-                const detalleYaRegistrado = validationState?.hasDetalle ?? false
-                const idRuta = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
-                const idSucursal = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
-                const bloqueoKey = buildRegistroBloqueoKey(fechaFila, idRuta, idSucursal)
-                const bloqueoState = bloqueoByKey.get(bloqueoKey)
-                const isCheckingBloqueo = bloqueoState?.isLoading ?? false
-                const bloqueoError = bloqueoState?.isError ?? false
-                const hasCierre = bloqueoState?.hasCierre ?? false
-                const hasCuadre = bloqueoState?.hasCuadre ?? false
-                const hasCierreGlobal = cierreAgendaQuery.data?.bloqueado ?? false
-                const isCheckingCierreGlobal = cierreAgendaQuery.isLoading || cierreAgendaQuery.isFetching
-                const hasCierreGlobalError = cierreAgendaQuery.isError
-                const registroBloqueado = hasCierreGlobal || hasCierre || hasCuadre || hasCierreGlobalError || bloqueoError
-
+              {cardEntries.map((card) => {
                 return (
-                  <article key={`${ot || 'ot'}-${clienteNro || 'cliente'}-${index}`} className="bento-tile p-3 sm:p-4">
-                    <div className="rounded-[1.7rem] border border-brand-200/60 bg-white/90 p-4 sm:p-5">
-                      <div className="flex items-start justify-between gap-3">
-                        <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
-                          CLIENTE: {getClienteLabel(row)}
+                  <article key={`${card.ot || 'ot'}-${card.clienteNro || 'cliente'}-${card.index}`} className="bento-tile p-3 sm:p-4">
+                    <div className="rounded-[1.7rem] border border-brand-200/60 bg-white/90 p-3.5 sm:p-5">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                        <h3 className="break-words text-xl font-extrabold leading-tight tracking-tight text-slate-900 sm:text-2xl lg:text-3xl">
+                          CLIENTE: {getClienteLabel(card.row)}
                         </h3>
-                        <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${estadoBadgeClass}`}>
-                          {estado}
+                        <span
+                          className={`inline-flex w-fit rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${card.estadoBadgeClass}`}
+                        >
+                          {card.estado}
                         </span>
                       </div>
 
-                      <div className="mt-4 space-y-1 text-sm text-slate-700">
+                      <div className="mt-4 space-y-1 text-sm break-words text-slate-700">
                         <p>
-                          <span className="font-semibold">OT:</span> {ot || 'Sin OT'}
+                          <span className="font-semibold">OT:</span> {card.ot || 'Sin OT'}
                         </p>
                         <p>
-                          <span className="font-semibold">Agendado:</span> {fechaFila || 'Sin fecha'}
+                          <span className="font-semibold">Agendado:</span> {card.fechaFila || 'Sin fecha'}
                         </p>
                         <p>
-                          <span className="font-semibold">Tor:</span> {tor || 'Sin TOR'}
+                          <span className="font-semibold">Tor:</span> {card.tor || 'Sin TOR'}
                         </p>
                       </div>
 
-                      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                      {card.ui.blockedNotice ? (
+                        <div
+                          className={`mt-4 whitespace-pre-line rounded-xl border px-3 py-2 text-sm ${getNoticeClasses(
+                            card.ui.blockedNoticeTone
+                          )}`}
+                        >
+                          {card.ui.blockedNotice}
+                        </div>
+                      ) : null}
+
+                      <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 [&>button]:w-full">
                         <Button
                           type="button"
-                          disabled={isValidatingVenta || isCheckingCierreGlobal || isCheckingBloqueo || ventaYaRegistrada || registroBloqueado}
-                          title={
-                            isCheckingCierreGlobal
-                              ? 'Validando cierre de agenda...'
-                              : hasCierreGlobal
-                                ? cierreAgendaQuery.data?.mensaje || 'Existe cierre de almacen para la fecha seleccionada.'
-                              : hasCierreGlobalError
-                                ? 'No se pudo validar el cierre de almacen. Intente nuevamente o revise el servicio.'
-                              : isCheckingBloqueo
-                                ? 'Validando cierre/cuadre...'
-                              : bloqueoError
-                                ? 'No se pudo validar cierre o cuadre para la ruta. Intente nuevamente o revise el servicio.'
-                              : hasCierre
-                                ? 'La ruta ya tiene cierre de almacen.'
-                              : hasCuadre
-                                ? 'La ruta ya realizo cuadre.'
-                              : isValidatingVenta
-                                ? 'Validando venta registrada...'
-                              : ventaYaRegistrada
-                                ? 'Ya existe registro en tbl_venta/tbl_codigoventa para esta fila.'
-                              : validationError
-                                ? 'No se pudo validar venta por API en este intento.'
-                              : 'Finalizar OT'
-                          }
+                          disabled={card.ui.finalizarDisabled}
+                          title={card.ui.finalizarTitle}
                           onClick={() => {
-                            if (isValidatingVenta || isCheckingCierreGlobal || isCheckingBloqueo || ventaYaRegistrada || registroBloqueado) return
-
-                            const ot = getOtCodigo(row).trim()
-                            const tor = getTor(row).trim()
-                            const clienteNro = getClienteNro(row).trim()
-                            const grupo = getGrupo(row).trim()
-                            const tecnicoNombre = getTecnicoNombre(row).trim() || (usuario?.nombre ?? '').trim()
-
                             const missing: string[] = []
-                            if (!ot) missing.push('OT')
-                            if (!tor) missing.push('TOR')
-                            if (!clienteNro) missing.push('Cliente_Nro')
-                            if (!tecnicoNombre) missing.push('Tecnico')
+                            if (card.ui.finalizarDisabled) return
+                            if (!card.ot) missing.push('OT')
+                            if (!card.tor) missing.push('TOR')
+                            if (!card.clienteNro) missing.push('Cliente_Nro')
+                            if (!card.tecnicoNombre) missing.push('Tecnico')
 
                             if (missing.length > 0) {
                               setNavError(`No se puede abrir RegistrarOrdenAgenda. Faltan datos obligatorios: ${missing.join(', ')}.`)
@@ -508,106 +795,48 @@ const OtDashboardPage = () => {
                             }
 
                             setNavError(null)
-                            navigate('/ot/RegistrarOrdenAgenda', {
+                            navigate('/GestionOTs/RegistrarOrdenAgenda', {
                               state: {
-                                ot,
-                                tor,
-                                clienteNro,
-                                grupo,
-                                tecnicoNombre,
-                                idVendedor: getNumericString(row, ['id_vendedor', 'Id_Vendedor', 'idVendedor', 'IdVendedor']),
-                                idRuta: idRuta || getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta']),
-                                idTipoServicio: getNumericString(row, ['id_tiposervicio', 'Id_TipoServicio', 'idTipoServicio', 'IdTipoServicio']),
-                                idSucursal: idSucursal || getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal']),
-                                rowData: row,
+                                ot: card.ot,
+                                tor: card.tor,
+                                clienteNro: card.clienteNro,
+                                grupo: card.grupo,
+                                tecnicoNombre: card.tecnicoNombre,
+                                idVendedor: getNumericString(card.row, ['id_vendedor', 'Id_Vendedor', 'idVendedor', 'IdVendedor']),
+                                idRuta: card.idRuta || getNumericString(card.row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta']),
+                                idTipoServicio: getNumericString(card.row, ['id_tiposervicio', 'Id_TipoServicio', 'idTipoServicio', 'IdTipoServicio']),
+                                idSucursal: card.idSucursal || getNumericString(card.row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal']),
+                                rowData: card.row,
                               },
                             })
                           }}
                         >
-                          {isCheckingCierreGlobal
-                            ? 'Validando...'
-                            : hasCierreGlobal
-                              ? 'Cierre Registrado'
-                            : hasCierreGlobalError
-                              ? 'Error Validacion'
-                            : isCheckingBloqueo
-                              ? 'Validando...'
-                            : bloqueoError
-                              ? 'Error Validacion'
-                            : hasCierre
-                              ? 'Cierre Registrado'
-                            : hasCuadre
-                              ? 'Cuadre Registrado'
-                            : isValidatingVenta
-                              ? 'Validando...'
-                            : 'Finalizar OT'}
+                          {card.ui.finalizarLabel}
                         </Button>
 
                         <Button
                           type="button"
-                          disabled={isValidatingDetalle || isCheckingCierreGlobal || isCheckingBloqueo || !ventaYaRegistrada || detalleYaRegistrado || registroBloqueado}
-                          title={
-                            isCheckingCierreGlobal
-                              ? 'Validando cierre de agenda...'
-                              : hasCierreGlobal
-                                ? cierreAgendaQuery.data?.mensaje || 'Existe cierre de almacen para la fecha seleccionada.'
-                              : hasCierreGlobalError
-                                ? 'No se pudo validar el cierre de almacen.'
-                              : isCheckingBloqueo
-                                ? 'Validando cierre/cuadre...'
-                              : bloqueoError
-                                ? 'No se pudo validar cierre o cuadre para la ruta.'
-                              : hasCierre
-                                ? 'La ruta ya tiene cierre de almacen.'
-                              : hasCuadre
-                                ? 'La ruta ya realizo cuadre.'
-                              : isValidatingDetalle
-                                ? 'Validando detalle en codigo venta...'
-                              : !ventaYaRegistrada
-                                ? 'Primero debes registrar la OT.'
-                              : detalleYaRegistrado
-                                ? 'Ya existe detalle en tbl_codigoventa para esta fila.'
-                                : 'Cargar Material'
-                          }
+                          disabled={card.ui.materialDisabled}
+                          title={card.ui.materialTitle}
                           onClick={() => {
-                            if (isValidatingDetalle || isCheckingCierreGlobal || isCheckingBloqueo || !ventaYaRegistrada || detalleYaRegistrado || registroBloqueado) return
+                            if (card.ui.materialDisabled) return
                             setNavError(null)
-                            navigate('/ot/RegistrarOrdenAgenda_Detalle', {
+                            navigate('/GestionOTs/RegistrarOrdenAgenda_Detalle', {
                               state: {
-                                numeroOrden: ot,
-                                clienteNro,
-                                fecha: fechaFila,
-                                tor,
-                                grupo: getGrupo(row).trim(),
-                                tecnicoNombre: getTecnicoNombre(row).trim() || (usuario?.nombre ?? '').trim(),
-                                idRuta,
-                                idSucursal,
-                                rowData: row,
+                                numeroOrden: card.ot,
+                                clienteNro: card.clienteNro,
+                                fecha: card.fechaFila,
+                                tor: card.tor,
+                                grupo: card.grupo,
+                                tecnicoNombre: card.tecnicoNombre,
+                                idRuta: card.idRuta,
+                                idSucursal: card.idSucursal,
+                                rowData: card.row,
                               },
                             })
                           }}
                         >
-                          {isCheckingCierreGlobal
-                            ? 'Validando...'
-                            : hasCierreGlobal
-                              ? 'Cierre Registrado'
-                            : hasCierreGlobalError
-                              ? 'Error Validacion'
-                            : isCheckingBloqueo
-                              ? 'Validando...'
-                            : bloqueoError
-                              ? 'Error Validacion'
-                            : hasCierre
-                              ? 'Cierre Registrado'
-                            : hasCuadre
-                              ? 'Cuadre Registrado'
-                            : isValidatingDetalle
-                              ? 'Validando...'
-                            : !ventaYaRegistrada
-                              ? 'Cargar Material'
-                            : detalleYaRegistrado
-                              ? 'Cargar Material'
-                              : 'Cargar Material'}
+                          {card.ui.materialLabel}
                         </Button>
                       </div>
                     </div>

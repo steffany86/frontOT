@@ -2690,8 +2690,8 @@ const OtRealizadaPage = () => {
                 </Button>
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." variant="row-block" />
+            <div className="mt-3 sm:mt-4 overflow-x-auto">
+              <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." variant="row-block" mobileRowBlockMode="cards" />
             </div>
             </FormCard>
           </fieldset>
@@ -2837,8 +2837,14 @@ const OtRealizadaPage = () => {
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <Table columns={cargoUsuarioColumns} data={cargoUsuarioRows} emptyLabel="Sin cargo usuario agregado." variant="row-block" />
+            <div className="mt-3 sm:mt-4 overflow-x-auto">
+              <Table
+                columns={cargoUsuarioColumns}
+                data={cargoUsuarioRows}
+                emptyLabel="Sin cargo usuario agregado."
+                variant="row-block"
+                mobileRowBlockMode="cards"
+              />
             </div>
 
             {cargoUsuarioError ? (

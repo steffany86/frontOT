@@ -10,7 +10,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   const navigate = useNavigate()
   const { usuario, roleName, roleId, administrador, logout } = useAuth()
   const roleLabel = roleName ? `Rol: ${roleName}` : roleId > 0 ? `Rol ID: ${roleId}` : 'Rol sin asignar'
-  const userLabel = usuario?.nombre ? `Usuario: ${usuario.nombre}` : 'Usuario sin asignar'
 
   const handleLogout = () => {
     logout()
@@ -39,7 +38,6 @@ const Header = ({ onMenuClick }: HeaderProps) => {
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <span className="badge">{roleLabel}</span>
-        <span className="badge">{userLabel}</span>
         {administrador ? <span className="badge border-emerald-200 text-emerald-700">Administrador</span> : null}
         <Button variant="secondary" onClick={handleLogout} type="button">
           Cerrar sesion

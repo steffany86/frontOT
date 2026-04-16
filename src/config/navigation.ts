@@ -17,9 +17,9 @@ export type NavigationItem = {
 
 export const navigationItems: NavigationItem[] = [
   {
-    label: 'Gestion de Ordenes de Trabajo',
-    to: '/ot',
-    routePatterns: ['/ot'],
+    label: 'Gestion de OTs',
+    to: '/GestionOTs',
+    routePatterns: ['/GestionOTs', '/ot'],
     requiredAnyMenuIds: otModuleAccessMenuIds,
   },
   ...otActionItems.map((action) => ({
@@ -36,7 +36,7 @@ export const navigationItems: NavigationItem[] = [
     requiredMenuIds: [54],
   },
   {
-    label: 'Cuadrillas',
+    label: 'Conformacion de cuadrillas',
     to: '/supervisor/conformacion-cuadrilla',
     routePatterns: [
       '/supervisor/conformacion-cuadrilla',

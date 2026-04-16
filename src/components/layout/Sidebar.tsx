@@ -26,8 +26,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
         <div className="bento-tile flex h-full flex-col gap-6 p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">TigoStar</span>
-              <h1 className="mt-2 text-2xl font-semibold text-slate-900">TIGO STAR</h1>
+              <h1 className="text-2xl font-semibold text-slate-900">TIGO STAR</h1>
               <p className="mt-2 text-sm text-slate-600">Gestion operativa y seguimiento diario.</p>
             </div>
             <button
