@@ -14,7 +14,6 @@ import type {
   OtSummary,
   OtUpdatePayload,
 } from '../types/ot'
-import { getSessionStorage } from '../utils/storage'
 
 type UnknownRecord = Record<string, unknown>
 type RegistroAgendaValidacionApi = {
@@ -230,8 +229,7 @@ const buildListaOtQuery = (params: ListaOtParams): string => {
     searchParams.set('idUsuario', String(params.idUsuario))
   }
 
-  const hasSessionToken = Boolean(getSessionStorage()?.sessionToken)
-  if (!hasSessionToken && params.rol?.trim()) {
+  if (params.rol?.trim()) {
     searchParams.set('rol', params.rol.trim())
   }
 

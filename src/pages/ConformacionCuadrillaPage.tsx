@@ -601,7 +601,7 @@ const buildPayloadRow = (row: EditableRow): ConformacionCuadrillaInput => {
   return {
     fecha: row.fecha,
     estado: mapEstadoForBackend(cleanString(row.estado)),
-    actividad: cleanString(row.actividad),
+    actividad: normalizeActividadForBackend(cleanString(row.actividad)),
     idTecnico: parseNumber(row.idTecnico) ?? undefined,
     cuentaSf: optionalString(row.cuentaSf),
     salesforce: optionalString(row.salesforce),
@@ -662,6 +662,11 @@ const mapEstadoForBackend = (value: string): string => {
   if (normalized === 'ACTIVO') return 'ACTIVO'
   if (normalized === 'INACTIVO' || normalized === 'AUSENTE') return 'AUSENTE'
   return 'ACTIVO'
+}
+
+const normalizeActividadForBackend = (value: string): 'TITULAR' | 'BACKUP' => {
+  const normalized = value.trim().toUpperCase()
+  return normalized === 'BACKUP' ? 'BACKUP' : 'TITULAR'
 }
 
 const normalizeHabilidadValue = (value: string): string => {
@@ -2319,7 +2324,7 @@ const findVehiculoConflictRecord = (
       ...buildPayloadRow(normalizedRow),
       fecha: toISODate(normalizedRow.fecha) || selectedFechaFiltro || todayISO(),
       estado: mapEstadoForBackend(normalizedRow.estado),
-      actividad: cleanString(normalizedRow.actividad),
+      actividad: normalizeActividadForBackend(cleanString(normalizedRow.actividad)),
       idTecnico: parseNumber(normalizedRow.idTecnico) ?? undefined,
       idUsuarioSupervisor: supervisorId ?? Number(currentUserId),
       sucursal: currentSucursal,
@@ -2338,7 +2343,7 @@ const findVehiculoConflictRecord = (
       ...buildPayloadRow(sourceRow),
       fecha: toISODate(sourceRow.fecha) || selectedFechaFiltro || todayISO(),
       estado: mapEstadoForBackend(sourceRow.estado),
-      actividad: cleanString(sourceRow.actividad),
+      actividad: normalizeActividadForBackend(cleanString(sourceRow.actividad)),
       idTecnico: parseNumber(sourceRow.idTecnico) ?? undefined,
       idUsuarioSupervisor: loginUserId ?? parseNumber(sourceRow.idUsuarioSupervisor) ?? undefined,
       sucursal: sourceSucursal || sucursalActiva,
@@ -2877,7 +2882,7 @@ const findVehiculoConflictRecord = (
       ...normalizedBaseRecord,
       fecha: toISODate(draftRow.fecha) || normalizedBaseRecord.fecha || todayISO(),
       estado: normalizeEstadoValue(draftRow.estado),
-      actividad: cleanString(draftRow.actividad),
+      actividad: normalizeActividadForBackend(cleanString(draftRow.actividad)),
       idTecnico: parseNumber(draftRow.idTecnico) ?? undefined,
       cuentaSf: cleanString(draftRow.cuentaSf),
       salesforce: cleanString(draftRow.salesforce),

@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../context/AuthContext'
+import { fetchSucursales } from '../../services/authApi'
 import Button from '../common/Button'
 
 interface HeaderProps {
@@ -9,7 +11,29 @@ interface HeaderProps {
 const Header = ({ onMenuClick }: HeaderProps) => {
   const navigate = useNavigate()
   const { usuario, roleName, roleId, administrador, logout } = useAuth()
-  const roleLabel = roleName ? `Rol: ${roleName}` : roleId > 0 ? `Rol ID: ${roleId}` : 'Rol sin asignar'
+  const sucursalesQuery = useQuery({
+    queryKey: ['auth-sucursales-header'],
+    queryFn: fetchSucursales,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const roleNameResolved = (() => {
+    if (roleName?.trim()) return roleName.trim()
+    if (roleId === 8) return 'Tecnico'
+    if (roleId === 9) return 'Supervisor'
+    if (roleId > 0) return `Rol ${roleId}`
+    return 'Sin asignar'
+  })()
+  const roleLabel = `Rol: ${roleNameResolved}`
+
+  const sucursalNombre = (() => {
+    const idSucursal = usuario?.idSucursal ?? 0
+    if (!idSucursal) return 'Sin sucursal'
+    const opciones = sucursalesQuery.data?.data ?? []
+    const match = opciones.find((item) => item.idSucursal === idSucursal)
+    if (match?.sucursal?.trim()) return match.sucursal.trim()
+    return `ID ${idSucursal}`
+  })()
 
   const handleLogout = () => {
     logout()
@@ -32,7 +56,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           </span>
         </button>
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Panel OT</h2>
+          <h2 className="text-xl font-semibold text-slate-900">Gestion OT&apos;s - {sucursalNombre}</h2>
           <p className="text-sm text-slate-600">Bienvenido, {usuario?.nombre ?? 'Operador'}</p>
         </div>
       </div>

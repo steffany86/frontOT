@@ -706,19 +706,9 @@ const OtDashboardPage = () => {
     return Array.from(merged.values())
   }, [finalizadasQuery.data, isFinalizadasTab, manualPendientesQuery.data, query.data])
 
-  const allRows = useMemo(
-    () =>
-      isFinalizadasTab
-        ? rows
-        : rows.filter(
-            (row) =>
-              Boolean(getClienteNro(row).trim()) ||
-              Boolean(getOtCodigo(row).trim()) ||
-              Boolean(getEstado(row).trim()) ||
-              Boolean(getTor(row).trim())
-          ),
-    [isFinalizadasTab, rows]
-  )
+  // No descartar filas por aliases de columnas: algunos SPs devuelven nombres
+  // distintos y el filtro estricto puede ocultar todo el listado.
+  const allRows = useMemo(() => rows, [rows])
 
   const validationTargets = useMemo(() => {
     if (isFinalizadasTab) return []
@@ -1290,8 +1280,7 @@ const OtDashboardPage = () => {
       <section className="glass-panel p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Gestion de Ordenes de Trabajo</h2>
-            <p className="text-sm text-slate-500">Listado OT por fecha y tecnico autenticado.</p>
+            <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Ordenes de Trabajo</h2>
           </div>
           {activeListQuery.isFetching ? <span className="text-xs text-slate-500">Actualizando...</span> : null}
         </div>

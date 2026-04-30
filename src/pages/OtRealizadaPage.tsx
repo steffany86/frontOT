@@ -14,6 +14,7 @@ import {
   fetchEstados,
   fetchKitsDecodificadores,
   fetchNomencladores,
+  fetchRutas,
   fetchProductosCargoUsuario,
   fetchProductos,
   fetchProductosSinFungible,
@@ -524,22 +525,34 @@ const OtRealizadaPage = () => {
   const idRuta = useMemo(
     () =>
       (venta ? readNumber(venta, ['idRuta', 'Id_Ruta', 'id_ruta']) : null) ??
-      (rowData ? readNumber(rowData, ['idRuta', 'Id_Ruta', 'id_ruta', 'idGrupo', 'Id_Grupo', 'id_grupo']) : null) ??
+      (rowData ? readNumber(rowData, ['idRuta', 'Id_Ruta', 'id_ruta']) : null) ??
       (navState?.idRuta ? Number(navState.idRuta) : null),
     [navState?.idRuta, rowData, venta]
   )
-  const idGrupo = useMemo(
+  const idVendedor = useMemo(
     () =>
-      (rowData ? readNumber(rowData, ['idGrupo', 'Id_Grupo', 'id_grupo']) : null) ??
-      (venta ? readNumber(venta, ['idGrupo', 'Id_Grupo', 'id_grupo']) : null) ??
-      idRuta,
-    [idRuta, rowData, venta]
+      (venta ? readNumber(venta, ['idVendedor', 'Id_Vendedor', 'id_vendedor', 'idTecnico', 'Id_Tecnico']) : null) ??
+      (rowData ? readNumber(rowData, ['idVendedor', 'Id_Vendedor', 'id_vendedor', 'idTecnico', 'Id_Tecnico']) : null) ??
+      null,
+    [rowData, venta]
   )
   const idRutaValidacion = useMemo(() => {
     if (idRuta && idRuta > 0) return idRuta
-    if (idGrupo && idGrupo > 0) return idGrupo
     return null
-  }, [idGrupo, idRuta])
+  }, [idRuta])
+  const rutasQuery = useQuery({
+    queryKey: ['catalogos-rutas-ot-detalle', idVendedor ?? null],
+    queryFn: () => fetchRutas(idVendedor ?? undefined),
+    enabled: Boolean(idVendedor && idVendedor > 0),
+  })
+  const idRutaProductos = useMemo(() => {
+    if (idRutaValidacion && idRutaValidacion > 0) return idRutaValidacion
+    for (const row of rutasQuery.data ?? []) {
+      const rutaId = readNumber(row, ['idRuta', 'Id_Ruta', 'id_ruta', 'id', 'Id'])
+      if (rutaId && rutaId > 0) return rutaId
+    }
+    return null
+  }, [idRutaValidacion, rutasQuery.data])
   const fechaTrabajo = useMemo(() => {
     const fromVenta = venta ? readString(venta, ['fechaEjecucion', 'Fecha_Ejecucion', 'Fecha_Ejecucion']) : ''
     const fromState = navState?.fecha ?? ''
@@ -699,12 +712,12 @@ const OtRealizadaPage = () => {
     selectedTipoMaterialLabel.includes('retirado') ||
     selectedTipoMaterialLabel.includes('no entregado') ||
     selectedTipoMaterialLabel.includes('noentregado')
-  const shouldLoadProducts = Boolean(tipoMaterialId) && idGrupo !== null
+  const shouldLoadProducts = Boolean(tipoMaterialId) && idRutaProductos !== null
   const productosQuery = useQuery({
-    queryKey: ['catalogos-productos-ot-detalle', idGrupo, tipoMaterialId],
+    queryKey: ['catalogos-productos-ot-detalle', idRutaProductos, tipoMaterialId],
     queryFn: async () => {
-      const grupoId = idGrupo ?? 0
-      return isRetiredType ? fetchProductosSinFungible(grupoId) : fetchProductos(grupoId)
+      const rutaId = idRutaProductos ?? 0
+      return isRetiredType ? fetchProductosSinFungible(rutaId) : fetchProductos(rutaId)
     },
     enabled: shouldLoadProducts,
   })
