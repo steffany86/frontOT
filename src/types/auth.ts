@@ -11,6 +11,8 @@ export interface AuthMeResponse {
   idRol: number
   idSucursal: number
   hostName?: string
+  necesitaCambio?: boolean
+  ultimaModificacion?: string
 }
 
 export interface Sucursal {
@@ -25,3 +27,8 @@ export interface ApiResponse<T> {
 }
 
 export type SessionData = AuthMeResponse & { sessionToken: string }
+
+export interface ChangePasswordRequest {
+  actual: string
+  nueva: string
+}

@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FocusEvent, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
-import { fetchEstados, fetchRutas, fetchTiposServicio, type CatalogItem } from '../api/catalogApi'
+import { fetchEstados, fetchRamales, fetchRutas, fetchTiposServicio, type CatalogItem } from '../api/catalogApi'
 import { fetchMe } from '../api/authApi'
 import {
   fetchCabeceraVentaParaRegistroOtWb,
@@ -41,6 +41,7 @@ const GEO_MIN_SAMPLES = 3
 const GEO_MAX_SAMPLES = 8
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
+const PDF_MAX_BYTES = 10 * 1024 * 1024
 const TIPO_SERVICIO_ID_KEYS = [
   'id_tiposervicio',
   'Id_TipoServicio',
@@ -97,6 +98,22 @@ const readStringByToken = (row: UnknownRecord, includeTokens: string[], excludeT
   return ''
 }
 
+const readFlagByToken = (row: UnknownRecord, includeTokens: string[]): boolean | undefined => {
+  const normalizedTokens = includeTokens.map(normalizeKey)
+  for (const [key, raw] of Object.entries(row)) {
+    const normalizedKey = normalizeKey(key)
+    if (!normalizedTokens.every((token) => normalizedKey.includes(token))) continue
+    if (typeof raw === 'number') return raw === 1
+    if (typeof raw === 'boolean') return raw
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase()
+      if (['1', 'true', 'si', 's'].includes(normalized)) return true
+      if (['0', 'false', 'no', 'n'].includes(normalized)) return false
+    }
+  }
+  return undefined
+}
+
 const readNumber = (row: UnknownRecord, keys: string[]): number | null => {
   const value = readValue(row, keys)
   if (value === undefined || value === null || value === '') return null
@@ -127,6 +144,27 @@ const parseNumber = (value: string): number | null => {
   if (!value.trim()) return null
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : null
+}
+
+const normalizeTipoTecnologia = (value: unknown): string => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim().toUpperCase()
+}
+
+const sanitizeNodoInput = (value: string): string => {
+  const clean = value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  let result = ''
+  for (const char of clean) {
+    if (result.length < 3) {
+      if (/[A-Z]/.test(char)) result += char
+      continue
+    }
+    if (result.length < 6 && /\d/.test(char)) {
+      result += char
+    }
+    if (result.length === 6) break
+  }
+  return result
 }
 
 const findNumberInRows = (rows: UnknownRecord[], keys: string[]): number | null => {
@@ -228,6 +266,16 @@ const RegistrarOTAgendaPage = () => {
   const [registroGuardado, setRegistroGuardado] = useState(false)
   const [successModalOpen, setSuccessModalOpen] = useState(false)
   const [successModalMessage, setSuccessModalMessage] = useState('')
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [nodo, setNodo] = useState('')
+  const [ramal, setRamal] = useState('')
+  const [tap, setTap] = useState('')
+  const [boca, setBoca] = useState('')
+  const [tipoTecnologia, setTipoTecnologia] = useState('')
+  const [checkPlantaExterna, setCheckPlantaExterna] = useState(false)
+  const [tieneDetalle, setTieneDetalle] = useState(false)
+  const [nodoTouched, setNodoTouched] = useState(false)
+  const [tapTouched, setTapTouched] = useState(false)
   const queryClient = useQueryClient()
 
   const otRaw = (navState?.ot ?? '').trim()
@@ -515,9 +563,82 @@ const RegistrarOTAgendaPage = () => {
     return desc ? `${desc} (${tor})` : tor
   }, [hiddenIdTipoServicio, tiposServicioQuery.data, tor])
 
+  const checkPlantaExternaEnabled = useMemo(() => {
+    const rows = tiposServicioQuery.data ?? []
+    const selectedId = effectiveIdTipoServicio
+    const torTarget = tor.trim().toLowerCase()
+    const selected =
+      rows.find((row) => {
+        const prefijo = readString(row, ['prefijo', 'Prefijo', 'tor', 'TOR', 'codigo', 'Codigo', 'abreviatura', 'Abreviatura', 'sigla', 'Sigla'])
+          .trim()
+          .toLowerCase()
+        return Boolean(torTarget) && prefijo === torTarget
+      }) ??
+      (selectedId !== null
+        ? rows.find((row) => {
+            const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+            return id !== null && id === selectedId
+          })
+        : null) ??
+      null
+    if (!selected) return false
+    const direct = readFlagByToken(selected, ['check', 'planta', 'externa'])
+    if (direct !== undefined) return direct
+    const raw = readValue(selected, ['checkPlantaExterna', 'CheckPlantaExterna', 'check_planta_externa'])
+    if (typeof raw === 'number') return raw === 1
+    if (typeof raw === 'boolean') return raw
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase()
+      return normalized === '1' || normalized === 'true' || normalized === 'si' || normalized === 's'
+    }
+    return false
+  }, [effectiveIdTipoServicio, tiposServicioQuery.data, tor])
+
+  const tieneDetalleSuggested = useMemo(() => {
+    const rows = tiposServicioQuery.data ?? []
+    const selectedId = effectiveIdTipoServicio
+    if (selectedId === null) return false
+    const selected = rows.find((row) => {
+      const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+      return id !== null && id === selectedId
+    })
+    if (!selected) return false
+    const raw = readValue(selected, ['habilitarTieneDetalle', 'HabilitarTieneDetalle', 'habilitar_tiene_detalle'])
+    if (typeof raw === 'number') return raw === 1
+    if (typeof raw === 'boolean') return raw
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase()
+      return normalized === '1' || normalized === 'true' || normalized === 'si' || normalized === 's'
+    }
+    return false
+  }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+
+  const tieneDetalleEnabled = useMemo(() => {
+    const rows = tiposServicioQuery.data ?? []
+    const selectedId = effectiveIdTipoServicio
+    if (selectedId === null) return false
+    const selected = rows.find((row) => {
+      const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+      return id !== null && id === selectedId
+    })
+    if (!selected) return false
+    const raw = readValue(selected, ['habilitarTieneDetalle', 'HabilitarTieneDetalle', 'habilitar_tiene_detalle'])
+    if (typeof raw === 'number') return raw === 0
+    if (typeof raw === 'boolean') return raw === false
+    if (typeof raw === 'string') {
+      const normalized = raw.trim().toLowerCase()
+      return normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'n'
+    }
+    return false
+  }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+
   const estadosQuery = useQuery({
     queryKey: ['catalogos-estados-agenda'],
     queryFn: fetchEstados,
+  })
+  const ramalesQuery = useQuery({
+    queryKey: ['catalogos-ramales-agenda'],
+    queryFn: fetchRamales,
   })
 
   const estadoOptions = useMemo(
@@ -529,6 +650,30 @@ const RegistrarOTAgendaPage = () => {
       ),
     [estadosQuery.data]
   )
+  const ramalOptions = useMemo(() => {
+    const rows = ramalesQuery.data ?? []
+    const values = new Set<string>()
+    for (const row of rows) {
+      const value = readString(row, ['ramal', 'Ramal', 'nombre', 'Nombre', 'descripcion', 'Descripcion']).trim()
+      if (value) values.add(value)
+    }
+    return Array.from(values)
+  }, [ramalesQuery.data])
+  const tipoTecnologiaOptions = useMemo(() => {
+    const rows = (rutasQuery.data ?? []) as UnknownRecord[]
+    const values = new Set<string>()
+    for (const row of rows) {
+      const direct = normalizeTipoTecnologia(readValue(row, ['tipoTecnologia', 'TipoTecnologia', 'tipo_tecnologia']))
+      if (direct === 'HFC' || direct === 'DTH') {
+        values.add(direct)
+        continue
+      }
+      const tipoGrupo = normalizeTipoTecnologia(readValue(row, ['tipoGrupo', 'TipoGrupo', 'tipo_grupo']))
+      if (!tipoGrupo) continue
+      values.add(tipoGrupo === 'ANTENERO' ? 'DTH' : 'HFC')
+    }
+    return Array.from(values)
+  }, [rutasQuery.data])
   const blockedEstadoIds = useMemo(() => {
     const ids = new Set<string>()
     for (const option of estadoOptions) {
@@ -545,6 +690,12 @@ const RegistrarOTAgendaPage = () => {
     if (!idEstado) return ''
     return estadoOptions.find((option) => option.value === idEstado)?.label ?? ''
   }, [idEstado, estadoOptions])
+  const isEstadoFinalizadoOkSelected = useMemo(() => {
+    if (!selectedEstadoLabel.trim()) return false
+    return isEstadoCerradoFinalizadoOk(selectedEstadoLabel)
+  }, [selectedEstadoLabel])
+  const mustKeepTieneDetalleUnchecked = Boolean(idEstado && !isEstadoFinalizadoOkSelected)
+  const canEditTieneDetalle = tieneDetalleEnabled && !mustKeepTieneDetalleUnchecked
 
   useEffect(() => {
     if (!shouldAutoMapEstadoFallidaConVisita) return
@@ -603,6 +754,15 @@ const RegistrarOTAgendaPage = () => {
 
   const parsedOrdenTrabajo = parseNumber(otInputValue)
   const parsedCodigoCliente = parseNumber(clienteInputValue)
+  const nodoUpper = nodo.trim().toUpperCase()
+  const nodoValid = /^[A-Z]{3}\d{3}$/.test(nodoUpper)
+  const ramalUpper = ramal.trim().toUpperCase()
+  const ramalValid = ramalUpper.length > 0
+  const parsedTap = parseNumber(tap)
+  const tapValid = /^\d{3}$/.test(tap.trim())
+  const tapDisplay = tap.trim() ? tap.trim().padStart(3, '0') : '-'
+  const parsedBoca = parseNumber(boca)
+  const bocaValid = parsedBoca !== null && Number.isInteger(parsedBoca) && parsedBoca >= 0 && parsedBoca <= 8
   const hasValidOrdenTrabajo = parsedOrdenTrabajo !== null && parsedOrdenTrabajo > 0
   const hasValidCodigoCliente = parsedCodigoCliente !== null && parsedCodigoCliente > 0
 
@@ -612,8 +772,94 @@ const RegistrarOTAgendaPage = () => {
       parsedEstadoId !== null &&
       hasValidOrdenTrabajo &&
       hasValidCodigoCliente &&
+      nodoValid &&
+      ramalValid &&
+      tapValid &&
+      bocaValid &&
+      tipoTecnologia.trim().length > 0 &&
+      (!mustKeepTieneDetalleUnchecked || !tieneDetalle) &&
       !isBlockedEstadoForCurrentOt
   )
+
+  const missingRequiredFields = useMemo(() => {
+    const missing: string[] = []
+    if (!session?.idUsuario) missing.push('usuario de sesion')
+    if (missingHeaderFields.length > 0) missing.push(...missingHeaderFields)
+    if (parsedEstadoId === null) missing.push('estado')
+    if (!hasValidOrdenTrabajo) missing.push('nro orden')
+    if (!hasValidCodigoCliente) missing.push('cod cliente')
+    if (!nodoValid) missing.push('nodo (3 letras y 3 numeros)')
+    if (!ramalValid) missing.push('ramal')
+    if (!tapValid) missing.push('tap (3 digitos)')
+    if (!bocaValid) missing.push('boca')
+    if (!tipoTecnologia.trim()) missing.push('tipo tecnologia')
+    if (mustKeepTieneDetalleUnchecked && tieneDetalle) missing.push('"Se uso material?" debe estar desmarcado')
+    return missing
+  }, [
+    bocaValid,
+    hasValidCodigoCliente,
+    hasValidOrdenTrabajo,
+    missingHeaderFields,
+    mustKeepTieneDetalleUnchecked,
+    nodoValid,
+    parsedEstadoId,
+    ramalValid,
+    session?.idUsuario,
+    tapValid,
+    tieneDetalle,
+    tipoTecnologia,
+  ])
+
+  const missingRequiredMessage = useMemo(() => {
+    if (missingRequiredFields.length === 0) return null
+    return `Faltan datos requeridos: ${missingRequiredFields.join(', ')}.`
+  }, [missingRequiredFields])
+
+  const handleNodoBlur = (event: FocusEvent<HTMLInputElement>) => {
+    setNodoTouched(true)
+    if (!nodoValid) {
+      const input = event.currentTarget
+      window.setTimeout(() => {
+        if (input && document.body.contains(input)) {
+          input.focus()
+        }
+      }, 0)
+    }
+  }
+
+  const handleTapBlur = (event: FocusEvent<HTMLInputElement>) => {
+    setTapTouched(true)
+    if (!tapValid) {
+      const input = event.currentTarget
+      window.setTimeout(() => {
+        if (input && document.body.contains(input)) {
+          input.focus()
+        }
+      }, 0)
+    }
+  }
+
+  useEffect(() => {
+    if (checkPlantaExternaEnabled) return
+    if (!checkPlantaExterna) return
+    setCheckPlantaExterna(false)
+  }, [checkPlantaExterna, checkPlantaExternaEnabled])
+
+  useEffect(() => {
+    setTieneDetalle(tieneDetalleSuggested)
+  }, [tieneDetalleSuggested])
+
+  useEffect(() => {
+    if (!mustKeepTieneDetalleUnchecked) return
+    if (!tieneDetalle) return
+    setTieneDetalle(false)
+  }, [mustKeepTieneDetalleUnchecked, tieneDetalle])
+
+  useEffect(() => {
+    if (!tipoTecnologiaOptions.length) return
+    if (tipoTecnologiaOptions.includes(tipoTecnologia)) return
+    setTipoTecnologia(tipoTecnologiaOptions[0])
+  }, [tipoTecnologia, tipoTecnologiaOptions])
 
   const requestGeolocation = () => {
     if (typeof navigator === 'undefined' || !navigator.geolocation) {
@@ -934,8 +1180,15 @@ const RegistrarOTAgendaPage = () => {
         tieneObservacion: Boolean(observacion.trim()),
         latitud: coordinates?.latitud ?? latitud ?? 0,
         longitud: coordinates?.longitud ?? longitud ?? 0,
+        nodo: nodoUpper,
+        ramal: ramal.trim(),
+        tap: parsedTap ?? 0,
+        boca: parsedBoca ?? 0,
+        checkPlantaExterna,
+        tieneDetalle,
+        tipoTecnologia: tipoTecnologia.trim().toUpperCase(),
       }
-      return await registrarVentaParaRegistroOtWb(payload)
+      return await registrarVentaParaRegistroOtWb(payload, pdfFile)
     },
     onSuccess: (data) => {
       const idVenta = data?.data?.idVenta
@@ -943,9 +1196,11 @@ const RegistrarOTAgendaPage = () => {
       setSubmitError(null)
       setRegistroGuardado(true)
       setConfirmModalOpen(false)
+      const rutaPdf = data?.data?.rutaPdf
       const message = idVenta || orden ? `Registro exitoso. NroTrans.: ${idVenta ?? '-'} | OT: ${orden ?? '-'}` : 'Registro exitoso.'
-      setSuccess(message)
-      setSuccessModalMessage(message)
+      const messageFinal = rutaPdf ? `${message} | PDF: ${rutaPdf}` : message
+      setSuccess(messageFinal)
+      setSuccessModalMessage(messageFinal)
       setSuccessModalOpen(true)
       queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'], refetchType: 'all' })
     },
@@ -1026,7 +1281,11 @@ const RegistrarOTAgendaPage = () => {
       return false
     }
     if (!canSubmitBase) {
-      setSubmitError('Faltan datos requeridos para registrar la OT.')
+      setSubmitError(missingRequiredMessage ?? 'Faltan datos requeridos para registrar la OT.')
+      return false
+    }
+    if (!pdfFile) {
+      setSubmitError('Debes adjuntar el archivo PDF para registrar la OT.')
       return false
     }
     return true
@@ -1074,6 +1333,10 @@ const RegistrarOTAgendaPage = () => {
       return
     }
     if (!canSubmitBase) {
+      if (mustKeepTieneDetalleUnchecked && tieneDetalle) {
+        setSubmitError('Para este estado, "Se uso material?" debe estar desmarcado.')
+        return
+      }
       if (isBlockedEstadoForCurrentOt) {
         setSubmitError(
           `No se permite guardar con estado "${selectedEstadoLabel || 'CERRADO - FINALIZADO OK'}"${
@@ -1082,7 +1345,11 @@ const RegistrarOTAgendaPage = () => {
         )
         return
       }
-      setSubmitError('Faltan datos requeridos para registrar la OT.')
+      setSubmitError(missingRequiredMessage ?? 'Faltan datos requeridos para registrar la OT.')
+      return
+    }
+    if (!pdfFile) {
+      setSubmitError('Debes adjuntar el archivo PDF para registrar la OT.')
       return
     }
     setConfirmModalOpen(true)
@@ -1141,15 +1408,15 @@ const RegistrarOTAgendaPage = () => {
 
   return (
     <div className="bento-page">
-      <div className="bento-page-head">
+      <div className="px-1">
         <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">RegistrarOrdenAgenda</h2>
         <p className="text-sm text-slate-500">Basado en API de cabecera de venta OT.</p>
       </div>
 
-      <form className="flex flex-col gap-6" onSubmit={handleFormSubmit}>
-        <FormCard title="Cabecera OT" description="Formato de registro segun diseno objetivo.">
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="md:col-span-2 hidden">
+      <form className="flex flex-col gap-4" onSubmit={handleFormSubmit}>
+        <FormCard title="" hideHeader>
+          <div className="grid gap-3 md:grid-cols-6">
+            <div className="md:col-span-4 hidden">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Usuario</label>
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={session?.nombre ?? ''} disabled />
             </div>
@@ -1159,7 +1426,7 @@ const RegistrarOTAgendaPage = () => {
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={tecnicoVisible} disabled />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-red-600">Fecha Ejecucion</label>
               <input
                 className="input-base rounded-md border-rose-300 bg-slate-50 py-2 text-sm text-rose-600"
@@ -1173,7 +1440,7 @@ const RegistrarOTAgendaPage = () => {
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={grupoVisible} disabled />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Tipo Instalacion</label>
               {hiddenIdTipoServicio !== null && !isManualMode ? (
                 <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={tipoServicioLabel} disabled />
@@ -1193,7 +1460,7 @@ const RegistrarOTAgendaPage = () => {
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
               <input
                 className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'}`}
@@ -1207,7 +1474,7 @@ const RegistrarOTAgendaPage = () => {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Cod Cliente</label>
               <input
                 className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'}`}
@@ -1221,7 +1488,7 @@ const RegistrarOTAgendaPage = () => {
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Estado</label>
               <select className="input-base rounded-md py-2 text-sm" value={idEstado} onChange={(event) => setIdEstado(event.target.value)}>
                 <option value="">{estadosQuery.isLoading ? 'Cargando estados...' : 'Selecciona estado'}</option>
@@ -1244,12 +1511,91 @@ const RegistrarOTAgendaPage = () => {
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={sucursalVisible} disabled />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Origen</label>
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={origenRegistro} disabled />
             </div>
 
             <div className="md:col-span-2">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Tipo Tecnologia</label>
+              <select
+                className="input-base rounded-md py-2 text-sm"
+                value={tipoTecnologia}
+                onChange={(event) => setTipoTecnologia(event.target.value)}
+              >
+                <option value="">{rutasQuery.isLoading ? 'Cargando tecnologia...' : 'Selecciona tecnologia'}</option>
+                {tipoTecnologiaOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Nodo</label>
+              <input
+                className="input-base rounded-md py-2 text-sm uppercase"
+                value={nodo}
+                onChange={(event) => setNodo(sanitizeNodoInput(event.target.value))}
+                onBlur={handleNodoBlur}
+                placeholder="SCZ123"
+                maxLength={6}
+                aria-invalid={nodoTouched && !nodoValid}
+              />
+              {nodoTouched && !nodoValid ? (
+                <p className="mt-1 text-xs text-rose-600">Nodo debe tener 3 letras y 3 numeros (ej: SCZ123).</p>
+              ) : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Ramal</label>
+              <select className="input-base rounded-md py-2 text-sm" value={ramal} onChange={(event) => setRamal(event.target.value)}>
+                <option value="">{ramalesQuery.isLoading ? 'Cargando ramales...' : 'Selecciona ramal'}</option>
+                {ramalOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">TAP</label>
+              <input
+                className="input-base rounded-md py-2 text-sm"
+                value={tap}
+                onChange={(event) => setTap(event.target.value.replace(/[^\d]/g, '').slice(0, 3))}
+                onBlur={handleTapBlur}
+                placeholder="0-999"
+                maxLength={3}
+                aria-invalid={tapTouched && !tapValid}
+              />
+              {tapTouched && !tapValid ? <p className="mt-1 text-xs text-rose-600">TAP debe tener exactamente 3 digitos.</p> : null}
+            </div>
+
+            <div>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Boca</label>
+              <select className="input-base rounded-md py-2 text-sm" value={boca} onChange={(event) => setBoca(event.target.value)}>
+                <option value="">Selecciona boca</option>
+                {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+                  <option key={item} value={String(item)}>
+                    {item}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-4">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Nodo_Ramal_Tap</label>
+              <input
+                className="input-base rounded-md bg-slate-50 py-2 text-sm"
+                value={`NODO ${nodoUpper || '-'} RAMAL ${ramalUpper || '-'} TAP ${tapDisplay} BOCA ${boca || '-'}`}
+                disabled
+              />
+            </div>
+
+            <div className="md:col-span-6">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Bitacora</label>
               <textarea
                 className="input-base h-24 resize-none rounded-md py-2 text-sm"
@@ -1258,16 +1604,98 @@ const RegistrarOTAgendaPage = () => {
                 placeholder="Escribe una observacion"
               />
             </div>
+
+            <div className="md:col-span-1 md:pt-6">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                  checked={checkPlantaExterna}
+                  onChange={(event) => setCheckPlantaExterna(event.target.checked)}
+                  disabled={!checkPlantaExternaEnabled}
+                />
+                Es Planta Externa
+              </label>
+            </div>
+
+            <div className="md:col-span-1 md:pt-6">
+              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                  checked={tieneDetalle}
+                  onChange={(event) => setTieneDetalle(event.target.checked)}
+                  disabled={!canEditTieneDetalle}
+                />
+                Se uso material?
+              </label>
+              {mustKeepTieneDetalleUnchecked ? (
+                <p className="mt-1 text-xs text-slate-500">Para este estado, "Se uso material?" no aplica.</p>
+              ) : null}
+            </div>
+
+            <div className="md:col-span-6">
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Adjuntar PDF (obligatorio)</label>
+              <input
+                className="input-base rounded-md py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-3 file:py-2"
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null
+                  if (!file) {
+                    setPdfFile(null)
+                    return
+                  }
+                  const lowerName = file.name.toLowerCase()
+                  const mimeType = (file.type ?? '').toLowerCase()
+                  const isPdfExtension = lowerName.endsWith('.pdf')
+                  const isPdfMime = mimeType === '' || mimeType === 'application/pdf'
+                  const isPdf = isPdfExtension && isPdfMime
+                  if (!isPdf) {
+                    setPdfFile(null)
+                    setSubmitError('Solo se permite adjuntar archivos PDF.')
+                    event.target.value = ''
+                    return
+                  }
+                  if (file.size > PDF_MAX_BYTES) {
+                    setPdfFile(null)
+                    setSubmitError('El PDF supera el limite de 10MB.')
+                    event.target.value = ''
+                    return
+                  }
+                  setSubmitError(null)
+                  setPdfFile(file)
+                }}
+                disabled={registroGuardado || mutation.isPending || isPrevalidating}
+              />
+              <p className="mt-1 text-xs text-slate-500">{pdfFile ? `Archivo: ${pdfFile.name}` : 'Debes adjuntar un PDF para continuar.'}</p>
+            </div>
+
+            <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
+              Geolocalizacion: lat={latitud ?? 'N/D'}, lon={longitud ?? 'N/D'}
+              {hasGeoFix ? (
+                <div className={geoIsPrecise ? 'mt-1 text-emerald-700' : 'mt-1 text-rose-600'}>Precision estimada: +/-{(geoAccuracy ?? 0).toFixed(1)} m</div>
+              ) : null}
+              <div className="mt-2">
+                <Button
+                  className="w-full sm:w-auto"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    void requestGeolocation()
+                  }}
+                  disabled={geoLoading || calibrationBusy || isPrevalidating}
+                >
+                  {geoLoading ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
+                </Button>
+              </div>
+              {geoError ? <div className="mt-2 text-rose-600">{geoError}</div> : null}
+            </div>
           </div>
         </FormCard>
 
         {!isManualMode && missingParamsMessage ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{missingParamsMessage}</div>
-        ) : null}
-        {!isManualMode && !missingParamsMessage ? (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 break-words">
-            Params SP: clienteNro={spParams.clienteNro}, ot={spParams.ot}, tor='{spParams.tor}', grupo='{spParams.grupo}', tecnicoNombre='{spParams.tecnicoNombre}'
-          </div>
         ) : null}
         {manualRouteIssue ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{manualRouteIssue}</div>
@@ -1278,26 +1706,6 @@ const RegistrarOTAgendaPage = () => {
         {tipoServicioHeaderWarning ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{tipoServicioHeaderWarning}</div>
         ) : null}
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600 break-words">
-          Geolocalizacion: lat={latitud ?? 'N/D'}, lon={longitud ?? 'N/D'}
-          {hasGeoFix ? (
-            <div className={geoIsPrecise ? 'mt-1 text-emerald-700' : 'mt-1 text-rose-600'}>Precision estimada: +/-{(geoAccuracy ?? 0).toFixed(1)} m</div>
-          ) : null}
-          <div className="mt-2">
-            <Button
-              className="w-full sm:w-auto"
-              type="button"
-              variant="secondary"
-              onClick={() => {
-                void requestGeolocation()
-              }}
-              disabled={geoLoading || calibrationBusy || isPrevalidating}
-            >
-              {geoLoading ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
-            </Button>
-          </div>
-          {geoError ? <div className="mt-2 text-rose-600">{geoError}</div> : null}
-        </div>
         {!isManualMode && cabeceraQuery.isError ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
             No se pudo cargar la cabecera de venta OT.

@@ -39,6 +39,7 @@ export type OtRegistrarDetallePayload = {
   idEstado?: number
   observacion?: string
   materiales: OtDetalleMaterialPayload[]
+  idSucursal?: number
 }
 
 export type OtCargoUsuarioItemPayload = {
@@ -52,6 +53,7 @@ export type OtCargoUsuarioItemPayload = {
 export type OtCargoUsuarioPayload = {
   numeroOrden: string
   items: OtCargoUsuarioItemPayload[]
+  idSucursal?: number
 }
 
 export type OtRegistroCompletoVenta = {
@@ -389,9 +391,14 @@ export const fetchSupervisorUltimoEstadoDia = async (params: {
       rol: params.rol,
     })
     const otWebRows = await fetchOtWebPendientesConFallback(params)
+    const finalizadasRows = await fetchOtFinalizadas({
+      fecha: params.fecha,
+      usuario: params.idUsuario,
+    }).catch(() => [])
 
     if (listaOtRows.length === 0) {
-      return otWebRows
+      if (otWebRows.length > 0) return otWebRows
+      return finalizadasRows
     }
     if (otWebRows.length === 0) {
       return listaOtRows
@@ -521,7 +528,9 @@ export const createOtRealizada = async (payload: OtRealizadaPayload): Promise<vo
 }
 
 export const createOtDetalle = async (payload: OtRegistrarDetallePayload): Promise<{ idVenta?: number; numeroOrden?: number }> => {
-  const { data } = await api.post('/ot/detalle-materiales', payload)
+  const { data } = await api.post('/ot/detalle-materiales', payload, {
+    params: { idSucursal: payload.idSucursal ?? undefined },
+  })
   const raw = unwrapData(data)
   if (!isRecord(raw)) return {}
   const idVenta =
@@ -534,7 +543,9 @@ export const createOtDetalle = async (payload: OtRegistrarDetallePayload): Promi
 }
 
 export const createOtCargoUsuario = async (payload: OtCargoUsuarioPayload): Promise<{ guardados?: number }> => {
-  const { data } = await api.post('/ot/cargo-usuario', payload)
+  const { data } = await api.post('/ot/cargo-usuario', payload, {
+    params: { idSucursal: payload.idSucursal ?? undefined },
+  })
   const raw = unwrapData(data)
   if (!isRecord(raw)) return {}
   return {
@@ -763,6 +774,7 @@ export const validateVentaYDetalle = async (params: {
   desdeAgenda?: boolean
 }): Promise<{
   existeVenta: boolean
+  tieneDetalle: boolean
   tieneDetalleEnCodigoVenta: boolean
   cantidadVentas: number
   cantidadDetalles: number
@@ -807,9 +819,11 @@ export const validateVentaYDetalle = async (params: {
   const cantidadVentas = readNumber(payload, ['cantidadVentas', 'CantidadVentas', 'countVentas', 'CountVentas']) ?? (existeVentaFlag ? 1 : 0)
   const existeVenta = existeVentaFlag !== undefined ? existeVentaFlag : cantidadVentas > 0 ? true : resolveVentaExists(data)
 
+  const tieneDetalleFlag = readBoolean(payload, ['tieneDetalle', 'TieneDetalle'])
   const detalleFlag = readBoolean(payload, ['tieneDetalleEnCodigoVenta', 'TieneDetalleEnCodigoVenta', 'existeDetalle', 'ExisteDetalle'])
   const cantidadDetalles = readNumber(payload, ['cantidadDetalles', 'CantidadDetalles', 'countDetalles', 'CountDetalles']) ?? (detalleFlag ? 1 : 0)
   const tieneDetalleEnCodigoVenta = detalleFlag !== undefined ? detalleFlag : cantidadDetalles > 0
+  const tieneDetalle = tieneDetalleFlag !== undefined ? tieneDetalleFlag : false
 
   const addMaterialFlag = readBoolean(payload, [
     'addMaterialOCargoUsuario',
@@ -836,6 +850,7 @@ export const validateVentaYDetalle = async (params: {
 
   return {
     existeVenta,
+    tieneDetalle,
     tieneDetalleEnCodigoVenta,
     cantidadVentas,
     cantidadDetalles,
@@ -1176,18 +1191,45 @@ type RegistrarVentaParaRegistroOtResult = {
   data?: {
     idVenta?: number
     ordenTrabajo?: number
+    rutaPdf?: string
   }
 }
 
 export const registrarVentaParaRegistroOtWb = async (
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  pdfFile?: File | null
 ): Promise<RegistrarVentaParaRegistroOtResult> => {
+  const body: Record<string, unknown> | FormData = (() => {
+    if (!pdfFile) return payload
+    const rawCodigoCliente = payload.codigoCliente
+    const codigoCliente =
+      typeof rawCodigoCliente === 'number'
+        ? String(rawCodigoCliente)
+        : typeof rawCodigoCliente === 'string'
+          ? rawCodigoCliente.trim()
+          : ''
+    const originalName = pdfFile.name ?? 'archivo.pdf'
+    const hasPdfExtension = /\.pdf$/i.test(originalName)
+    const baseName = hasPdfExtension ? originalName.replace(/\.pdf$/i, '') : originalName
+    const finalName = codigoCliente ? `${baseName}_COD_${codigoCliente}.pdf` : originalName
+    const fileToUpload =
+      finalName === originalName
+        ? pdfFile
+        : new File([pdfFile], finalName, {
+            type: pdfFile.type || 'application/pdf',
+            lastModified: pdfFile.lastModified,
+          })
+    const formData = new FormData()
+    formData.append('payload', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
+    formData.append('pdf', fileToUpload)
+    return formData
+  })()
   try {
-    const response = await api.post('/ot/venta/registro-otwb', payload)
+    const response = await api.post('/ot/venta/registro-otwb', body)
     return response.data as RegistrarVentaParaRegistroOtResult
   } catch (error) {
     if (!shouldFallbackToLegacyEndpoint(error)) throw error
-    const response = await api.post('/ot/spx_RegistrarVentaParaRegistroOTwb', payload)
+    const response = await api.post('/ot/spx_RegistrarVentaParaRegistroOTwb', body)
     return response.data as RegistrarVentaParaRegistroOtResult
   }
 }

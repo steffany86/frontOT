@@ -28,6 +28,29 @@ const readNumberField = (record: Record<string, unknown>, keys: string[]): numbe
   return 0
 }
 
+const readBooleanField = (record: Record<string, unknown>, keys: string[]): boolean | undefined => {
+  for (const key of keys) {
+    const value = record[key]
+    if (typeof value === 'boolean') return value
+    if (typeof value === 'number') return value !== 0
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase()
+      if (normalized === 'true' || normalized === '1' || normalized === 'si' || normalized === 'yes') return true
+      if (normalized === 'false' || normalized === '0' || normalized === 'no') return false
+    }
+  }
+  return undefined
+}
+
+const readDateField = (record: Record<string, unknown>, keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = record[key]
+    if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString()
+    if (typeof value === 'string' && value.trim()) return value.trim()
+  }
+  return undefined
+}
+
 const mapRoleName = (idRol: number, current: string): string => {
   if (current.trim()) return current
   if (idRol === 8) return 'Tecnico'
@@ -46,6 +69,8 @@ const normalizeAuthMeResponse = (payload: unknown): AuthMeResponse => {
     idRol,
     idSucursal: readNumberField(base, ['idSucursal', 'IdSucursal', 'Id_Sucursal', 'id_sucursal']),
     hostName: readStringField(base, ['hostName', 'HostName', 'hostname', 'Hostname', 'pcName', 'PcName']),
+    necesitaCambio: readBooleanField(base, ['NecesitaCambio', 'necesitaCambio', 'necesitacambio']),
+    ultimaModificacion: readDateField(base, ['UltimaModificacion', 'ultimaModificacion', 'ultimamodificacion']),
   }
 }
 

@@ -13,6 +13,7 @@ import {
   validateVentaYDetalle,
   type OtRegistroCompletoVenta,
 } from '../api/otApi'
+import { fetchConformacionCuadrillaConfirmadas } from '../api/conformacionCuadrillaApi'
 import { fetchTiposServicio } from '../api/catalogApi'
 import { useAuth } from '../context/AuthContext'
 import type { OtSummary } from '../types/ot'
@@ -119,6 +120,11 @@ const normalizeEstado = (value: string): string => {
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
+}
+
+const isOtWebOrigin = (value: string): boolean => {
+  const normalized = normalizeEstado(value).replace(/[\s_-]+/g, '')
+  return normalized === 'otweb'
 }
 
 type OtDashboardTab = 'pendientes' | 'finalizadas'
@@ -395,6 +401,7 @@ type OtCardUiStateArgs = {
   cantidadDetalles: number
   addMaterialOCargoUsuario: boolean
   habilitarCargarMaterial: boolean
+  isFinalizadaRegla?: boolean
 }
 
 type OtCardUiState = {
@@ -417,7 +424,10 @@ const buildOtCardUiState = (args: OtCardUiStateArgs): OtCardUiState => {
   const requiereMaterial = args.addMaterialOCargoUsuario
   const onlyFinalizar = !ventaYaRegistrada && !detalleYaRegistrado
   const onlyMaterial = ventaYaRegistrada && !detalleYaRegistrado
-  const flujoFinalizado = (ventaYaRegistrada && detalleYaRegistrado) || (ventaYaRegistrada && !requiereMaterial)
+  const flujoFinalizado =
+    typeof args.isFinalizadaRegla === 'boolean'
+      ? args.isFinalizadaRegla
+      : (ventaYaRegistrada && detalleYaRegistrado) || (ventaYaRegistrada && !requiereMaterial)
 
   const registroBloqueado =
     args.hasCierreGlobal || args.hasCierre || args.hasCuadre || args.hasCierreGlobalError || args.bloqueoError
@@ -567,6 +577,19 @@ const buildOtCardUiState = (args: OtCardUiStateArgs): OtCardUiState => {
   }
 }
 
+const resolverFinalizadaPorRegla = (
+  existeVenta: boolean,
+  tieneDetalleVenta: boolean,
+  tieneDetalleEnCodigoVenta: boolean
+): boolean => {
+  if (!existeVenta) return false
+  if (!tieneDetalleVenta && !tieneDetalleEnCodigoVenta) return true
+  if (tieneDetalleVenta && tieneDetalleEnCodigoVenta) return true
+  if (tieneDetalleVenta && !tieneDetalleEnCodigoVenta) return false
+  // Caso no especificado: existeVenta=1, TieneDetalle=0, TieneDetalleEnCodigoVenta=1.
+  return true
+}
+
 const OtDashboardPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -661,6 +684,53 @@ const OtDashboardPage = () => {
     enabled: !isFinalizadasTab,
   })
 
+  const conformacionConfirmadasQuery = useQuery({
+    queryKey: ['ot-dashboard-validar-conformacion-cuadrilla', fecha, usuario?.idUsuario ?? 0, usuario?.nombre ?? '', refreshToken],
+    queryFn: () =>
+      fetchConformacionCuadrillaConfirmadas({
+        fecha,
+      }),
+    staleTime: 60_000,
+    retry: 1,
+    enabled: !isFinalizadasTab && Boolean(usuario?.idUsuario || usuario?.nombre),
+  })
+  const hasConformacionCuadrillaTecnico = useMemo(() => {
+    const rows = conformacionConfirmadasQuery.data ?? []
+    if (!rows.length) return false
+
+    const usuarioId = toPositiveNumber(usuario?.idUsuario)
+    const usuarioNombre = normalizeEstado((usuario?.nombre ?? '').trim())
+
+    return rows.some((row) => {
+      const rowLike = row as OtSummary
+      const idTecnico = toPositiveNumber(readValue(rowLike, ['idTecnico', 'id_tecnico', 'idVendedor', 'id_vendedor', 'Id_Vendedor']))
+      if (usuarioId && idTecnico && usuarioId === idTecnico) {
+        return true
+      }
+      const tecnicoNombre = normalizeEstado(readString(rowLike, ['tecnico', 'Tecnico', 'nombreTecnico', 'NombreTecnico', 'nombre', 'Nombre']).trim())
+      if (!usuarioNombre || !tecnicoNombre) {
+        return false
+      }
+      return tecnicoNombre === usuarioNombre || tecnicoNombre.includes(usuarioNombre) || usuarioNombre.includes(tecnicoNombre)
+    })
+  }, [conformacionConfirmadasQuery.data, usuario?.idUsuario, usuario?.nombre])
+
+  const manualButtonBlockedByCierre = !isFinalizadasTab && (cierreAgendaQuery.data?.bloqueado ?? false)
+  const manualButtonCheckingConformacion = !isFinalizadasTab && (conformacionConfirmadasQuery.isLoading || conformacionConfirmadasQuery.isFetching)
+  const manualButtonBlockedByConformacion = !isFinalizadasTab && !manualButtonCheckingConformacion && !hasConformacionCuadrillaTecnico
+  const manualButtonDisabled =
+    isFinalizadasTab ||
+    manualButtonCheckingConformacion ||
+    manualButtonBlockedByCierre ||
+    manualButtonBlockedByConformacion
+  const manualButtonDisabledTitle = manualButtonCheckingConformacion
+    ? 'Validando conformacion de cuadrilla...'
+    : manualButtonBlockedByCierre
+      ? (cierreAgendaQuery.data?.mensaje?.trim() || 'Registro bloqueado por validacion de cierre/movimientos.')
+      : manualButtonBlockedByConformacion
+        ? 'Debe confirmar conformacion de cuadrilla para habilitar OT manual.'
+        : 'Registrar OT manual'
+
   const rows = useMemo(() => {
     if (isFinalizadasTab) {
       return finalizadasQuery.data ?? []
@@ -706,12 +776,9 @@ const OtDashboardPage = () => {
     return Array.from(merged.values())
   }, [finalizadasQuery.data, isFinalizadasTab, manualPendientesQuery.data, query.data])
 
-  // No descartar filas por aliases de columnas: algunos SPs devuelven nombres
-  // distintos y el filtro estricto puede ocultar todo el listado.
   const allRows = useMemo(() => rows, [rows])
 
   const validationTargets = useMemo(() => {
-    if (isFinalizadasTab) return []
     const unique = new Map<string, { key: string; fecha: string; ot: string; clienteNro: string; desdeAgenda: boolean }>()
     for (const row of allRows) {
       const ot = getOtCodigo(row).trim()
@@ -728,7 +795,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(unique.values())
-  }, [allRows, fecha, isFinalizadasTab])
+  }, [allRows, fecha])
 
   const ventaValidationQueries = useQueries({
     queries: validationTargets.map((target) => ({
@@ -751,6 +818,7 @@ const OtDashboardPage = () => {
       string,
       {
         exists: boolean
+        tieneDetalle: boolean
         hasDetalle: boolean
         cantidadVentas: number
         cantidadDetalles: number
@@ -765,6 +833,7 @@ const OtDashboardPage = () => {
       const queryState = ventaValidationQueries[index]
       map.set(target.key, {
         exists: queryState.data?.existeVenta ?? false,
+        tieneDetalle: queryState.data?.tieneDetalle ?? false,
         hasDetalle: queryState.data?.tieneDetalleEnCodigoVenta ?? false,
         cantidadVentas: queryState.data?.cantidadVentas ?? 0,
         cantidadDetalles: queryState.data?.cantidadDetalles ?? 0,
@@ -858,7 +927,11 @@ const OtDashboardPage = () => {
       queryFn: async () => {
         const registro = await fetchOtRegistroCompleto(target.idVenta)
         const cabecera = registro.cabecera as Record<string, unknown> | null
-        if (!cabecera) return { estado: '', idTipoServicio: '' }
+        const instalados = Array.isArray(registro.instalados) ? registro.instalados.length : 0
+        const retirados = Array.isArray(registro.retirados) ? registro.retirados.length : 0
+        const cargoUsuario = Array.isArray(registro.cargoUsuario) ? registro.cargoUsuario.length : 0
+        const detalleCount = instalados + retirados + cargoUsuario
+        if (!cabecera) return { estado: '', idTipoServicio: '', detalleCount }
         const estadoCierreRaw = cabecera.estadoCierre ?? cabecera.EstadoCierre ?? cabecera.estado ?? cabecera.Estado
         const estadoCierre = typeof estadoCierreRaw === 'string' ? estadoCierreRaw.trim() : String(estadoCierreRaw ?? '').trim()
         const idTipoServicioRaw =
@@ -870,7 +943,7 @@ const OtDashboardPage = () => {
           cabecera.Id_Tipo_Servicio ??
           ''
         const idTipoServicio = String(idTipoServicioRaw).trim()
-        return { estado: estadoCierre, idTipoServicio }
+        return { estado: estadoCierre, idTipoServicio, detalleCount }
       },
       staleTime: 60_000,
       retry: 1,
@@ -879,14 +952,15 @@ const OtDashboardPage = () => {
   })
 
   const finalizadasEstadoByVenta = useMemo(() => {
-    const map = new Map<string, { estado: string; idTipoServicio: string }>()
+    const map = new Map<string, { estado: string; idTipoServicio: string; detalleCount: number }>()
     for (let index = 0; index < finalizadasEstadoTargets.length; index += 1) {
       const target = finalizadasEstadoTargets[index]
       const queryState = finalizadasEstadoQueries[index]
       const estado = (queryState.data?.estado ?? '').trim()
       const idTipoServicio = (queryState.data?.idTipoServicio ?? '').trim()
-      if (estado || idTipoServicio) {
-        map.set(target.key, { estado, idTipoServicio })
+      const detalleCount = Number.isFinite(Number(queryState.data?.detalleCount)) ? Number(queryState.data?.detalleCount) : 0
+      if (estado || idTipoServicio || detalleCount > 0) {
+        map.set(target.key, { estado, idTipoServicio, detalleCount })
       }
     }
     return map
@@ -969,17 +1043,26 @@ const OtDashboardPage = () => {
         const isManual = normalizeEstado(origen).includes('manual')
         const validationKey = buildVentaValidationKey(fechaFila, ot, clienteNro)
         const validationState = ventaValidationByKey.get(validationKey)
+        const existeVentaRegla = validationState?.exists ?? false
+        const tieneDetalleVentaRegla = validationState?.tieneDetalle ?? false
+        const tieneDetalleCodigoRegla = validationState?.hasDetalle ?? false
+        const reglaEvaluada = Boolean(validationState) && !(validationState?.isLoading ?? false) && !(validationState?.isError ?? false)
+        const finalizadaPorRegla = resolverFinalizadaPorRegla(existeVentaRegla, tieneDetalleVentaRegla, tieneDetalleCodigoRegla)
         const cantidadVentas = isFinalizadasTab ? 1 : validationState?.cantidadVentas ?? (validationState?.exists ? 1 : 0)
-        const cantidadDetalles = isFinalizadasTab ? 0 : validationState?.cantidadDetalles ?? (validationState?.hasDetalle ? 1 : 0)
+        const cantidadDetalles = isFinalizadasTab
+          ? (finalizadasMeta?.detalleCount ?? 0)
+          : validationState?.cantidadDetalles ?? (validationState?.hasDetalle ? 1 : 0)
         const ventaYaRegistrada = isFinalizadasTab ? true : cantidadVentas > 0
         const isValidatingVenta = isFinalizadasTab ? false : validationState?.isLoading ?? false
         const validationError = isFinalizadasTab ? false : validationState?.isError ?? false
         const isValidatingDetalle = isFinalizadasTab ? false : validationState?.isLoading ?? false
-        const detalleYaRegistrado = isFinalizadasTab ? false : cantidadDetalles > 0
+        const detalleYaRegistrado = cantidadDetalles > 0
         const addMaterialOCargoUsuario = isFinalizadasTab ? false : validationState?.addMaterialOCargoUsuario ?? false
         const habilitarCargarMaterial =
           isFinalizadasTab ? false : validationState?.habilitarCargarMaterial ?? (ventaYaRegistrada && !detalleYaRegistrado)
-        const isFinalizada = isFinalizadasTab ? true : (ventaYaRegistrada && detalleYaRegistrado) || (ventaYaRegistrada && !addMaterialOCargoUsuario)
+        const isFinalizada = isFinalizadasTab
+          ? (reglaEvaluada ? finalizadaPorRegla : false)
+          : finalizadaPorRegla
         const estadoVisual = isFinalizadasTab ? estado : isFinalizada ? 'finalizado' : estado
         const estadoBadgeClass = getEstadoBadgeClass(estadoVisual)
         const idRuta = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
@@ -1025,6 +1108,7 @@ const OtDashboardPage = () => {
               cantidadDetalles,
               addMaterialOCargoUsuario,
               habilitarCargarMaterial,
+              isFinalizadaRegla: isFinalizada,
             })
 
         return {
@@ -1048,6 +1132,7 @@ const OtDashboardPage = () => {
           cantidadVentas,
           cantidadDetalles,
           isFinalizada,
+          reglaEvaluada,
           validationError,
           idRuta,
           idSucursal,
@@ -1077,9 +1162,9 @@ const OtDashboardPage = () => {
     () => {
       const base = cardEntries.filter((card) => {
         if (estadoTab === 'finalizadas') {
-          return card.ventaYaRegistrada && !card.isManual
+          return card.reglaEvaluada && card.isFinalizada
         }
-        // En "General (pendientes)" solo van OT no finalizadas.
+        // En General se muestran solo pendientes (ocultar cartillas finalizadas).
         return !card.isFinalizada
       })
       if (estadoTab !== 'finalizadas') {
@@ -1311,8 +1396,17 @@ const OtDashboardPage = () => {
               <Button
                 type="button"
                 className="h-9 whitespace-nowrap px-3"
-                title="Registrar OT manual"
+                title={manualButtonDisabledTitle}
+                disabled={manualButtonDisabled}
                 onClick={() => {
+                  if (manualButtonDisabled) {
+                    if (manualButtonBlockedByConformacion) {
+                      setNavError('Debe confirmar conformacion de cuadrilla para habilitar el registro manual de OT.')
+                    } else if (manualButtonBlockedByCierre) {
+                      setNavError(cierreAgendaQuery.data?.mensaje?.trim() || 'Registro bloqueado por validaciones de cierre.')
+                    }
+                    return
+                  }
                   setNavError(null)
                   navigate('/GestionOTs/RegistrarOrdenAgenda', {
                     state: {
@@ -1430,14 +1524,16 @@ const OtDashboardPage = () => {
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {filteredCardEntries.map((card) => {
                 const isManualCard = isPendientesTab && card.isManual
+                const highlightFinalizadaNoOtWeb = estadoTab === 'finalizadas' && !isOtWebOrigin(String(card.origen ?? ''))
+                const shouldHighlightAmber = isManualCard || highlightFinalizadaNoOtWeb
                 return (
                   <article
                     key={`${card.ot || 'ot'}-${card.clienteNro || 'cliente'}-${card.index}`}
-                    className={`bento-tile p-3 sm:p-4 ${isManualCard ? 'bg-amber-50/40 ring-1 ring-amber-200/80' : ''}`}
+                    className={`bento-tile p-3 sm:p-4 ${shouldHighlightAmber ? 'bg-amber-50/40 ring-1 ring-amber-200/80' : ''}`}
                   >
                     <div
                       className={`rounded-[1.7rem] border p-3.5 sm:p-5 ${
-                        isManualCard ? 'border-amber-300 bg-amber-50/80' : 'border-brand-200/60 bg-white/90'
+                        shouldHighlightAmber ? 'border-amber-300 bg-amber-50/80' : 'border-brand-200/60 bg-white/90'
                       }`}
                     >
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
@@ -1448,6 +1544,11 @@ const OtDashboardPage = () => {
                           {isManualCard ? (
                             <span className="inline-flex w-fit rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
                               Manual
+                            </span>
+                          ) : null}
+                          {highlightFinalizadaNoOtWeb ? (
+                            <span className="inline-flex w-fit rounded-full border border-amber-300 bg-amber-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-amber-800">
+                              No OT_WEB
                             </span>
                           ) : null}
                           <span
@@ -1515,7 +1616,7 @@ const OtDashboardPage = () => {
 
                       {estadoTab === 'finalizadas' ? (
                         <div className="mt-5 grid grid-cols-1 gap-2 [&>button]:w-full">
-                          {normalizeEstado(String(card.origen ?? '')).includes('manual') ? (
+                          {normalizeEstado(String(card.origen ?? '')).includes('manual') && !card.detalleYaRegistrado ? (
                             <Button
                               type="button"
                               disabled={materialClickKey === card.key}

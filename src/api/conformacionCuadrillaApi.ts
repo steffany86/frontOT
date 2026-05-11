@@ -456,9 +456,12 @@ export const fetchConformacionCuadrillaPendientes = async (
       params: legacyParams,
     })
     const pendientesRows = normalizeArrayResponse<ConformacionCuadrillaRecord>(pendientesPayload)
-    return pendientesRows
+    const normalizedPendientes = pendientesRows
       .filter((row) => !isRecordEliminada(row))
       .map((row) => ({ ...row, confirmada: false, eEliminado: false, e_eliminado: false, eliminado: false }))
+    if (normalizedPendientes.length > 0) {
+      return normalizedPendientes
+    }
   } catch (error) {
     if (!isFallbackRouteError(error)) {
       throw error

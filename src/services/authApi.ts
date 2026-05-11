@@ -1,7 +1,8 @@
-import type { ApiResponse, AuthMeResponse, LoginRequest, SessionData, Sucursal } from '../types/auth'
+import type { ApiResponse, AuthMeResponse, ChangePasswordRequest, LoginRequest, SessionData, Sucursal } from '../types/auth'
 import type { PermisosUsuario } from '../types/permisos'
 import httpClient, { unwrapApiData } from './httpClient'
 import { fetchMe as fetchMeLegacy, fetchSucursales as fetchSucursalesLegacy, login as loginLegacy } from '../api/authApi'
+import { passwordPolicyConfig } from '../config/passwordPolicy'
 
 export const login = (payload: LoginRequest): Promise<SessionData> => {
   return loginLegacy(payload)
@@ -20,4 +21,12 @@ export const fetchPermisos = async (sessionToken?: string): Promise<PermisosUsua
     headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined,
   })
   return unwrapApiData(data)
+}
+
+export const changePassword = async (payload: ChangePasswordRequest, sessionToken?: string): Promise<void> => {
+  await httpClient.post(
+    passwordPolicyConfig.changePasswordEndpoint,
+    payload,
+    { headers: sessionToken ? { 'X-Session-Token': sessionToken } : undefined }
+  )
 }

@@ -10,7 +10,7 @@ import { getApiErrorMessage } from '../services/httpClient'
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  const { isAuthenticated, isBootstrapping, signIn, defaultPrivatePath } = useAuth()
+  const { isAuthenticated, isBootstrapping, signIn, defaultPrivatePath, mustChangePassword } = useAuth()
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -46,9 +46,9 @@ const LoginPage = () => {
 
   useEffect(() => {
     if (isAuthenticated && !isBootstrapping) {
-      navigate(defaultPrivatePath, { replace: true })
+      navigate(mustChangePassword ? '/cambiar-password' : defaultPrivatePath, { replace: true })
     }
-  }, [defaultPrivatePath, isAuthenticated, isBootstrapping, navigate])
+  }, [defaultPrivatePath, isAuthenticated, isBootstrapping, mustChangePassword, navigate])
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()

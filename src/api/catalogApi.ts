@@ -26,6 +26,11 @@ export const fetchNomencladores = async (): Promise<CatalogItem[]> => {
   return normalizeArrayResponse<CatalogItem>(data)
 }
 
+export const fetchMaterialesAutocarga = async (): Promise<CatalogItem[]> => {
+  const { data } = await api.get('/catalogos/materiales-autocarga')
+  return normalizeArrayResponse<CatalogItem>(data)
+}
+
 export const fetchKitsDecodificadores = async (): Promise<CatalogItem[]> => {
   const { data } = await api.get('/catalogos/kits-decodificadores')
   return normalizeArrayResponse<CatalogItem>(data)
@@ -33,6 +38,11 @@ export const fetchKitsDecodificadores = async (): Promise<CatalogItem[]> => {
 
 export const fetchEstados = async (): Promise<CatalogItem[]> => {
   const { data } = await api.get('/catalogos/estados')
+  return normalizeArrayResponse<CatalogItem>(data)
+}
+
+export const fetchRamales = async (): Promise<CatalogItem[]> => {
+  const { data } = await api.get('/catalogos/ramales')
   return normalizeArrayResponse<CatalogItem>(data)
 }
 
@@ -225,6 +235,7 @@ type VerificarEstadoSerieParams = {
   idProducto: number
   idTipoMaterial: number
   idRuta?: number | null
+  idSucursal?: number
 }
 
 type VerificarEstadoSerieResult = {
@@ -252,6 +263,7 @@ export const validarEstadoSerieRegistroOt = async (
         tipoValidacion: 3,
         tipoMaterial: params.idTipoMaterial,
         idRuta: params.idRuta ?? undefined,
+        idSucursal: params.idSucursal ?? undefined,
       },
     })
     const rows = normalizeArrayResponse<CatalogItem>(data)
@@ -419,6 +431,7 @@ export const validarSerieSaldo = async (params: SerieSaldoValidationParams): Pro
 type SerieChipUniqueValidationParams = {
   serie: string
   chipId: string
+  idSucursal?: number
 }
 
 type SerieChipUniqueValidationResult = {
@@ -448,15 +461,16 @@ export const validarSerieChipUnico = async (
     params: {
       serie: params.serie,
       chipId: params.chipId,
+      idSucursal: params.idSucursal ?? undefined,
     },
   })
   return buildSerieChipUniqueResult(data)
 }
 
-export const fetchChipIdBySerie = async (serie: string): Promise<{ chipId?: string; idProducto?: number }> => {
+export const fetchChipIdBySerie = async (serie: string, idSucursal?: number): Promise<{ chipId?: string; idProducto?: number }> => {
   if (!serie.trim()) return {}
   const { data } = await api.get('/catalogos/chip-id/spx_TraerChipID2', {
-    params: { serie: serie.trim() },
+    params: { serie: serie.trim(), idSucursal: idSucursal ?? undefined },
   })
   const rows = normalizeArrayResponse<CatalogItem>(data)
   if (rows.length === 0) return {}

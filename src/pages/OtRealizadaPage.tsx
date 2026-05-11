@@ -13,6 +13,7 @@ import {
   fetchChipIdBySerie,
   fetchEstados,
   fetchKitsDecodificadores,
+  fetchMaterialesAutocarga,
   fetchNomencladores,
   fetchRutas,
   fetchProductosCargoUsuario,
@@ -305,6 +306,30 @@ const formatSaldoAmount = (value: number): string => {
   }).format(value)
 }
 
+const buildMaterialSaveSummary = (rows: MaterialRow[]): { total: number; lines: string[] } => {
+  const summaryByKey = new Map<string, { producto: string; tipo: string; cantidad: number }>()
+  let total = 0
+  for (const row of rows) {
+    const qty = Number.isFinite(row.cantidad) ? row.cantidad : 0
+    total += qty
+    const key = `${row.producto}__${row.tipoMaterialLabel}`
+    const current = summaryByKey.get(key)
+    if (current) {
+      current.cantidad += qty
+    } else {
+      summaryByKey.set(key, {
+        producto: row.producto || `Producto ${row.idProducto}`,
+        tipo: row.tipoMaterialLabel || 'Sin tipo',
+        cantidad: qty,
+      })
+    }
+  }
+  const lines = Array.from(summaryByKey.values()).map(
+    (item) => `${item.producto} - ${formatSaldoAmount(item.cantidad)} - ${item.tipo}`
+  )
+  return { total, lines }
+}
+
 const productMaskIdKeys = ['idProducto', 'Id_Producto', 'id_producto', 'id', 'Id', 'productoId']
 const productMaskSerieKeys = ['mascaraSerie', 'MascaraSerie', 'maskSerie', 'MaskSerie', 'mascara', 'Mascara', 'formatoSerie', 'FormatoSerie', 'formato', 'Formato']
 const productMaskChipKeys = [
@@ -442,6 +467,26 @@ const tipoServicioNomencladoresKeys = [
 const nomencladorSuffixKeys = ['SufijoNomenclador', 'sufijoNomenclador', 'sufijo_nomenclador', 'sufijo', 'Sufijo']
 const nomencladorProductoIdKeys = ['Id_Producto', 'idProducto', 'id_producto', 'IdProducto', 'id', 'Id']
 const nomencladorProductoLabelKeys = ['Nombre', 'nombre', 'Producto', 'producto', 'Descripcion', 'descripcion']
+const reglaTipoKeys = ['tipoRegla', 'TipoRegla']
+const reglaTipoServicioIdKeys = ['idTipoServicio', 'Id_TipoServicio', 'id_tiposervicio', 'IdTipoServicio']
+const reglaTipoTecnologiaKeys = ['tipoTecnologia', 'TipoTecnologia']
+const reglaSufijoKeys = ['sufijoNomenclador', 'SufijoNomenclador', 'sufijo', 'Sufijo']
+const reglaProductoIdKeys = ['idProducto', 'Id_Producto', 'id_producto', 'IdProducto', 'id', 'Id']
+const reglaCantidadKeys = ['cantidad', 'Cantidad']
+const reglaTipoMaterialIdKeys = ['idTipoMaterial', 'Id_TipoMaterial', 'id_tipo_material', 'IdTipoMaterial']
+const normalizeCatalogLabel = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
+const normalizeRuleType = (value: string): string =>
+  value
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
 
 const OtRealizadaPage = () => {
   const navigate = useNavigate()
@@ -454,6 +499,7 @@ const OtRealizadaPage = () => {
   const [activeTab, setActiveTab] = useState<'materiales' | 'cargo-usuario'>('materiales')
   const observacion = ''
   const [tipoMaterialId, setTipoMaterialId] = useState('')
+  const [tipoMaterialEditEnabled, setTipoMaterialEditEnabled] = useState(false)
   const [productoId, setProductoId] = useState('')
   const [serie, setSerie] = useState('')
   const [chipId, setChipId] = useState('')
@@ -560,15 +606,30 @@ const OtRealizadaPage = () => {
   }, [navState?.fecha, venta])
   const sessionIdSucursal = useMemo(() => {
     const session = getSessionStorage()
-    const navSucursal = navState?.idSucursal ? Number(navState.idSucursal) : null
-    const candidates = [navSucursal, session?.idSucursal]
-    for (const value of candidates) {
+    const parseSucursal = (value: unknown): number | null => {
       if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
-        return value
+        return Math.trunc(value)
       }
+      if (typeof value === 'string') {
+        const parsed = Number(value.trim())
+        if (Number.isFinite(parsed) && parsed > 0) {
+          return Math.trunc(parsed)
+        }
+      }
+      return null
+    }
+    const ventaSucursal = venta ? readNumber(venta, ['idSucursal', 'IdSucursal', 'id_sucursal', 'Id_Sucursal']) : null
+    const rowSucursal = rowData ? readNumber(rowData, ['idSucursal', 'IdSucursal', 'id_sucursal', 'Id_Sucursal']) : null
+    const navSucursal = parseSucursal(navState?.idSucursal)
+    // Priorizar la sucursal real de la OT cargada para evitar usar una sesion previa
+    // de otra sucursal (caso observado: request saliendo con idSucursal incorrecto).
+    const candidates = [ventaSucursal, rowSucursal, navSucursal, parseSucursal(session?.idSucursal)]
+    for (const value of candidates) {
+      const parsed = parseSucursal(value)
+      if (parsed !== null) return parsed
     }
     return null
-  }, [navState?.idSucursal])
+  }, [navState?.idSucursal, rowData, venta])
   const clienteVisible = useMemo(() => {
     if (venta) {
       const value = readNumber(venta, ['codigoCliente', 'CodigoCliente', 'clienteNro', 'Cliente_Nro'])
@@ -593,9 +654,20 @@ const OtRealizadaPage = () => {
     if (!row) return false
     return readBoolean(row, tipoServicioNomencladoresKeys) === true
   }, [tipoServicioId, tiposServicioQuery.data])
+  const tipoTecnologiaActual = useMemo(() => {
+    const fromVenta = venta ? readString(venta, ['tipoTecnologia', 'TipoTecnologia']).trim() : ''
+    if (fromVenta) return fromVenta
+    const fromRow = rowData ? readString(rowData, ['tipoTecnologia', 'TipoTecnologia']).trim() : ''
+    return fromRow
+  }, [rowData, venta])
   const nomencladoresQuery = useQuery({
     queryKey: ['catalogos-nomencladores-ot-detalle'],
     queryFn: fetchNomencladores,
+    enabled: tipoServicioUsaNomencladores,
+  })
+  const materialesAutocargaQuery = useQuery({
+    queryKey: ['catalogos-materiales-autocarga-ot-detalle'],
+    queryFn: fetchMaterialesAutocarga,
     enabled: tipoServicioUsaNomencladores,
   })
   const kitsDecodificadoresQuery = useQuery({
@@ -620,6 +692,25 @@ const OtRealizadaPage = () => {
     )
     return mapped.length > 0 ? mapped : defaultTipoMaterialOptions
   }, [tipoMaterialQuery.data])
+  const defaultTipoMaterialValue = useMemo(() => {
+    if (tipoMaterialOptions.length === 0) return ''
+    if (tipoMaterialOptions.length === 1) return tipoMaterialOptions[0]?.value ?? ''
+    const installed = tipoMaterialOptions.find((option) =>
+      option.label
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .includes('instalad')
+    )
+    return installed?.value ?? tipoMaterialOptions[0]?.value ?? ''
+  }, [tipoMaterialOptions])
+  const tipoMaterialEditAvailable = tipoMaterialOptions.length > 1
+
+  useEffect(() => {
+    if (!defaultTipoMaterialValue) return
+    if (tipoMaterialId) return
+    setTipoMaterialId(defaultTipoMaterialValue)
+  }, [defaultTipoMaterialValue, tipoMaterialId])
   useEffect(() => {
     if (nomencladoresAutocargaRef.current) return
     if (!ventaQuery.isFetched || ventaQuery.isLoading) return
@@ -629,12 +720,15 @@ const OtRealizadaPage = () => {
       return
     }
     if (nomencladoresQuery.isLoading) return
+    if (materialesAutocargaQuery.isLoading) return
 
     const codigoCliente = clienteVisible.replace(/\D/g, '')
     if (!codigoCliente) {
       nomencladoresAutocargaRef.current = true
       return
     }
+    if (!idRutaValidacion || idRutaValidacion <= 0) return
+    if (!fechaTrabajo) return
 
     const tipoMaterialAutoValue = tipoMaterialId || tipoMaterialOptions[0]?.value || '1'
     const tipoMaterialAutoId = Number(tipoMaterialAutoValue)
@@ -645,10 +739,6 @@ const OtRealizadaPage = () => {
     const tipoMaterialAutoLabel = tipoMaterialOptions.find((option) => option.value === tipoMaterialAutoValue)?.label ?? tipoMaterialAutoValue
 
     const nomencladoresRows = nomencladoresQuery.data ?? []
-    if (nomencladoresRows.length === 0) {
-      nomencladoresAutocargaRef.current = true
-      return
-    }
 
     const counts = new Map<string, number>()
     for (const char of codigoCliente) {
@@ -656,51 +746,242 @@ const OtRealizadaPage = () => {
     }
 
     const productBySuffix = new Map<string, { idProducto: number; producto: string }>()
+    const productLabelById = new Map<number, string>()
     for (const row of nomencladoresRows) {
       const suffix = readString(row, nomencladorSuffixKeys).trim()
       const idProducto = readNumber(row, nomencladorProductoIdKeys)
-      if (!suffix || idProducto === null || idProducto <= 0) continue
+      if (idProducto === null || idProducto <= 0) continue
       const producto = readString(row, nomencladorProductoLabelKeys).trim() || String(idProducto)
-      if (!productBySuffix.has(suffix)) {
+      if (!productLabelById.has(idProducto)) {
+        productLabelById.set(idProducto, producto)
+      }
+      if (suffix && !productBySuffix.has(suffix)) {
         productBySuffix.set(suffix, { idProducto, producto })
       }
     }
 
     const generatedRows: MaterialRow[] = []
-    for (const [suffix, cantidadGenerada] of counts.entries()) {
-      const product = productBySuffix.get(suffix)
-      if (!product || cantidadGenerada <= 0) continue
+    const reglasAutocargaRows = (materialesAutocargaQuery.data ?? []) as UnknownRecord[]
+    const tipoTecnologiaNormalizada = normalizeCatalogLabel(tipoTecnologiaActual)
+    let hasNomencladorRuleConfigured = false
+
+    for (const row of reglasAutocargaRows) {
+      const idProducto = readNumber(row, reglaProductoIdKeys)
+      if (idProducto === null || idProducto <= 0) continue
+
+      const idTipoServicioRegla = readNumber(row, reglaTipoServicioIdKeys)
+      if (idTipoServicioRegla !== null && idTipoServicioRegla > 0 && idTipoServicioRegla !== tipoServicioId) continue
+
+      const tipoTecnologiaRegla = readString(row, reglaTipoTecnologiaKeys).trim()
+      if (tipoTecnologiaRegla) {
+        const reglaTecnologiaNormalizada = normalizeCatalogLabel(tipoTecnologiaRegla)
+        if (tipoTecnologiaNormalizada && reglaTecnologiaNormalizada !== tipoTecnologiaNormalizada) continue
+      }
+
+      const tipoRegla = normalizeRuleType(readString(row, reglaTipoKeys))
+      const cantidadBase = readNumber(row, reglaCantidadKeys) ?? 1
+      if (!Number.isFinite(cantidadBase) || cantidadBase <= 0) continue
+
+      let cantidadGenerada = 0
+      if (tipoRegla.includes('NOMEN')) {
+        const sufijo = readString(row, reglaSufijoKeys).trim()
+        if (!sufijo) continue
+        hasNomencladorRuleConfigured = true
+        const count = counts.get(sufijo) ?? 0
+        cantidadGenerada = count * cantidadBase
+      } else if (tipoRegla.includes('FIJO')) {
+        cantidadGenerada = cantidadBase
+      } else {
+        continue
+      }
+      if (cantidadGenerada <= 0) continue
+
+      const labelRegla = readString(row, ['producto', 'Producto', 'nombre', 'Nombre', 'descripcion', 'Descripcion']).trim()
+      const producto = labelRegla || productLabelById.get(idProducto) || String(idProducto)
+      const idTipoMaterialRegla = readNumber(row, reglaTipoMaterialIdKeys)
+      const idTipoMaterialResuelto =
+        idTipoMaterialRegla !== null && idTipoMaterialRegla > 0 ? idTipoMaterialRegla : tipoMaterialAutoId
+      const tipoMaterialResueltoValue = String(idTipoMaterialResuelto)
+      const tipoMaterialResueltoLabel =
+        tipoMaterialOptions.find((option) => option.value === tipoMaterialResueltoValue)?.label ??
+        tipoMaterialAutoLabel
+
       generatedRows.push({
-        id: `nomen-${suffix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        idProducto: product.idProducto,
-        producto: product.producto,
+        id: `auto-${idProducto}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        idProducto,
+        producto,
         serie: '',
         chipId: '',
         cantidad: cantidadGenerada,
-        idTipoMaterial: tipoMaterialAutoId,
-        tipoMaterialLabel: tipoMaterialAutoLabel,
+        idTipoMaterial: idTipoMaterialResuelto,
+        tipoMaterialLabel: tipoMaterialResueltoLabel,
         entregado: true,
         requiresChip: false,
       })
     }
 
-    if (generatedRows.length > 0) {
-      setMaterialRows((current) => (current.length > 0 ? current : generatedRows))
-      if (!tipoMaterialId) {
-        setTipoMaterialId(tipoMaterialAutoValue)
+    // Compatibilidad: si no hay reglas NOMENCLADOR configuradas, usa nomencladores del SP legado.
+    if (!hasNomencladorRuleConfigured) {
+      for (const [suffix, cantidadGenerada] of counts.entries()) {
+        const product = productBySuffix.get(suffix)
+        if (!product || cantidadGenerada <= 0) continue
+        generatedRows.push({
+          id: `nomen-${suffix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          idProducto: product.idProducto,
+          producto: product.producto,
+          serie: '',
+          chipId: '',
+          cantidad: cantidadGenerada,
+          idTipoMaterial: tipoMaterialAutoId,
+          tipoMaterialLabel: tipoMaterialAutoLabel,
+          entregado: true,
+          requiresChip: false,
+        })
       }
+    }
+
+    const generatedRowsFinal = Array.from(
+      generatedRows.reduce<Map<string, MaterialRow>>((acc, row) => {
+        const key = `${row.idProducto}|${row.idTipoMaterial}`
+        const current = acc.get(key)
+        if (current) {
+          current.cantidad += row.cantidad
+          return acc
+        }
+        acc.set(key, { ...row })
+        return acc
+      }, new Map())
+        .values()
+    )
+
+    if (generatedRowsFinal.length > 0) {
+      void (async () => {
+        try {
+          const productoNombrePorId = new Map<number, string>()
+          try {
+            const productosRuta = await fetchProductos(idRutaValidacion)
+            ;(productosRuta as UnknownRecord[]).forEach((row) => {
+              const id = readNumber(row, ['idProducto', 'Id_Producto', 'id_producto', 'IdProducto', 'id', 'Id'])
+              const nombre = readString(row, ['producto', 'Producto', 'nombre', 'Nombre', 'descripcion', 'Descripcion']).trim()
+              if (id !== null && id > 0 && nombre) {
+                productoNombrePorId.set(id, nombre)
+              }
+            })
+          } catch {
+            // Si falla catalogo por ruta, continuar con etiquetas actuales.
+          }
+
+          const generatedRowsResolved = generatedRowsFinal.map((row) => {
+            const etiquetaActual = String(row.producto ?? '').trim()
+            const esCodigo = /^\d+$/.test(etiquetaActual)
+            if (etiquetaActual && !esCodigo) {
+              return row
+            }
+            const nombreCatalogo = productoNombrePorId.get(row.idProducto)
+            if (!nombreCatalogo) {
+              return row
+            }
+            return {
+              ...row,
+              producto: nombreCatalogo,
+            }
+          })
+
+          const saldoRows = await fetchSaldoRuta({
+            idRuta: idRutaValidacion,
+            fecha: fechaTrabajo,
+            idSucursal: sessionIdSucursal ?? undefined,
+          })
+          const saldoMap = new Map<number, number>()
+          saldoRows.forEach((row) => {
+            const idProducto = parseSaldoProductoId(row)
+            const saldoDisponible = parseSaldoValue(row)
+            if (idProducto === null || saldoDisponible === null) return
+            const current = saldoMap.get(idProducto) ?? 0
+            saldoMap.set(idProducto, current + saldoDisponible)
+          })
+
+          const requestedByProduct = new Map<number, { producto: string; cantidad: number }>()
+          generatedRowsResolved.forEach((row) => {
+            const current = requestedByProduct.get(row.idProducto)
+            if (current) {
+              current.cantidad += row.cantidad
+              return
+            }
+            requestedByProduct.set(row.idProducto, {
+              producto: row.producto,
+              cantidad: row.cantidad,
+            })
+          })
+
+          const saldoEvaluado = Array.from(requestedByProduct.entries()).map(([idProducto, value]) => {
+            const disponible = saldoMap.get(idProducto) ?? 0
+            const saldo = disponible - value.cantidad
+            return {
+              idProducto,
+              producto: value.producto,
+              disponible,
+              registrado: value.cantidad,
+              saldo,
+            }
+          })
+          const deficits = saldoEvaluado.filter((item) => item.saldo < 0)
+          const permitidos = new Set(saldoEvaluado.filter((item) => item.saldo >= 0).map((item) => item.idProducto))
+          const generatedRowsConSaldo = generatedRowsResolved.filter((row) => permitidos.has(row.idProducto))
+
+          if (generatedRowsConSaldo.length === 0) {
+            const detalle = deficits
+              .map((item) => {
+                const nombre = item.producto || 'Producto'
+                return `${nombre}: disponible ${formatSaldoAmount(item.disponible)}, registrado ${formatSaldoAmount(item.registrado)}`
+              })
+              .join(' | ')
+            setError(`No se agregaron nomencladores por saldo insuficiente. ${detalle}.`)
+            return
+          }
+
+          if (deficits.length > 0) {
+            const detalle = deficits
+              .map((item) => {
+                const nombre = item.producto || 'Producto'
+                return `${nombre}: disponible ${formatSaldoAmount(item.disponible)}, registrado ${formatSaldoAmount(item.registrado)}`
+              })
+              .join(' | ')
+            setError(`Se agregaron nomencladores con saldo disponible. Se omitieron: ${detalle}.`)
+          } else {
+            setError(null)
+          }
+
+          setMaterialRows((current) => (current.length > 0 ? current : generatedRowsConSaldo))
+          if (!tipoMaterialId) {
+            setTipoMaterialId(tipoMaterialAutoValue)
+          }
+        } catch (err) {
+          setError(readBackendErrorMessage(err, 'No se pudo validar el saldo de la ruta antes de agregar nomencladores.'))
+        } finally {
+          nomencladoresAutocargaRef.current = true
+        }
+      })()
+      return
     }
     nomencladoresAutocargaRef.current = true
   }, [
     clienteVisible,
+    fechaTrabajo,
+    idRutaValidacion,
     tipoMaterialId,
     tipoMaterialOptions,
     tipoServicioUsaNomencladores,
     tiposServicioQuery.isLoading,
     ventaQuery.isFetched,
     ventaQuery.isLoading,
+    tipoServicioId,
+    tipoTecnologiaActual,
     nomencladoresQuery.data,
     nomencladoresQuery.isLoading,
+    materialesAutocargaQuery.data,
+    materialesAutocargaQuery.isLoading,
+    sessionIdSucursal,
   ])
   const selectedTipoMaterialLabel =
     tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label?.toLowerCase() ?? ''
@@ -1128,6 +1409,7 @@ const OtRealizadaPage = () => {
         const validation = await validarSerieChipUnico({
           serie: serieTrimmed,
           chipId: chipTrimmed,
+          idSucursal: sessionIdSucursal ?? undefined,
         })
 
         if (validation.chipExiste && !validation.mismoRegistro) {
@@ -1313,7 +1595,7 @@ const OtRealizadaPage = () => {
           let resolvedChip = validation.chipId
           if (!resolvedChip) {
             try {
-              const chipResponse = await fetchChipIdBySerie(trimmed)
+              const chipResponse = await fetchChipIdBySerie(trimmed, sessionIdSucursal ?? undefined)
               resolvedChip = chipResponse.chipId
             } catch (chipError) {
               console.warn('No se pudo obtener chipId adicional', chipError)
@@ -1801,7 +2083,6 @@ const OtRealizadaPage = () => {
   )
 
   const resetMaterialForm = () => {
-    setTipoMaterialId('')
     setProductoId('')
     setSerie('')
     setChipId('')
@@ -1819,6 +2100,7 @@ const OtRealizadaPage = () => {
     setSerieValidationError(null)
     setChipValidationError(null)
     skipMaterialBlurValidationRef.current = false
+    setTipoMaterialEditEnabled(false)
   }
 
   const syncKitDecodificadorRows = (
@@ -1976,6 +2258,7 @@ const OtRealizadaPage = () => {
             idProducto: parsedProducto,
             idTipoMaterial: parsedTipoMaterial,
             idRuta: idRutaValidacion ?? undefined,
+            idSucursal: sessionIdSucursal ?? undefined,
           })
           if (!estadoSerie.sePuede) {
             if (!isRetiredMaterial) {
@@ -2276,7 +2559,7 @@ const OtRealizadaPage = () => {
       if (resolved.chipId) return resolved
 
       try {
-        const chipFromSerie = await fetchChipIdBySerie(serieTrim)
+        const chipFromSerie = await fetchChipIdBySerie(serieTrim, sessionIdSucursal ?? undefined)
         if (chipFromSerie.chipId) {
           return {
             ...resolved,
@@ -2983,6 +3266,7 @@ const OtRealizadaPage = () => {
             idProducto: row.idProducto,
             idTipoMaterial: row.idTipoMaterial,
             idRuta: idRutaValidacion ?? undefined,
+            idSucursal: sessionIdSucursal ?? undefined,
           })
           if (!estadoSerie.sePuede) {
             setError(`${serieTrim} - ${estadoSerie.observacion?.trim() || 'Verificar ChipID.'}`)
@@ -3157,6 +3441,7 @@ const OtRealizadaPage = () => {
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(retryMateriales),
+            idSucursal: sessionIdSucursal ?? undefined,
           })
         }
         try {
@@ -3165,6 +3450,7 @@ const OtRealizadaPage = () => {
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(payload.materiales),
+            idSucursal: sessionIdSucursal ?? undefined,
           })
           idVentaFromDetalle = detalleResult.idVenta
           numeroOrdenFromDetalle = detalleResult.numeroOrden
@@ -3209,6 +3495,7 @@ const OtRealizadaPage = () => {
         await createOtCargoUsuario({
           numeroOrden: payload.numeroOrden,
           items: payload.cargoUsuarioItems,
+          idSucursal: sessionIdSucursal ?? undefined,
         })
       }
 
@@ -3296,6 +3583,15 @@ const OtRealizadaPage = () => {
     if (!rowsAreValid) return
     const cargoRowsAreValid = await prevalidateCargoUsuarioRowsBeforeSubmit()
     if (!cargoRowsAreValid) return
+    const materialSummary = buildMaterialSaveSummary(materialRows)
+    const confirmLines = [
+      'DATOS A GUARDAR, ESTA SEGURO?',
+      `Codigo Cliente: ${clienteVisible || '-'}`,
+      `Total materiales: ${formatSaldoAmount(materialSummary.total)}`,
+      ...materialSummary.lines,
+    ]
+    const confirmed = window.confirm(confirmLines.join('\n'))
+    if (!confirmed) return
     const observacionPayload = normalizeObservacion(observacion)
     mutation.mutate({
       numeroOrden,
@@ -3328,13 +3624,13 @@ const OtRealizadaPage = () => {
 
   return (
     <div className="bento-page">
-      <div className="bento-page-head">
+      <div className="px-1">
         <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">RegistrarOrdenAgenda_Detalle</h2>
         <p className="text-sm text-slate-500">Registro de OT y detalle de materiales usados.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-        <FormCard title="Cabecera" description="Datos generales de la orden.">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <FormCard title="" hideHeader>
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
@@ -3365,25 +3661,42 @@ const OtRealizadaPage = () => {
 
         {activeTab === 'materiales' ? (
           <fieldset disabled={formInteractionLocked} className="m-0 min-w-0 border-0 p-0">
-            <FormCard title="Materiales" description="Carga de productos usados en la OT.">
+            <FormCard title="" hideHeader>
+            {error ? (
+              <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+            ) : null}
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-1 xl:col-span-1">
-                <Field label="Tipo Material">
-                  <select
-                    ref={tipoMaterialSelectRef}
-                    className="input-base"
-                    value={tipoMaterialId}
-                    onChange={(event) => setTipoMaterialId(event.target.value)}
-                    disabled={tipoMaterialQuery.isLoading || Boolean(tipoMaterialId)}
-                  >
-                    <option value="">{tipoMaterialQuery.isLoading ? 'Cargando tipos...' : 'Selecciona tipo material'}</option>
-                    {tipoMaterialOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                    </select>
-                </Field>
+                <label className="mb-2 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <span>Tipo Material</span>
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold normal-case tracking-normal text-slate-600">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                      checked={tipoMaterialEditEnabled}
+                      onChange={(event) => setTipoMaterialEditEnabled(event.target.checked)}
+                      disabled={!tipoMaterialEditAvailable}
+                    />
+                    Editar
+                  </span>
+                </label>
+                <select
+                  ref={tipoMaterialSelectRef}
+                  className="input-base"
+                  value={tipoMaterialId}
+                  onChange={(event) => {
+                    setTipoMaterialId(event.target.value)
+                    setTipoMaterialEditEnabled(false)
+                  }}
+                  disabled={tipoMaterialQuery.isLoading || !tipoMaterialEditAvailable || !tipoMaterialEditEnabled}
+                >
+                  <option value="">{tipoMaterialQuery.isLoading ? 'Cargando tipos...' : 'Selecciona tipo material'}</option>
+                  {tipoMaterialOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="min-w-0 md:col-span-1 xl:col-span-2">
                 <Field label="Producto">
@@ -3492,7 +3805,7 @@ const OtRealizadaPage = () => {
               </div>
             </div>
             <div className="mt-3 sm:mt-4 overflow-x-auto">
-              <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." variant="row-block" mobileRowBlockMode="cards" />
+              <Table columns={columns} data={materialRows} emptyLabel="Sin materiales agregados." />
             </div>
             </FormCard>
           </fieldset>
@@ -3676,12 +3989,11 @@ const OtRealizadaPage = () => {
             <p className="mt-1 text-sm">{saldoPopup.message}</p>
           </div>
         ) : null}
-        {error && activeTab === 'materiales' ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
         {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={handleBackToDashboard} disabled={mutation.isPending || isPrevalidating}>
-            Volver
+            Cancelar
           </Button>
           <Button
             className="w-full sm:w-auto"

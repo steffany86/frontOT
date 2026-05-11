@@ -1,10 +1,14 @@
 import { Navigate, Route, Routes, useParams } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import ProtectedRoute from './ProtectedRoute'
 import MainLayout from '../components/layout/MainLayout'
 import AdminRoute from '../components/guards/AdminRoute'
 import { useAuth } from '../context/AuthContext'
+import { fetchRutas } from '../api/catalogApi'
+import { useSessionStore } from '../store/sessionStore'
 import LoginPage from '../pages/LoginPage'
 import OtDashboardPage from '../pages/OtDashboardPage'
+import GestionOTsDTHPage from '../pages/GestionOTsDTHPage'
 import OtListPage from '../pages/OtListPage'
 import OtDetailPage from '../pages/OtDetailPage'
 import OtCreatePage from '../pages/OtCreatePage'
@@ -20,10 +24,48 @@ import ConformacionCuadrillaPage from '../pages/ConformacionCuadrillaPage'
 import LlamadaAtencionPage from '../pages/LlamadaAtencionPage'
 import PrivilegiosPage from '../pages/admin/PrivilegiosPage'
 import ForbiddenPage from '../pages/ForbiddenPage'
+import ChangePasswordPage from '../pages/ChangePasswordPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
   return <Navigate to={id ? `/GestionOTs/${id}` : '/GestionOTs/lista'} replace />
+}
+
+const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
+  for (const key of keys) {
+    const value = row[key]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return undefined
+}
+
+const normalizeTech = (value: unknown): string => {
+  if (value === undefined || value === null) return ''
+  return String(value).trim().toUpperCase()
+}
+
+const resolveRutaTech = (row: Record<string, unknown>): string => {
+  const direct = normalizeTech(readValue(row, ['tipoTecnologia', 'TipoTecnologia', 'tipo_tecnologia', 'tipotecnologia']))
+  if (direct === 'HFC' || direct === 'DTH') return direct
+  const tipoGrupo = normalizeTech(readValue(row, ['tipoGrupo', 'TipoGrupo', 'tipo_grupo', 'tipogrupo', 'tipo', 'Tipo']))
+  if (tipoGrupo === 'ANTENERO') return 'DTH'
+  if (tipoGrupo) return 'HFC'
+  return ''
+}
+
+const GestionOtHomeGate = () => {
+  const session = useSessionStore((state) => state.session)
+  const rutasQuery = useQuery({
+    queryKey: ['catalogos-rutas-home-gate', session?.idUsuario ?? 0],
+    queryFn: () => fetchRutas(session?.idUsuario),
+    enabled: Boolean(session?.idUsuario),
+  })
+
+  if (rutasQuery.isLoading) return <OtDashboardPage />
+  const rutas = (rutasQuery.data ?? []) as Record<string, unknown>[]
+  const technologies = new Set(rutas.map(resolveRutaTech).filter(Boolean))
+  if (technologies.has('HFC') || technologies.size === 0) return <OtDashboardPage />
+  return <Navigate to="/GestionOTsDTH" replace />
 }
 
 const AppRoutes = () => {
@@ -34,9 +76,11 @@ const AppRoutes = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
       <Route element={<ProtectedRoute />}>
+        <Route path="/cambiar-password" element={<ChangePasswordPage />} />
         <Route element={<MainLayout />}>
           <Route index element={<Navigate to={defaultPrivatePath} replace />} />
-          <Route path="/GestionOTs" element={<OtDashboardPage />} />
+          <Route path="/GestionOTs" element={<GestionOtHomeGate />} />
+          <Route path="/GestionOTsDTH" element={<GestionOTsDTHPage />} />
           <Route path="/GestionOTs/crear" element={<OtCreatePage />} />
           <Route path="/GestionOTs/lista" element={<OtListPage />} />
           <Route path="/GestionOTs/:id" element={<OtDetailPage />} />

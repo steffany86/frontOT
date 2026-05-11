@@ -740,7 +740,11 @@ const normalizeListRecord = (row: ConformacionCuadrillaRecord): ConformacionCuad
   const normalizedId = toNumericIdString(rawId) ?? toNumericIdString(row.id)
   const rawIdRegistro = readValue(row as unknown as CatalogItem, RECORD_ID_REGISTRO_KEYS)
   const normalizedIdRegistro = toNumericIdString(rawIdRegistro) ?? toNumericIdString(row.idRegistro)
-  const normalizedIdRuta = toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS)) ?? toNumericIdString(row.idRuta)
+  const normalizedIdRuta =
+    toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS)) ??
+    toNumericIdString(row.idRuta) ??
+    toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_KEYS)) ??
+    toNumericIdString(row.id)
   const fecha = toISODate(readRecordString(row, RECORD_FECHA_KEYS, row.fecha ?? '')) || toISODate(row.fecha ?? '') || ''
   const fechaRegistro = readRecordString(row, RECORD_FECHA_REGISTRO_KEYS, row.fechaRegistro ?? '')
   const eliminado = isRowEliminado(row)
@@ -932,7 +936,11 @@ const getRecordRealId = (row: ConformacionCuadrillaRecord): number | null => {
 }
 
 const getRecordRutaId = (row: ConformacionCuadrillaRecord): number | null => {
-  const idRutaCandidate = readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS) ?? row.idRuta
+  const idRutaCandidate =
+    readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS) ??
+    row.idRuta ??
+    readValue(row as unknown as CatalogItem, RECORD_ID_KEYS) ??
+    row.id
   const parsed = toOptionalNumber(idRutaCandidate)
   if (parsed === undefined || parsed <= 0) return null
   return parsed
@@ -1139,12 +1147,11 @@ const ConformacionCuadrillaPage = () => {
     for (const item of salesforceCatalog) {
       const salesforce = readString(item, SALESFORCE_KEYS).trim()
       const cuentaSf = readString(item, CUENTA_SF_KEYS).trim()
-      const keySource = salesforce || cuentaSf
-      const key = normalizeLookupKey(keySource)
+      const key = normalizeLookupKey(salesforce)
       if (!key) continue
       const existing = byKey.get(key)
       if (!existing) {
-        byKey.set(key, { salesforce: salesforce || keySource, cuentaSf })
+        byKey.set(key, { salesforce, cuentaSf })
         continue
       }
       if (!existing.salesforce && salesforce) existing.salesforce = salesforce
@@ -1158,6 +1165,15 @@ const ConformacionCuadrillaPage = () => {
       const key = normalizeLookupKey(option.salesforce)
       if (!key) continue
       map.set(key, option.cuentaSf)
+    }
+    return map
+  }, [salesforceOptions])
+  const salesforceByCuentaSf = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const option of salesforceOptions) {
+      const cuentaKey = normalizeLookupKey(option.cuentaSf)
+      if (!cuentaKey) continue
+      map.set(cuentaKey, option.salesforce)
     }
     return map
   }, [salesforceOptions])
@@ -1394,7 +1410,20 @@ const ConformacionCuadrillaPage = () => {
   }
   const resolveSalesforceListLabel = (row: ConformacionCuadrillaRecord): string => {
     const direct = readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? '')
-    return toVisualLabel(direct, 'Ninguno')
+    const cuentaSf = readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? '')
+    const sameAsCuenta =
+      direct &&
+      cuentaSf &&
+      normalizeLookupKey(direct) === normalizeLookupKey(cuentaSf)
+
+    if (!sameAsCuenta) {
+      return toVisualLabel(direct, 'Ninguno')
+    }
+
+    const tecnicoId = normalizeTecnicoComparableId(row.idTecnico as string | number | null | undefined)
+    const option = tecnicoId ? tecnicoById.get(tecnicoId) : undefined
+    const fromCatalog = option ? readString(option.item, SALESFORCE_KEYS).trim() : ''
+    return toVisualLabel(fromCatalog || direct, 'Ninguno')
   }
   const resolveConfirmadaRegistroIdLabel = (row: ConformacionCuadrillaRecord): string => {
     const idFromRecord =
@@ -2316,12 +2345,34 @@ const findVehiculoConflictRecord = (
     setApprovedReassignments((current) => current.filter((item) => item.field !== field))
   }
 
+  const normalizeSalesforceForSave = (row: EditableRow): string => {
+    const salesforce = cleanString(row.salesforce)
+    const cuentaSf = cleanString(row.cuentaSf)
+    if (!salesforce) {
+      if (!cuentaSf) return ''
+      return salesforceByCuentaSf.get(normalizeLookupKey(cuentaSf)) ?? ''
+    }
+
+    if (!cuentaSf) return salesforce
+    if (normalizeLookupKey(salesforce) !== normalizeLookupKey(cuentaSf)) return salesforce
+    return salesforceByCuentaSf.get(normalizeLookupKey(cuentaSf)) ?? salesforce
+  }
+
   const buildUpdatePayloadFromRow = (row: EditableRow, currentUserId: number, currentSucursal: string): ConformacionCuadrillaInput => {
     const normalizedRow = applyMandatoryRowRules(row)
+    const normalizedSalesforce = normalizeSalesforceForSave(normalizedRow)
+    const normalizedCuentaSf =
+      cleanString(normalizedRow.cuentaSf) ||
+      (normalizedSalesforce ? (cuentaSfBySalesforce.get(normalizeLookupKey(normalizedSalesforce)) ?? '') : '')
+    const normalizedForPayload = {
+      ...normalizedRow,
+      salesforce: normalizedSalesforce,
+      cuentaSf: normalizedCuentaSf,
+    }
     const supervisorId = parseNumber(normalizedRow.idUsuarioSupervisor)
     const registraId = parseNumber(normalizedRow.idUsuarioRegistra)
     return {
-      ...buildPayloadRow(normalizedRow),
+      ...buildPayloadRow(normalizedForPayload),
       fecha: toISODate(normalizedRow.fecha) || selectedFechaFiltro || todayISO(),
       estado: mapEstadoForBackend(normalizedRow.estado),
       actividad: normalizeActividadForBackend(cleanString(normalizedRow.actividad)),
@@ -2878,14 +2929,18 @@ const findVehiculoConflictRecord = (
     }
 
     const normalizedBaseRecord = normalizeListRecord(targetBaseRecord)
+    const normalizedDraftSalesforce = normalizeSalesforceForSave(draftRow)
+    const normalizedDraftCuentaSf =
+      cleanString(draftRow.cuentaSf) ||
+      (normalizedDraftSalesforce ? (cuentaSfBySalesforce.get(normalizeLookupKey(normalizedDraftSalesforce)) ?? '') : '')
     const normalizedDraftRecord = normalizeListRecord({
       ...normalizedBaseRecord,
       fecha: toISODate(draftRow.fecha) || normalizedBaseRecord.fecha || todayISO(),
       estado: normalizeEstadoValue(draftRow.estado),
       actividad: normalizeActividadForBackend(cleanString(draftRow.actividad)),
       idTecnico: parseNumber(draftRow.idTecnico) ?? undefined,
-      cuentaSf: cleanString(draftRow.cuentaSf),
-      salesforce: cleanString(draftRow.salesforce),
+      cuentaSf: normalizedDraftCuentaSf,
+      salesforce: normalizedDraftSalesforce,
       habilidad: normalizeHabilidadValue(draftRow.habilidad),
       vehiculo: cleanString(draftRow.vehiculo),
       grupo: cleanString(draftRow.grupo),

@@ -17,6 +17,7 @@ import { useSessionStore } from '../store/sessionStore'
 import type { LoginRequest, SessionData } from '../types/auth'
 import type { MenuPermiso, PermisosUsuario } from '../types/permisos'
 import { getSessionStorage, setSessionStorage } from '../utils/storage'
+import { shouldForcePasswordChange } from '../config/passwordPolicy'
 
 type UsuarioSesion = {
   idUsuario: number
@@ -24,6 +25,8 @@ type UsuarioSesion = {
   rol: string
   idRol: number
   idSucursal: number
+  necesitaCambio?: boolean
+  ultimaModificacion?: string
 }
 
 type AuthContextValue = {
@@ -37,12 +40,14 @@ type AuthContextValue = {
   menuIds: number[]
   administrador: boolean
   isAuthenticated: boolean
+  mustChangePassword: boolean
   isBootstrapping: boolean
   visibleNavigationItems: NavigationItem[]
   defaultPrivatePath: string
   signIn: (credentials: LoginRequest) => Promise<SessionData>
   logout: () => void
   refreshPermisos: () => Promise<PermisosUsuario | null>
+  markPasswordChanged: () => void
   canAccessNavigationItem: (item: NavigationItem) => boolean
   canAccessPath: (pathname: string) => boolean
 }
@@ -57,6 +62,8 @@ const mapSessionToUser = (session: SessionData | null): UsuarioSesion | null => 
     rol: session.rol,
     idRol: session.idRol,
     idSucursal: session.idSucursal,
+    necesitaCambio: session.necesitaCambio,
+    ultimaModificacion: session.ultimaModificacion,
   }
 }
 
@@ -167,6 +174,19 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     resetAuthState()
   }, [resetAuthState])
 
+  const markPasswordChanged = useCallback(() => {
+    const currentSession = getSessionStorage()
+    if (!currentSession?.sessionToken) return
+    const updatedSession: SessionData = {
+      ...currentSession,
+      necesitaCambio: false,
+      ultimaModificacion: new Date().toISOString(),
+    }
+    setSessionStorage(updatedSession)
+    useSessionStore.getState().setSession(updatedSession)
+    setUsuario((prev) => (prev ? { ...prev, necesitaCambio: false, ultimaModificacion: updatedSession.ultimaModificacion } : prev))
+  }, [])
+
   useEffect(() => {
     setUnauthorizedHandler(() => {
       resetAuthState()
@@ -215,6 +235,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   )
 
   const administrador = permisos?.administrador ?? false
+  const mustChangePassword = useMemo(
+    () =>
+      shouldForcePasswordChange({
+        necesitaCambio: usuario?.necesitaCambio,
+        ultimaModificacion: usuario?.ultimaModificacion,
+      }),
+    [usuario?.necesitaCambio, usuario?.ultimaModificacion]
+  )
   const menuIds = permisos?.menuIds ?? []
 
   const menusAsignados = useMemo(() => {
@@ -302,12 +330,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       menuIds,
       administrador,
       isAuthenticated: Boolean(token),
+      mustChangePassword,
       isBootstrapping,
       visibleNavigationItems,
       defaultPrivatePath,
       signIn,
       logout,
       refreshPermisos,
+      markPasswordChanged,
       canAccessNavigationItem,
       canAccessPath,
     }),
@@ -320,10 +350,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       isBootstrapping,
       menuIds,
       menusAsignados,
+      mustChangePassword,
       permisos,
       roleId,
       roleName,
       refreshPermisos,
+      markPasswordChanged,
       signIn,
       token,
       logout,
