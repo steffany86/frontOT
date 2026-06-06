@@ -1,0 +1,1 @@
+Picked up JAVA_TOOL_OPTIONS: -Djava.security.properties=C:\Temp\tigostar-java.security.override -Djdk.tls.client.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2

@@ -1,0 +1,1995 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ---------------------< com.example:TigoStarSystem >---------------------
+[INFO] Building TigoStarSystem 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:2.7.18:run (default-cli) > test-compile @ TigoStarSystem >>>
+[INFO] 
+[INFO] --- resources:3.2.0:resources (default-resources) @ TigoStarSystem ---
+[INFO] Using 'UTF-8' encoding to copy filtered resources.
+[INFO] Using 'UTF-8' encoding to copy filtered properties files.
+[INFO] Copying 2 resources
+[INFO] Copying 0 resource
+[INFO] 
+[INFO] --- compiler:3.10.1:compile (default-compile) @ TigoStarSystem ---
+[INFO] Nothing to compile - all classes are up to date
+[INFO] 
+[INFO] --- resources:3.2.0:testResources (default-testResources) @ TigoStarSystem ---
+[INFO] Not copying test resources
+[INFO] 
+[INFO] --- compiler:3.10.1:testCompile (default-testCompile) @ TigoStarSystem ---
+[INFO] Not compiling test sources
+[INFO] 
+[INFO] <<< spring-boot:2.7.18:run (default-cli) < test-compile @ TigoStarSystem <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:2.7.18:run (default-cli) @ TigoStarSystem ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::               (v2.7.18)
+
+2026-06-06 10:48:16.373  INFO 19308 --- [           main] c.e.T.TigoStarSystemApplication          : Starting TigoStarSystemApplication using Java 21.0.8 on JOSUEUPB with PID 19308 (C:\Users\JOSUE CABRERA\Downloads\backot-back01062026\backot-back01062026\target\classes started by JOSUE CABRERA in C:\Users\JOSUE CABRERA\Downloads\backot-back01062026\backot-back01062026)
+2026-06-06 10:48:16.382 DEBUG 19308 --- [           main] c.e.T.TigoStarSystemApplication          : Running with Spring Boot v2.7.18, Spring v5.3.31
+2026-06-06 10:48:16.384  INFO 19308 --- [           main] c.e.T.TigoStarSystemApplication          : No active profile set, falling back to 1 default profile: "default"
+2026-06-06 10:48:16.386 DEBUG 19308 --- [           main] o.s.boot.SpringApplication               : Loading source class com.example.TigoStarSystem.TigoStarSystemApplication
+2026-06-06 10:48:16.538 DEBUG 19308 --- [           main] ConfigServletWebServerApplicationContext : Refreshing org.springframework.boot.web.servlet.context.AnnotationConfigServletWebServerApplicationContext@3e0e1046
+2026-06-06 10:48:20.449 DEBUG 19308 --- [           main] .s.b.w.e.t.TomcatServletWebServerFactory : Code archive: C:\Users\JOSUE CABRERA\.m2\repository\org\springframework\boot\spring-boot\2.7.18\spring-boot-2.7.18.jar
+2026-06-06 10:48:20.452 DEBUG 19308 --- [           main] .s.b.w.e.t.TomcatServletWebServerFactory : Code archive: C:\Users\JOSUE CABRERA\.m2\repository\org\springframework\boot\spring-boot\2.7.18\spring-boot-2.7.18.jar
+2026-06-06 10:48:20.454 DEBUG 19308 --- [           main] .s.b.w.e.t.TomcatServletWebServerFactory : None of the document roots [src/main/webapp, public, static] point to a directory and will be ignored.
+2026-06-06 10:48:20.519  INFO 19308 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port(s): 9061 (http)
+2026-06-06 10:48:20.552  INFO 19308 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-06-06 10:48:20.554  INFO 19308 --- [           main] org.apache.catalina.core.StandardEngine  : Starting Servlet engine: [Apache Tomcat/9.0.83]
+2026-06-06 10:48:21.047  INFO 19308 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-06-06 10:48:21.050 DEBUG 19308 --- [           main] w.s.c.ServletWebServerApplicationContext : Published root WebApplicationContext as ServletContext attribute with name [org.springframework.web.context.WebApplicationContext.ROOT]
+2026-06-06 10:48:21.052  INFO 19308 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 4514 ms
+2026-06-06 10:48:21.199 DEBUG 19308 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping filters: filterRegistrationBean urls=[/*] order=-2147483648, characterEncodingFilter urls=[/*] order=-2147483648, formContentFilter urls=[/*] order=-9900, requestContextFilter urls=[/*] order=-105
+2026-06-06 10:48:21.201 DEBUG 19308 --- [           main] o.s.b.w.s.ServletContextInitializerBeans : Mapping servlets: dispatcherServlet urls=[/]
+2026-06-06 10:48:21.267 DEBUG 19308 --- [           main] o.s.b.w.s.f.OrderedRequestContextFilter  : Filter 'requestContextFilter' configured for use
+2026-06-06 10:48:21.269 DEBUG 19308 --- [           main] o.springframework.web.filter.CorsFilter  : Filter 'corsFilter' configured for use
+2026-06-06 10:48:21.271 DEBUG 19308 --- [           main] s.b.w.s.f.OrderedCharacterEncodingFilter : Filter 'characterEncodingFilter' configured for use
+2026-06-06 10:48:21.272 DEBUG 19308 --- [           main] o.s.b.w.s.f.OrderedFormContentFilter     : Filter 'formContentFilter' configured for use
+2026-06-06 10:48:21.364 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : Driver class net.sourceforge.jtds.jdbc.Driver found in Thread context class loader jdk.internal.loader.ClassLoaders$AppClassLoader@70dea4e
+2026-06-06 10:48:21.583 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : Driver class net.sourceforge.jtds.jdbc.Driver found in Thread context class loader jdk.internal.loader.ClassLoaders$AppClassLoader@70dea4e
+2026-06-06 10:48:21.587 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : CentralHikariPool - configuration:
+2026-06-06 10:48:21.593 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : allowPoolSuspension................................false
+2026-06-06 10:48:21.599 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : autoCommit................................true
+2026-06-06 10:48:21.603 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : catalog................................none
+2026-06-06 10:48:21.609 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionInitSql................................none
+2026-06-06 10:48:21.611 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionTestQuery................................"SELECT 1"
+2026-06-06 10:48:21.614 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionTimeout................................15000
+2026-06-06 10:48:21.617 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSource................................none
+2026-06-06 10:48:21.618 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceClassName................................none
+2026-06-06 10:48:21.622 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceJNDI................................none
+2026-06-06 10:48:21.624 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceProperties................................{password=<masked>}
+2026-06-06 10:48:21.625 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : driverClassName................................"net.sourceforge.jtds.jdbc.Driver"
+2026-06-06 10:48:21.627 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : exceptionOverrideClassName................................none
+2026-06-06 10:48:21.628 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : healthCheckProperties................................{}
+2026-06-06 10:48:21.630 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : healthCheckRegistry................................none
+2026-06-06 10:48:21.632 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : idleTimeout................................300000
+2026-06-06 10:48:21.634 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : initializationFailTimeout................................-1
+2026-06-06 10:48:21.634 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : isolateInternalQueries................................false
+2026-06-06 10:48:21.637 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : jdbcUrl................................jdbc:jtds:sqlserver://172.16.0.13/BDControlOrdenes
+2026-06-06 10:48:21.638 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : keepaliveTime................................120000
+2026-06-06 10:48:21.639 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : leakDetectionThreshold................................0
+2026-06-06 10:48:21.640 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : maxLifetime................................900000
+2026-06-06 10:48:21.642 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : maximumPoolSize................................10
+2026-06-06 10:48:21.643 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : metricRegistry................................none
+2026-06-06 10:48:21.644 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : metricsTrackerFactory................................none
+2026-06-06 10:48:21.645 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : minimumIdle................................0
+2026-06-06 10:48:21.646 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : password................................<masked>
+2026-06-06 10:48:21.647 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : poolName................................"CentralHikariPool"
+2026-06-06 10:48:21.649 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : readOnly................................false
+2026-06-06 10:48:21.650 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : registerMbeans................................false
+2026-06-06 10:48:21.651 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : scheduledExecutor................................none
+2026-06-06 10:48:21.653 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : schema................................none
+2026-06-06 10:48:21.654 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : threadFactory................................internal
+2026-06-06 10:48:21.655 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : transactionIsolation................................default
+2026-06-06 10:48:21.656 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : username................................"sistemas"
+2026-06-06 10:48:21.657 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : validationTimeout................................5000
+2026-06-06 10:48:21.674  INFO 19308 --- [           main] com.zaxxer.hikari.HikariDataSource       : CentralHikariPool - Starting...
+2026-06-06 10:48:21.893  INFO 19308 --- [           main] com.zaxxer.hikari.HikariDataSource       : CentralHikariPool - Start completed.
+2026-06-06 10:48:21.993 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : Driver class net.sourceforge.jtds.jdbc.Driver found in Thread context class loader jdk.internal.loader.ClassLoaders$AppClassLoader@70dea4e
+2026-06-06 10:48:21.995 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : TigoHogarHikariPool - configuration:
+2026-06-06 10:48:21.997 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : allowPoolSuspension................................false
+2026-06-06 10:48:21.999 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : autoCommit................................true
+2026-06-06 10:48:22.000 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : catalog................................none
+2026-06-06 10:48:22.000 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:22.001 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionInitSql................................none
+2026-06-06 10:48:22.003 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:22.004 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionTestQuery................................"SELECT 1"
+2026-06-06 10:48:22.005 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:48:22.006 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : connectionTimeout................................15000
+2026-06-06 10:48:22.008 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSource................................none
+2026-06-06 10:48:22.009 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceClassName................................none
+2026-06-06 10:48:22.010 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceJNDI................................none
+2026-06-06 10:48:22.011 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : dataSourceProperties................................{password=<masked>}
+2026-06-06 10:48:22.014 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : driverClassName................................"net.sourceforge.jtds.jdbc.Driver"
+2026-06-06 10:48:22.015 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : exceptionOverrideClassName................................none
+2026-06-06 10:48:22.017 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : healthCheckProperties................................{}
+2026-06-06 10:48:22.018 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : healthCheckRegistry................................none
+2026-06-06 10:48:22.019 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : idleTimeout................................300000
+2026-06-06 10:48:22.020 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : initializationFailTimeout................................-1
+2026-06-06 10:48:22.022 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : isolateInternalQueries................................false
+2026-06-06 10:48:22.023 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : jdbcUrl................................jdbc:jtds:sqlserver://181.188.148.59/BD_TigoHogar
+2026-06-06 10:48:22.024 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : keepaliveTime................................120000
+2026-06-06 10:48:22.025 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : leakDetectionThreshold................................0
+2026-06-06 10:48:22.026 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : maxLifetime................................900000
+2026-06-06 10:48:22.027 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : maximumPoolSize................................10
+2026-06-06 10:48:22.028 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : metricRegistry................................none
+2026-06-06 10:48:22.029 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : metricsTrackerFactory................................none
+2026-06-06 10:48:22.031 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : minimumIdle................................0
+2026-06-06 10:48:22.032 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : password................................<masked>
+2026-06-06 10:48:22.035 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : poolName................................"TigoHogarHikariPool"
+2026-06-06 10:48:22.036 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : readOnly................................false
+2026-06-06 10:48:22.037 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : registerMbeans................................false
+2026-06-06 10:48:22.038 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : scheduledExecutor................................none
+2026-06-06 10:48:22.039 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : schema................................none
+2026-06-06 10:48:22.040 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : threadFactory................................internal
+2026-06-06 10:48:22.042 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : transactionIsolation................................default
+2026-06-06 10:48:22.043 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : username................................"lolivares"
+2026-06-06 10:48:22.044 DEBUG 19308 --- [           main] com.zaxxer.hikari.HikariConfig           : validationTimeout................................5000
+2026-06-06 10:48:22.045  INFO 19308 --- [           main] com.zaxxer.hikari.HikariDataSource       : TigoHogarHikariPool - Starting...
+2026-06-06 10:48:22.048  INFO 19308 --- [           main] com.zaxxer.hikari.HikariDataSource       : TigoHogarHikariPool - Start completed.
+2026-06-06 10:48:22.155 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:22.158 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:22.159 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:48:23.248 DEBUG 19308 --- [           main] o.s.b.a.AutoConfigurationPackages        : @EnableAutoConfiguration was declared on a class in the package 'com.example.TigoStarSystem'. Automatic @Repository and @Entity scanning is enabled.
+2026-06-06 10:48:23.449 DEBUG 19308 --- [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2026-06-06 10:48:23.800 DEBUG 19308 --- [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 143 mappings in 'requestMappingHandlerMapping'
+2026-06-06 10:48:23.867 DEBUG 19308 --- [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2026-06-06 10:48:23.893 DEBUG 19308 --- [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2026-06-06 10:48:24.306  INFO 19308 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port(s): 9061 (http) with context path ''
+2026-06-06 10:48:24.334 DEBUG 19308 --- [           main] ConditionEvaluationReportLoggingListener : 
+
+
+============================
+CONDITIONS EVALUATION REPORT
+============================
+
+
+Positive matches:
+-----------------
+
+   AopAutoConfiguration matched:
+      - @ConditionalOnProperty (spring.aop.auto=true) matched (OnPropertyCondition)
+
+   AopAutoConfiguration.ClassProxyingConfiguration matched:
+      - @ConditionalOnMissingClass did not find unwanted class 'org.aspectj.weaver.Advice' (OnClassCondition)
+      - @ConditionalOnProperty (spring.aop.proxy-target-class=true) matched (OnPropertyCondition)
+
+   ApplicationAvailabilityAutoConfiguration#applicationAvailability matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.availability.ApplicationAvailability; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DataSourceAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.sql.DataSource', 'org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType' (OnClassCondition)
+      - @ConditionalOnMissingBean (types: io.r2dbc.spi.ConnectionFactory; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DataSourceAutoConfiguration.PooledDataSourceConfiguration matched:
+      - AnyNestedCondition 1 matched 1 did not; NestedCondition on DataSourceAutoConfiguration.PooledDataSourceCondition.PooledDataSourceAvailable PooledDataSource found supported DataSource; NestedCondition on DataSourceAutoConfiguration.PooledDataSourceCondition.ExplicitType @ConditionalOnProperty (spring.datasource.type) did not find property 'type' (DataSourceAutoConfiguration.PooledDataSourceCondition)
+      - @ConditionalOnMissingBean (types: javax.sql.DataSource,javax.sql.XADataSource; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DataSourceConfiguration.Hikari matched:
+      - @ConditionalOnClass found required class 'com.zaxxer.hikari.HikariDataSource' (OnClassCondition)
+      - @ConditionalOnProperty (spring.datasource.type=com.zaxxer.hikari.HikariDataSource) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: javax.sql.DataSource; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DataSourceInitializationConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.jdbc.datasource.init.DatabasePopulator' (OnClassCondition)
+      - @ConditionalOnSingleCandidate (types: javax.sql.DataSource; SearchStrategy: all) found a single bean 'dataSource'; @ConditionalOnMissingBean (types: org.springframework.boot.autoconfigure.sql.init.SqlDataSourceScriptDatabaseInitializer,org.springframework.boot.autoconfigure.sql.init.SqlR2dbcScriptDatabaseInitializer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DataSourceJmxConfiguration matched:
+      - @ConditionalOnProperty (spring.jmx.enabled=true) matched (OnPropertyCondition)
+
+   DataSourceJmxConfiguration.Hikari matched:
+      - @ConditionalOnClass found required class 'com.zaxxer.hikari.HikariDataSource' (OnClassCondition)
+      - @ConditionalOnSingleCandidate (types: javax.sql.DataSource; SearchStrategy: all) found a single bean 'dataSource' (OnBeanCondition)
+
+   DataSourcePoolMetadataProvidersConfiguration.HikariPoolDataSourceMetadataProviderConfiguration matched:
+      - @ConditionalOnClass found required class 'com.zaxxer.hikari.HikariDataSource' (OnClassCondition)
+
+   DataSourceTransactionManagerAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'org.springframework.jdbc.core.JdbcTemplate', 'org.springframework.transaction.TransactionManager' (OnClassCondition)
+
+   DataSourceTransactionManagerAutoConfiguration.JdbcTransactionManagerConfiguration matched:
+      - @ConditionalOnSingleCandidate (types: javax.sql.DataSource; SearchStrategy: all) found a single bean 'dataSource' (OnBeanCondition)
+
+   DataSourceTransactionManagerAutoConfiguration.JdbcTransactionManagerConfiguration#transactionManager matched:
+      - @ConditionalOnMissingBean (types: org.springframework.transaction.TransactionManager; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   DispatcherServletAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.web.servlet.DispatcherServlet' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+
+   DispatcherServletAutoConfiguration.DispatcherServletConfiguration matched:
+      - @ConditionalOnClass found required class 'javax.servlet.ServletRegistration' (OnClassCondition)
+      - Default DispatcherServlet did not find dispatcher servlet beans (DispatcherServletAutoConfiguration.DefaultDispatcherServletCondition)
+
+   DispatcherServletAutoConfiguration.DispatcherServletRegistrationConfiguration matched:
+      - @ConditionalOnClass found required class 'javax.servlet.ServletRegistration' (OnClassCondition)
+      - DispatcherServlet Registration did not find servlet registration bean (DispatcherServletAutoConfiguration.DispatcherServletRegistrationCondition)
+
+   DispatcherServletAutoConfiguration.DispatcherServletRegistrationConfiguration#dispatcherServletRegistration matched:
+      - @ConditionalOnBean (names: dispatcherServlet types: org.springframework.web.servlet.DispatcherServlet; SearchStrategy: all) found bean 'dispatcherServlet' (OnBeanCondition)
+
+   EmbeddedWebServerFactoryCustomizerAutoConfiguration matched:
+      - @ConditionalOnWebApplication (required) found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnWarDeployment the application is not deployed as a WAR file. (OnWarDeploymentCondition)
+
+   EmbeddedWebServerFactoryCustomizerAutoConfiguration.TomcatWebServerFactoryCustomizerConfiguration matched:
+      - @ConditionalOnClass found required classes 'org.apache.catalina.startup.Tomcat', 'org.apache.coyote.UpgradeProtocol' (OnClassCondition)
+
+   ErrorMvcAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.servlet.Servlet', 'org.springframework.web.servlet.DispatcherServlet' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+
+   ErrorMvcAutoConfiguration#basicErrorController matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.web.servlet.error.ErrorController; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   ErrorMvcAutoConfiguration#errorAttributes matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.web.servlet.error.ErrorAttributes; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   ErrorMvcAutoConfiguration.DefaultErrorViewResolverConfiguration#conventionErrorViewResolver matched:
+      - @ConditionalOnBean (types: org.springframework.web.servlet.DispatcherServlet; SearchStrategy: all) found bean 'dispatcherServlet'; @ConditionalOnMissingBean (types: org.springframework.boot.autoconfigure.web.servlet.error.ErrorViewResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   ErrorMvcAutoConfiguration.WhitelabelErrorViewConfiguration matched:
+      - @ConditionalOnProperty (server.error.whitelabel.enabled) matched (OnPropertyCondition)
+      - ErrorTemplate Missing did not find error template view (ErrorMvcAutoConfiguration.ErrorTemplateMissingCondition)
+
+   ErrorMvcAutoConfiguration.WhitelabelErrorViewConfiguration#beanNameViewResolver matched:
+      - @ConditionalOnMissingBean (types: org.springframework.web.servlet.view.BeanNameViewResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   ErrorMvcAutoConfiguration.WhitelabelErrorViewConfiguration#defaultErrorView matched:
+      - @ConditionalOnMissingBean (names: error; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   GenericCacheConfiguration matched:
+      - Cache org.springframework.boot.autoconfigure.cache.GenericCacheConfiguration automatic cache type (CacheCondition)
+
+   HttpEncodingAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.web.filter.CharacterEncodingFilter' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnProperty (server.servlet.encoding.enabled) matched (OnPropertyCondition)
+
+   HttpEncodingAutoConfiguration#characterEncodingFilter matched:
+      - @ConditionalOnMissingBean (types: org.springframework.web.filter.CharacterEncodingFilter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   HttpMessageConvertersAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.http.converter.HttpMessageConverter' (OnClassCondition)
+      - NoneNestedConditions 0 matched 1 did not; NestedCondition on HttpMessageConvertersAutoConfiguration.NotReactiveWebApplicationCondition.ReactiveWebApplication did not find reactive web application classes (HttpMessageConvertersAutoConfiguration.NotReactiveWebApplicationCondition)
+
+   HttpMessageConvertersAutoConfiguration#messageConverters matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.autoconfigure.http.HttpMessageConverters; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   HttpMessageConvertersAutoConfiguration.StringHttpMessageConverterConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.http.converter.StringHttpMessageConverter' (OnClassCondition)
+
+   HttpMessageConvertersAutoConfiguration.StringHttpMessageConverterConfiguration#stringHttpMessageConverter matched:
+      - @ConditionalOnMissingBean (types: org.springframework.http.converter.StringHttpMessageConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   JacksonAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'com.fasterxml.jackson.databind.ObjectMapper' (OnClassCondition)
+
+   JacksonAutoConfiguration.Jackson2ObjectMapperBuilderCustomizerConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.http.converter.json.Jackson2ObjectMapperBuilder' (OnClassCondition)
+
+   JacksonAutoConfiguration.JacksonObjectMapperBuilderConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.http.converter.json.Jackson2ObjectMapperBuilder' (OnClassCondition)
+
+   JacksonAutoConfiguration.JacksonObjectMapperBuilderConfiguration#jacksonObjectMapperBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springframework.http.converter.json.Jackson2ObjectMapperBuilder; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   JacksonAutoConfiguration.JacksonObjectMapperConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.http.converter.json.Jackson2ObjectMapperBuilder' (OnClassCondition)
+
+   JacksonAutoConfiguration.JacksonObjectMapperConfiguration#jacksonObjectMapper matched:
+      - @ConditionalOnMissingBean (types: com.fasterxml.jackson.databind.ObjectMapper; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   JacksonAutoConfiguration.ParameterNamesModuleConfiguration matched:
+      - @ConditionalOnClass found required class 'com.fasterxml.jackson.module.paramnames.ParameterNamesModule' (OnClassCondition)
+
+   JacksonAutoConfiguration.ParameterNamesModuleConfiguration#parameterNamesModule matched:
+      - @ConditionalOnMissingBean (types: com.fasterxml.jackson.module.paramnames.ParameterNamesModule; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   JacksonHttpMessageConvertersConfiguration.MappingJackson2HttpMessageConverterConfiguration matched:
+      - @ConditionalOnClass found required class 'com.fasterxml.jackson.databind.ObjectMapper' (OnClassCondition)
+      - @ConditionalOnProperty (spring.mvc.converters.preferred-json-mapper=jackson) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: com.fasterxml.jackson.databind.ObjectMapper; SearchStrategy: all) found bean 'jacksonObjectMapper' (OnBeanCondition)
+
+   JacksonHttpMessageConvertersConfiguration.MappingJackson2HttpMessageConverterConfiguration#mappingJackson2HttpMessageConverter matched:
+      - @ConditionalOnMissingBean (types: org.springframework.http.converter.json.MappingJackson2HttpMessageConverter ignored: org.springframework.hateoas.server.mvc.TypeConstrainedMappingJackson2HttpMessageConverter,org.springframework.data.rest.webmvc.alps.AlpsJsonHttpMessageConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   JdbcTemplateAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.sql.DataSource', 'org.springframework.jdbc.core.JdbcTemplate' (OnClassCondition)
+      - @ConditionalOnSingleCandidate (types: javax.sql.DataSource; SearchStrategy: all) found a single bean 'dataSource' (OnBeanCondition)
+
+   LifecycleAutoConfiguration#defaultLifecycleProcessor matched:
+      - @ConditionalOnMissingBean (names: lifecycleProcessor; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   MailSenderAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.mail.internet.MimeMessage', 'javax.activation.MimeType', 'org.springframework.mail.MailSender' (OnClassCondition)
+      - AnyNestedCondition 1 matched 1 did not; NestedCondition on MailSenderAutoConfiguration.MailSenderCondition.JndiNameProperty @ConditionalOnProperty (spring.mail.jndi-name) did not find property 'jndi-name'; NestedCondition on MailSenderAutoConfiguration.MailSenderCondition.HostProperty @ConditionalOnProperty (spring.mail.host) matched (MailSenderAutoConfiguration.MailSenderCondition)
+      - @ConditionalOnMissingBean (types: org.springframework.mail.MailSender; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   MailSenderPropertiesConfiguration matched:
+      - @ConditionalOnProperty (spring.mail.host) matched (OnPropertyCondition)
+
+   MailSenderPropertiesConfiguration#mailSender matched:
+      - @ConditionalOnMissingBean (types: org.springframework.mail.javamail.JavaMailSender; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   MultipartAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.servlet.Servlet', 'org.springframework.web.multipart.support.StandardServletMultipartResolver', 'javax.servlet.MultipartConfigElement' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnProperty (spring.servlet.multipart.enabled) matched (OnPropertyCondition)
+
+   MultipartAutoConfiguration#multipartConfigElement matched:
+      - @ConditionalOnMissingBean (types: javax.servlet.MultipartConfigElement,org.springframework.web.multipart.commons.CommonsMultipartResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   MultipartAutoConfiguration#multipartResolver matched:
+      - @ConditionalOnMissingBean (types: org.springframework.web.multipart.MultipartResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   NamedParameterJdbcTemplateConfiguration matched:
+      - @ConditionalOnSingleCandidate (types: org.springframework.jdbc.core.JdbcTemplate; SearchStrategy: all) found a single primary bean 'jdbcTemplate' from beans 'jdbcTemplate', 'tigohogarJdbcTemplate', 'centralJdbcTemplate'; @ConditionalOnMissingBean (types: org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   NoOpCacheConfiguration matched:
+      - Cache org.springframework.boot.autoconfigure.cache.NoOpCacheConfiguration automatic cache type (CacheCondition)
+
+   PersistenceExceptionTranslationAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor' (OnClassCondition)
+
+   PersistenceExceptionTranslationAutoConfiguration#persistenceExceptionTranslationPostProcessor matched:
+      - @ConditionalOnProperty (spring.dao.exceptiontranslation.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   PropertyPlaceholderAutoConfiguration#propertySourcesPlaceholderConfigurer matched:
+      - @ConditionalOnMissingBean (types: org.springframework.context.support.PropertySourcesPlaceholderConfigurer; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   RestTemplateAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.web.client.RestTemplate' (OnClassCondition)
+      - NoneNestedConditions 0 matched 1 did not; NestedCondition on RestTemplateAutoConfiguration.NotReactiveWebApplicationCondition.ReactiveWebApplication did not find reactive web application classes (RestTemplateAutoConfiguration.NotReactiveWebApplicationCondition)
+
+   RestTemplateAutoConfiguration#restTemplateBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.web.client.RestTemplateBuilder; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   RestTemplateAutoConfiguration#restTemplateBuilderConfigurer matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.autoconfigure.web.client.RestTemplateBuilderConfigurer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   ServletWebServerFactoryAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'javax.servlet.ServletRequest' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+
+   ServletWebServerFactoryAutoConfiguration#tomcatServletWebServerFactoryCustomizer matched:
+      - @ConditionalOnClass found required class 'org.apache.catalina.startup.Tomcat' (OnClassCondition)
+
+   ServletWebServerFactoryConfiguration.EmbeddedTomcat matched:
+      - @ConditionalOnClass found required classes 'javax.servlet.Servlet', 'org.apache.catalina.startup.Tomcat', 'org.apache.coyote.UpgradeProtocol' (OnClassCondition)
+      - @ConditionalOnMissingBean (types: org.springframework.boot.web.servlet.server.ServletWebServerFactory; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   SimpleCacheConfiguration matched:
+      - Cache org.springframework.boot.autoconfigure.cache.SimpleCacheConfiguration automatic cache type (CacheCondition)
+
+   SpringDocConfigProperties matched:
+      - @ConditionalOnProperty (springdoc.api-docs.enabled) matched (OnPropertyCondition)
+
+   SpringDocConfiguration matched:
+      - @ConditionalOnWebApplication (required) found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnProperty (springdoc.api-docs.enabled) matched (OnPropertyCondition)
+
+   SpringDocConfiguration#fileSupportConverter matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.converters.FileSupportConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#openAPIBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.OpenAPIService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#operationBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.OperationService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#parameterBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.GenericParameterService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#polymorphicModelConverter matched:
+      - @ConditionalOnProperty (springdoc.model-converters.polymorphic-converter.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springdoc.core.converters.PolymorphicModelConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#requestBodyBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.RequestBodyService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#responseSupportConverter matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.converters.ResponseSupportConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#schemaPropertyDeprecatingConverter matched:
+      - @ConditionalOnProperty (springdoc.model-converters.deprecating-converter.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springdoc.core.converters.SchemaPropertyDeprecatingConverter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#securityParser matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.SecurityService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#springDocCustomizers matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.customizers.SpringDocCustomizers; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#springDocObjectMapperProvider matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.providers.ObjectMapperProvider; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration#springDocProviders matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.SpringDocProviders; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration.SpringDocSpringDataWebPropertiesProvider matched:
+      - @ConditionalOnClass found required class 'org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocSpringDataWebPropertiesProvider#springDataWebPropertiesProvider matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.providers.SpringDataWebPropertiesProvider; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocConfiguration.WebConversionServiceConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.boot.autoconfigure.web.format.WebConversionService' (OnClassCondition)
+
+   SpringDocUIConfiguration matched:
+      - @ConditionalOnWebApplication (required) found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnExpression (#{${springdoc.api-docs.enabled:true}}) resulted in true (OnExpressionCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration matched:
+      - found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnProperty (springdoc.api-docs.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration#openApiResource matched:
+      - @ConditionalOnProperty (springdoc.use-management-port=false) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.api.OpenApiWebMvcResource; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration#requestBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.core.RequestService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration#responseBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.GenericResponseService; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration#springWebProvider matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.core.providers.SpringWebProvider; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SpringDocWebMvcConfiguration.SpringDocWebMvcRouterConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.web.servlet.function.RouterFunction' (OnClassCondition)
+
+   SpringDocWebMvcConfiguration.SpringDocWebMvcRouterConfiguration#routerFunctionProvider matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.core.RouterFunctionWebMvcProvider; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SqlInitializationAutoConfiguration matched:
+      - @ConditionalOnProperty (spring.sql.init.enabled) matched (OnPropertyCondition)
+      - NoneNestedConditions 0 matched 1 did not; NestedCondition on SqlInitializationAutoConfiguration.SqlInitializationModeCondition.ModeIsNever @ConditionalOnProperty (spring.sql.init.mode=never) did not find property 'mode' (SqlInitializationAutoConfiguration.SqlInitializationModeCondition)
+
+   SwaggerConfig matched:
+      - found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnProperty (springdoc.swagger-ui.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   SwaggerConfig#indexPageTransformer matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.ui.SwaggerIndexTransformer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SwaggerConfig#swaggerConfigResource matched:
+      - @ConditionalOnProperty (springdoc.use-management-port=false) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.ui.SwaggerConfigResource; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SwaggerConfig#swaggerResourceResolver matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.ui.SwaggerResourceResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SwaggerConfig#swaggerWebMvcConfigurer matched:
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.ui.SwaggerWebMvcConfigurer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SwaggerConfig#swaggerWelcome matched:
+      - @ConditionalOnProperty (springdoc.use-management-port=false) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springdoc.webmvc.ui.SwaggerWelcomeWebMvc; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   SwaggerUiConfigParameters matched:
+      - @ConditionalOnProperty (springdoc.swagger-ui.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   SwaggerUiConfigProperties matched:
+      - @ConditionalOnProperty (springdoc.swagger-ui.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   SwaggerUiOAuthProperties matched:
+      - @ConditionalOnProperty (springdoc.swagger-ui.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnBean (types: org.springdoc.core.SpringDocConfiguration; SearchStrategy: all) found bean 'org.springdoc.core.SpringDocConfiguration' (OnBeanCondition)
+
+   TaskExecutionAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor' (OnClassCondition)
+
+   TaskExecutionAutoConfiguration#applicationTaskExecutor matched:
+      - @ConditionalOnMissingBean (types: java.util.concurrent.Executor; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TaskExecutionAutoConfiguration#taskExecutorBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.task.TaskExecutorBuilder; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TaskSchedulingAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler' (OnClassCondition)
+
+   TaskSchedulingAutoConfiguration#taskSchedulerBuilder matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.task.TaskSchedulerBuilder; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TransactionAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'org.springframework.transaction.PlatformTransactionManager' (OnClassCondition)
+
+   TransactionAutoConfiguration#platformTransactionManagerCustomizers matched:
+      - @ConditionalOnMissingBean (types: org.springframework.boot.autoconfigure.transaction.TransactionManagerCustomizers; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TransactionAutoConfiguration.EnableTransactionManagementConfiguration matched:
+      - @ConditionalOnBean (types: org.springframework.transaction.TransactionManager; SearchStrategy: all) found bean 'transactionManager'; @ConditionalOnMissingBean (types: org.springframework.transaction.annotation.AbstractTransactionManagementConfiguration; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TransactionAutoConfiguration.EnableTransactionManagementConfiguration.CglibAutoProxyConfiguration matched:
+      - @ConditionalOnProperty (spring.aop.proxy-target-class=true) matched (OnPropertyCondition)
+
+   TransactionAutoConfiguration.TransactionTemplateConfiguration matched:
+      - @ConditionalOnSingleCandidate (types: org.springframework.transaction.PlatformTransactionManager; SearchStrategy: all) found a single bean 'transactionManager' (OnBeanCondition)
+
+   TransactionAutoConfiguration.TransactionTemplateConfiguration#transactionTemplate matched:
+      - @ConditionalOnMissingBean (types: org.springframework.transaction.support.TransactionOperations; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   ValidationAutoConfiguration matched:
+      - @ConditionalOnClass found required class 'javax.validation.executable.ExecutableValidator' (OnClassCondition)
+      - @ConditionalOnResource found location classpath:META-INF/services/javax.validation.spi.ValidationProvider (OnResourceCondition)
+
+   ValidationAutoConfiguration#defaultValidator matched:
+      - @ConditionalOnMissingBean (types: javax.validation.Validator; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   ValidationAutoConfiguration#methodValidationPostProcessor matched:
+      - @ConditionalOnMissingBean (types: org.springframework.validation.beanvalidation.MethodValidationPostProcessor; SearchStrategy: current) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.servlet.Servlet', 'org.springframework.web.servlet.DispatcherServlet', 'org.springframework.web.servlet.config.annotation.WebMvcConfigurer' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+      - @ConditionalOnMissingBean (types: org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration#formContentFilter matched:
+      - @ConditionalOnProperty (spring.mvc.formcontent.filter.enabled) matched (OnPropertyCondition)
+      - @ConditionalOnMissingBean (types: org.springframework.web.filter.FormContentFilter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.EnableWebMvcConfiguration#flashMapManager matched:
+      - @ConditionalOnMissingBean (names: flashMapManager; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.EnableWebMvcConfiguration#localeResolver matched:
+      - @ConditionalOnMissingBean (names: localeResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.EnableWebMvcConfiguration#themeResolver matched:
+      - @ConditionalOnMissingBean (names: themeResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter#defaultViewResolver matched:
+      - @ConditionalOnMissingBean (types: org.springframework.web.servlet.view.InternalResourceViewResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter#requestContextFilter matched:
+      - @ConditionalOnMissingBean (types: org.springframework.web.context.request.RequestContextListener,org.springframework.web.filter.RequestContextFilter; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter#viewResolver matched:
+      - @ConditionalOnBean (types: org.springframework.web.servlet.ViewResolver; SearchStrategy: all) found beans 'defaultViewResolver', 'beanNameViewResolver', 'mvcViewResolver'; @ConditionalOnMissingBean (names: viewResolver types: org.springframework.web.servlet.view.ContentNegotiatingViewResolver; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   WebSocketServletAutoConfiguration matched:
+      - @ConditionalOnClass found required classes 'javax.servlet.Servlet', 'javax.websocket.server.ServerContainer' (OnClassCondition)
+      - found 'session' scope (OnWebApplicationCondition)
+
+   WebSocketServletAutoConfiguration.TomcatWebSocketConfiguration matched:
+      - @ConditionalOnClass found required classes 'org.apache.catalina.startup.Tomcat', 'org.apache.tomcat.websocket.server.WsSci' (OnClassCondition)
+
+   WebSocketServletAutoConfiguration.TomcatWebSocketConfiguration#websocketServletWebServerCustomizer matched:
+      - @ConditionalOnMissingBean (names: websocketServletWebServerCustomizer; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+
+Negative matches:
+-----------------
+
+   ActiveMQAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.jms.ConnectionFactory' (OnClassCondition)
+
+   AopAutoConfiguration.AspectJAutoProxyingConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.aspectj.weaver.Advice' (OnClassCondition)
+
+   ArtemisAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.jms.ConnectionFactory' (OnClassCondition)
+
+   BatchAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.batch.core.launch.JobLauncher' (OnClassCondition)
+
+   Cache2kCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.cache2k.Cache2kBuilder' (OnClassCondition)
+
+   CacheAutoConfiguration:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.cache.interceptor.CacheAspectSupport; SearchStrategy: all) did not find any beans of type org.springframework.cache.interceptor.CacheAspectSupport (OnBeanCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.cache.CacheManager' (OnClassCondition)
+
+   CacheAutoConfiguration.CacheManagerEntityManagerFactoryDependsOnPostProcessor:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean' (OnClassCondition)
+         - Ancestor org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration did not match (ConditionEvaluationReport.AncestorsMatchedCondition)
+
+   CaffeineCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.github.benmanes.caffeine.cache.Caffeine' (OnClassCondition)
+
+   CassandraAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.datastax.oss.driver.api.core.CqlSession' (OnClassCondition)
+
+   CassandraDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.datastax.oss.driver.api.core.CqlSession' (OnClassCondition)
+
+   CassandraReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.datastax.oss.driver.api.core.CqlSession' (OnClassCondition)
+
+   CassandraReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.cassandra.ReactiveSession' (OnClassCondition)
+
+   CassandraRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.datastax.oss.driver.api.core.CqlSession' (OnClassCondition)
+
+   ClientHttpConnectorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
+
+   CodecsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
+
+   CouchbaseAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Cluster' (OnClassCondition)
+
+   CouchbaseCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Cluster' (OnClassCondition)
+
+   CouchbaseDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Bucket' (OnClassCondition)
+
+   CouchbaseReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Cluster' (OnClassCondition)
+
+   CouchbaseReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Cluster' (OnClassCondition)
+
+   CouchbaseRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.couchbase.client.java.Bucket' (OnClassCondition)
+
+   DataSourceAutoConfiguration.EmbeddedDatabaseConfiguration:
+      Did not match:
+         - EmbeddedDataSource spring.datasource.url is set (DataSourceAutoConfiguration.EmbeddedDatabaseCondition)
+
+   DataSourceConfiguration.Dbcp2:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.commons.dbcp2.BasicDataSource' (OnClassCondition)
+
+   DataSourceConfiguration.Generic:
+      Did not match:
+         - @ConditionalOnProperty (spring.datasource.type) did not find property 'spring.datasource.type' (OnPropertyCondition)
+
+   DataSourceConfiguration.OracleUcp:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'oracle.ucp.jdbc.PoolDataSourceImpl', 'oracle.jdbc.OracleConnection' (OnClassCondition)
+
+   DataSourceConfiguration.Tomcat:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.tomcat.jdbc.pool.DataSource' (OnClassCondition)
+
+   DataSourceJmxConfiguration.TomcatDataSourceJmxConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.tomcat.jdbc.pool.DataSourceProxy' (OnClassCondition)
+
+   DataSourcePoolMetadataProvidersConfiguration.CommonsDbcp2PoolDataSourceMetadataProviderConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.commons.dbcp2.BasicDataSource' (OnClassCondition)
+
+   DataSourcePoolMetadataProvidersConfiguration.OracleUcpPoolDataSourceMetadataProviderConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'oracle.ucp.jdbc.PoolDataSource', 'oracle.jdbc.OracleConnection' (OnClassCondition)
+
+   DataSourcePoolMetadataProvidersConfiguration.TomcatDataSourcePoolMetadataProviderConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.tomcat.jdbc.pool.DataSource' (OnClassCondition)
+
+   DispatcherServletAutoConfiguration.DispatcherServletConfiguration#multipartResolver:
+      Did not match:
+         - @ConditionalOnBean (types: org.springframework.web.multipart.MultipartResolver; SearchStrategy: all) did not find any beans of type org.springframework.web.multipart.MultipartResolver (OnBeanCondition)
+
+   EhCacheCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'net.sf.ehcache.Cache' (OnClassCondition)
+
+   ElasticsearchDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.elasticsearch.core.ElasticsearchRestTemplate' (OnClassCondition)
+
+   ElasticsearchRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.elasticsearch.client.Client' (OnClassCondition)
+
+   ElasticsearchRestClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.elasticsearch.client.RestClientBuilder' (OnClassCondition)
+
+   EmbeddedLdapAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.unboundid.ldap.listener.InMemoryDirectoryServer' (OnClassCondition)
+
+   EmbeddedMongoAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.MongoClientSettings' (OnClassCondition)
+
+   EmbeddedWebServerFactoryCustomizerAutoConfiguration.JettyWebServerFactoryCustomizerConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'org.eclipse.jetty.server.Server', 'org.eclipse.jetty.util.Loader', 'org.eclipse.jetty.webapp.WebAppContext' (OnClassCondition)
+
+   EmbeddedWebServerFactoryCustomizerAutoConfiguration.NettyWebServerFactoryCustomizerConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.netty.http.server.HttpServer' (OnClassCondition)
+
+   EmbeddedWebServerFactoryCustomizerAutoConfiguration.UndertowWebServerFactoryCustomizerConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'io.undertow.Undertow', 'org.xnio.SslClientAuthMode' (OnClassCondition)
+
+   ErrorWebFluxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   FlywayAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.flywaydb.core.Flyway' (OnClassCondition)
+
+   FreeMarkerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'freemarker.template.Configuration' (OnClassCondition)
+
+   GraphQlAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlQueryByExampleAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlQuerydslAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlRSocketAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlReactiveQueryByExampleAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlReactiveQuerydslAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlWebFluxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlWebFluxSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlWebMvcAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GraphQlWebMvcSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   GroovyTemplateAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'groovy.text.markup.MarkupTemplateEngine' (OnClassCondition)
+
+   GsonAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.google.gson.Gson' (OnClassCondition)
+
+   GsonHttpMessageConvertersConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.google.gson.Gson' (OnClassCondition)
+
+   H2ConsoleAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.h2.server.web.WebServlet' (OnClassCondition)
+
+   HazelcastAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.hazelcast.core.HazelcastInstance' (OnClassCondition)
+
+   HazelcastCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.hazelcast.core.HazelcastInstance' (OnClassCondition)
+
+   HazelcastJpaDependencyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.hazelcast.core.HazelcastInstance' (OnClassCondition)
+
+   HibernateJpaAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.persistence.EntityManager' (OnClassCondition)
+
+   HttpHandlerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.DispatcherHandler' (OnClassCondition)
+
+   HypermediaAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.hateoas.EntityModel' (OnClassCondition)
+
+   InfinispanCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.infinispan.spring.embedded.provider.SpringEmbeddedCacheManager' (OnClassCondition)
+
+   InfluxDbAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.influxdb.InfluxDB' (OnClassCondition)
+
+   IntegrationAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.integration.config.EnableIntegration' (OnClassCondition)
+
+   JCacheCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.cache.Caching' (OnClassCondition)
+
+   JacksonHttpMessageConvertersConfiguration.MappingJackson2XmlHttpMessageConverterConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.fasterxml.jackson.dataformat.xml.XmlMapper' (OnClassCondition)
+
+   JdbcRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.jdbc.repository.config.AbstractJdbcConfiguration' (OnClassCondition)
+
+   JdbcTemplateConfiguration:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.jdbc.core.JdbcOperations; SearchStrategy: all) found beans of type 'org.springframework.jdbc.core.JdbcOperations' jdbcTemplate, centralJdbcTemplate, tigohogarJdbcTemplate (OnBeanCondition)
+
+   JerseyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.glassfish.jersey.server.spring.SpringComponentProvider' (OnClassCondition)
+
+   JmsAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.jms.Message' (OnClassCondition)
+
+   JmxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.jmx.enabled=true) did not find property 'enabled' (OnPropertyCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.jmx.export.MBeanExporter' (OnClassCondition)
+
+   JndiConnectionFactoryAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.jms.core.JmsTemplate' (OnClassCondition)
+
+   JndiDataSourceAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.datasource.jndi-name) did not find property 'jndi-name' (OnPropertyCondition)
+      Matched:
+         - @ConditionalOnClass found required classes 'javax.sql.DataSource', 'org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType' (OnClassCondition)
+
+   JooqAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.jooq.DSLContext' (OnClassCondition)
+
+   JpaRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.jpa.repository.JpaRepository' (OnClassCondition)
+
+   JsonbAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.json.bind.Jsonb' (OnClassCondition)
+
+   JsonbHttpMessageConvertersConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.json.bind.Jsonb' (OnClassCondition)
+
+   JtaAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.transaction.Transaction' (OnClassCondition)
+
+   KafkaAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.kafka.core.KafkaTemplate' (OnClassCondition)
+
+   LdapAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.ldap.core.ContextSource' (OnClassCondition)
+
+   LdapRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.ldap.repository.LdapRepository' (OnClassCondition)
+
+   LiquibaseAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'liquibase.change.DatabaseChange' (OnClassCondition)
+
+   MailSenderJndiConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.mail.jndi-name) did not find property 'jndi-name' (OnPropertyCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'javax.mail.Session' (OnClassCondition)
+
+   MailSenderValidatorAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.mail.test-connection) did not find property 'test-connection' (OnPropertyCondition)
+
+   MessageSourceAutoConfiguration:
+      Did not match:
+         - ResourceBundle did not find bundle with basename messages (MessageSourceAutoConfiguration.ResourceBundleCondition)
+
+   MongoAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MongoDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MongoReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.reactivestreams.client.MongoClient' (OnClassCondition)
+
+   MongoRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.mongodb.client.MongoClient' (OnClassCondition)
+
+   MultipleOpenApiSupportConfiguration:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on MultipleOpenApiSupportCondition.OnActuatorDifferentPort @ConditionalOnProperty (springdoc.show-actuator) did not find property 'springdoc.show-actuator'; NestedCondition on MultipleOpenApiSupportCondition.OnMultipleOpenApiSupportCondition AnyNestedCondition 0 matched 2 did not; NestedCondition on MultipleOpenApiGroupsCondition.OnGroupConfigProperty @ConditionalOnProperty (springdoc.group-configs[0].group) did not find property 'springdoc.group-configs[0].group'; NestedCondition on MultipleOpenApiGroupsCondition.OnGroupedOpenApiBean @ConditionalOnBean (types: org.springdoc.core.GroupedOpenApi; SearchStrategy: all) did not find any beans of type org.springdoc.core.GroupedOpenApi (MultipleOpenApiSupportCondition)
+      Matched:
+         - found 'session' scope (OnWebApplicationCondition)
+         - @ConditionalOnProperty (springdoc.api-docs.enabled) matched (OnPropertyCondition)
+
+   MultipleOpenApiSupportConfiguration.SpringDocWebMvcActuatorDifferentConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.boot.actuate.endpoint.web.servlet.WebMvcEndpointHandlerMapping' (OnClassCondition)
+         - Ancestor org.springdoc.webmvc.core.MultipleOpenApiSupportConfiguration did not match (ConditionEvaluationReport.AncestorsMatchedCondition)
+
+   MustacheAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.samskivert.mustache.Mustache' (OnClassCondition)
+
+   Neo4jAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jReactiveDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jReactiveRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   Neo4jRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.neo4j.driver.Driver' (OnClassCondition)
+
+   NettyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.netty.util.NettyRuntime' (OnClassCondition)
+
+   OAuth2ClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.config.annotation.web.configuration.EnableWebSecurity' (OnClassCondition)
+
+   OAuth2ResourceServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.oauth2.server.resource.BearerTokenAuthenticationToken' (OnClassCondition)
+
+   ProjectInfoAutoConfiguration#buildProperties:
+      Did not match:
+         - @ConditionalOnResource did not find resource '${spring.info.build.location:classpath:META-INF/build-info.properties}' (OnResourceCondition)
+
+   ProjectInfoAutoConfiguration#gitProperties:
+      Did not match:
+         - GitResource did not find git info at classpath:git.properties (ProjectInfoAutoConfiguration.GitResourceAvailableCondition)
+
+   QuartzAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.quartz.Scheduler' (OnClassCondition)
+
+   R2dbcAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.spi.ConnectionFactory' (OnClassCondition)
+
+   R2dbcDataAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.r2dbc.core.R2dbcEntityTemplate' (OnClassCondition)
+
+   R2dbcInitializationConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'io.r2dbc.spi.ConnectionFactory', 'org.springframework.r2dbc.connection.init.DatabasePopulator' (OnClassCondition)
+
+   R2dbcRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.r2dbc.spi.ConnectionFactory' (OnClassCondition)
+
+   R2dbcTransactionManagerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.r2dbc.connection.R2dbcTransactionManager' (OnClassCondition)
+
+   RSocketGraphQlClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'graphql.GraphQL' (OnClassCondition)
+
+   RSocketMessagingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.RSocket' (OnClassCondition)
+
+   RSocketRequesterAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.RSocket' (OnClassCondition)
+
+   RSocketSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.rsocket.core.SecuritySocketAcceptorInterceptor' (OnClassCondition)
+
+   RSocketServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.rsocket.core.RSocketServer' (OnClassCondition)
+
+   RSocketStrategiesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.netty.buffer.PooledByteBufAllocator' (OnClassCondition)
+
+   RabbitAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.rabbitmq.client.Channel' (OnClassCondition)
+
+   ReactiveElasticsearchRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient' (OnClassCondition)
+
+   ReactiveElasticsearchRestClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.netty.http.client.HttpClient' (OnClassCondition)
+
+   ReactiveMultipartAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   ReactiveOAuth2ClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+
+   ReactiveOAuth2ResourceServerAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity' (OnClassCondition)
+
+   ReactiveSecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+
+   ReactiveUserDetailsServiceAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.authentication.ReactiveAuthenticationManager' (OnClassCondition)
+
+   ReactiveWebServerFactoryAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   RedisAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.redis.core.RedisOperations' (OnClassCondition)
+
+   RedisCacheConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.redis.connection.RedisConnectionFactory' (OnClassCondition)
+
+   RedisReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+
+   RedisRepositoriesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.redis.repository.configuration.EnableRedisRepositories' (OnClassCondition)
+
+   RepositoryRestMvcAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.rest.webmvc.config.RepositoryRestMvcConfiguration' (OnClassCondition)
+
+   Saml2RelyingPartyAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository' (OnClassCondition)
+
+   SecurityAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.authentication.DefaultAuthenticationEventPublisher' (OnClassCondition)
+
+   SecurityFilterAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.config.http.SessionCreationPolicy' (OnClassCondition)
+
+   SendGridAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'com.sendgrid.SendGrid' (OnClassCondition)
+
+   ServletWebServerFactoryAutoConfiguration.ForwardedHeaderFilterConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (server.forward-headers-strategy=framework) did not find property 'server.forward-headers-strategy' (OnPropertyCondition)
+
+   ServletWebServerFactoryConfiguration.EmbeddedJetty:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'org.eclipse.jetty.server.Server', 'org.eclipse.jetty.util.Loader', 'org.eclipse.jetty.webapp.WebAppContext' (OnClassCondition)
+
+   ServletWebServerFactoryConfiguration.EmbeddedUndertow:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'io.undertow.Undertow', 'org.xnio.SslClientAuthMode' (OnClassCondition)
+
+   SessionAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.session.Session' (OnClassCondition)
+
+   SolrAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.apache.solr.client.solrj.impl.CloudSolrClient' (OnClassCondition)
+
+   SpringApplicationAdminJmxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.application.admin.enabled=true) did not find property 'enabled' (OnPropertyCondition)
+
+   SpringDataWebAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.web.PageableHandlerMethodArgumentResolver' (OnClassCondition)
+
+   SpringDocConfiguration#propertiesResolverForSchema:
+      Did not match:
+         - @ConditionalOnProperty (springdoc.api-docs.resolve-schema-properties) did not find property 'springdoc.api-docs.resolve-schema-properties' (OnPropertyCondition)
+
+   SpringDocConfiguration#propertyCustomizingConverter:
+      Did not match:
+         - @ConditionalOnBean (types: org.springdoc.core.customizers.PropertyCustomizer; SearchStrategy: all) did not find any beans of type org.springdoc.core.customizers.PropertyCustomizer (OnBeanCondition)
+
+   SpringDocConfiguration#springdocBeanFactoryPostProcessor:
+      Did not match:
+         - AnyNestedCondition 0 matched 2 did not; NestedCondition on CacheOrGroupedOpenApiCondition.OnCacheDisabled found non-matching nested conditions @ConditionalOnProperty (springdoc.cache.disabled) did not find property 'springdoc.cache.disabled'; NestedCondition on CacheOrGroupedOpenApiCondition.OnMultipleOpenApiSupportCondition AnyNestedCondition 0 matched 2 did not; NestedCondition on MultipleOpenApiSupportCondition.OnActuatorDifferentPort @ConditionalOnProperty (springdoc.show-actuator) did not find property 'springdoc.show-actuator'; NestedCondition on MultipleOpenApiSupportCondition.OnMultipleOpenApiSupportCondition AnyNestedCondition 0 matched 2 did not; NestedCondition on MultipleOpenApiGroupsCondition.OnGroupConfigProperty @ConditionalOnProperty (springdoc.group-configs[0].group) did not find property 'springdoc.group-configs[0].group'; NestedCondition on MultipleOpenApiGroupsCondition.OnGroupedOpenApiBean @ConditionalOnBean (types: org.springdoc.core.GroupedOpenApi; SearchStrategy: all) did not find any beans of type org.springdoc.core.GroupedOpenApi (CacheOrGroupedOpenApiCondition)
+      Matched:
+         - @ConditionalOnClass found required class 'org.springframework.boot.context.properties.bind.BindResult' (OnClassCondition)
+
+   SpringDocConfiguration#springdocBeanFactoryPostProcessor2:
+      Did not match:
+         - @ConditionalOnMissingClass found unwanted class 'org.springframework.boot.context.properties.bind.BindResult' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocActuatorConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocFunctionCatalogConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.cloud.function.web.function.FunctionEndpointInitializer' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocPageableConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.domain.Pageable' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocRepositoryRestConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.rest.core.config.RepositoryRestConfiguration' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocSortConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.data.domain.Sort' (OnClassCondition)
+
+   SpringDocConfiguration.SpringDocWebFluxSupportConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Flux' (OnClassCondition)
+
+   SpringDocWebMvcConfiguration.SpringDocWebMvcActuatorConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.boot.actuate.endpoint.web.servlet.WebMvcEndpointHandlerMapping' (OnClassCondition)
+
+   SwaggerConfig#springWebProvider:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springdoc.core.providers.SpringWebProvider; SearchStrategy: all) found beans of type 'org.springdoc.core.providers.SpringWebProvider' springWebProvider (OnBeanCondition)
+
+   SwaggerConfig#swaggerUiConfigParameters:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springdoc.core.SwaggerUiConfigParameters; SearchStrategy: all) found beans of type 'org.springdoc.core.SwaggerUiConfigParameters' org.springdoc.core.SwaggerUiConfigParameters (OnBeanCondition)
+
+   SwaggerConfig#swaggerUiHome:
+      Did not match:
+         - @ConditionalOnProperty (springdoc.swagger-ui.use-root-path=true) did not find property 'springdoc.swagger-ui.use-root-path' (OnPropertyCondition)
+
+   SwaggerConfig.SwaggerActuatorWelcomeConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.boot.actuate.endpoint.web.servlet.WebMvcEndpointHandlerMapping' (OnClassCondition)
+
+   TaskSchedulingAutoConfiguration#scheduledBeanLazyInitializationExcludeFilter:
+      Did not match:
+         - @ConditionalOnBean (names: org.springframework.context.annotation.internalScheduledAnnotationProcessor; SearchStrategy: all) did not find any beans named org.springframework.context.annotation.internalScheduledAnnotationProcessor (OnBeanCondition)
+
+   TaskSchedulingAutoConfiguration#taskScheduler:
+      Did not match:
+         - @ConditionalOnBean (names: org.springframework.context.annotation.internalScheduledAnnotationProcessor; SearchStrategy: all) did not find any beans named org.springframework.context.annotation.internalScheduledAnnotationProcessor (OnBeanCondition)
+
+   ThymeleafAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.thymeleaf.spring5.SpringTemplateEngine' (OnClassCondition)
+
+   TransactionAutoConfiguration#transactionalOperator:
+      Did not match:
+         - @ConditionalOnSingleCandidate (types: org.springframework.transaction.ReactiveTransactionManager; SearchStrategy: all) did not find any beans (OnBeanCondition)
+
+   TransactionAutoConfiguration.AspectJTransactionManagementConfiguration:
+      Did not match:
+         - @ConditionalOnBean did not find required type 'org.springframework.transaction.aspectj.AbstractTransactionAspect' (OnBeanCondition)
+         - @ConditionalOnBean (types: org.springframework.transaction.aspectj.AbstractTransactionAspect; SearchStrategy: all) did not find any beans of type org.springframework.transaction.aspectj.AbstractTransactionAspect (OnBeanCondition)
+
+   TransactionAutoConfiguration.EnableTransactionManagementConfiguration.JdkDynamicAutoProxyConfiguration:
+      Did not match:
+         - @ConditionalOnProperty (spring.aop.proxy-target-class=false) did not find property 'proxy-target-class' (OnPropertyCondition)
+
+   UserDetailsServiceAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.security.authentication.AuthenticationManager' (OnClassCondition)
+
+   WebClientAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.function.client.WebClient' (OnClassCondition)
+
+   WebFluxAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.reactive.config.WebFluxConfigurer' (OnClassCondition)
+
+   WebMvcAutoConfiguration#hiddenHttpMethodFilter:
+      Did not match:
+         - @ConditionalOnProperty (spring.mvc.hiddenmethod.filter.enabled) did not find property 'enabled' (OnPropertyCondition)
+
+   WebMvcAutoConfiguration.ResourceChainCustomizerConfiguration:
+      Did not match:
+         - @ConditionalOnEnabledResourceChain did not find class org.webjars.WebJarAssetLocator (OnEnabledResourceChainCondition)
+
+   WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter#beanNameViewResolver:
+      Did not match:
+         - @ConditionalOnMissingBean (types: org.springframework.web.servlet.view.BeanNameViewResolver; SearchStrategy: all) found beans of type 'org.springframework.web.servlet.view.BeanNameViewResolver' beanNameViewResolver (OnBeanCondition)
+
+   WebServiceTemplateAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.oxm.Marshaller' (OnClassCondition)
+
+   WebServicesAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.ws.transport.http.MessageDispatcherServlet' (OnClassCondition)
+
+   WebSessionIdResolverAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'reactor.core.publisher.Mono' (OnClassCondition)
+
+   WebSocketMessagingAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer' (OnClassCondition)
+
+   WebSocketReactiveAutoConfiguration:
+      Did not match:
+         - @ConditionalOnWebApplication did not find reactive web application classes (OnWebApplicationCondition)
+
+   WebSocketServletAutoConfiguration.Jetty10WebSocketConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required classes 'org.eclipse.jetty.websocket.javax.server.internal.JavaxWebSocketServerContainer', 'org.eclipse.jetty.websocket.server.JettyWebSocketServerContainer' (OnClassCondition)
+
+   WebSocketServletAutoConfiguration.JettyWebSocketConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'org.eclipse.jetty.websocket.jsr356.server.deploy.WebSocketServerContainerInitializer' (OnClassCondition)
+
+   WebSocketServletAutoConfiguration.UndertowWebSocketConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'io.undertow.websockets.jsr.Bootstrap' (OnClassCondition)
+
+   XADataSourceAutoConfiguration:
+      Did not match:
+         - @ConditionalOnClass did not find required class 'javax.transaction.TransactionManager' (OnClassCondition)
+
+
+Exclusions:
+-----------
+
+    None
+
+
+Unconditional classes:
+----------------------
+
+    org.springframework.boot.autoconfigure.context.ConfigurationPropertiesAutoConfiguration
+
+    org.springframework.boot.autoconfigure.context.LifecycleAutoConfiguration
+
+    org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration
+
+    org.springframework.boot.autoconfigure.availability.ApplicationAvailabilityAutoConfiguration
+
+    org.springframework.boot.autoconfigure.info.ProjectInfoAutoConfiguration
+
+
+
+2026-06-06 10:48:24.344  INFO 19308 --- [           main] c.e.T.TigoStarSystemApplication          : Started TigoStarSystemApplication in 9.278 seconds (JVM running for 10.371)
+2026-06-06 10:48:24.346 DEBUG 19308 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state LivenessState changed to CORRECT
+2026-06-06 10:48:24.349  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : spring.profiles.active=[]
+2026-06-06 10:48:24.350  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : spring.datasource.url=jdbc:jtds:sqlserver://tigo.makiro.com.bo/BDSistemaAntenaPM
+2026-06-06 10:48:24.351  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : spring.datasource.driver-class-name=net.sourceforge.jtds.jdbc.Driver
+2026-06-06 10:48:24.353  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : app.central.datasource.url=jdbc:jtds:sqlserver://172.16.0.13/BDControlOrdenes
+2026-06-06 10:48:24.354  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : app.central.datasource.driver-class-name=net.sourceforge.jtds.jdbc.Driver
+2026-06-06 10:48:24.355  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : app.cuadrilla.mail.enabled=true
+2026-06-06 10:48:24.357  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : app.cuadrilla.mail.to=cabrerajosue715@gmail.com
+2026-06-06 10:48:24.358  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : app.cuadrilla.mail.from=sistemas_sc@makiro.com.bo
+2026-06-06 10:48:24.360  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : spring.mail.host=vps-1537170-x.dattaweb.com
+2026-06-06 10:48:24.361  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : spring.mail.port=587
+2026-06-06 10:48:24.362  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : java.version=21.0.8
+2026-06-06 10:48:24.363  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : java.home=C:\Program Files\Java\jdk-21
+2026-06-06 10:48:24.364  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : java.security.properties=null
+2026-06-06 10:48:24.365  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : jdk.tls.client.protocols=null
+2026-06-06 10:48:24.367  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : https.protocols=null
+2026-06-06 10:48:24.369  INFO 19308 --- [           main] c.e.T.config.StartupInfoLogger           : jdk.tls.disabledAlgorithms=SSLv3, TLSv1.1, DTLSv1.0, RC4, DES, MD5withRSA, DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL, ECDH
+2026-06-06 10:48:24.374 DEBUG 19308 --- [           main] o.s.b.a.ApplicationAvailabilityBean      : Application availability state ReadinessState changed to ACCEPTING_TRAFFIC
+2026-06-06 10:48:52.009 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:52.011 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:52.012 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:48:52.164 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:52.165 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:48:52.166 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:18.887  INFO 19308 --- [nio-9061-exec-1] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-06 10:49:18.888  INFO 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Initializing Servlet 'dispatcherServlet'
+2026-06-06 10:49:18.890 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Detected StandardServletMultipartResolver
+2026-06-06 10:49:18.891 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Detected AcceptHeaderLocaleResolver
+2026-06-06 10:49:18.892 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Detected FixedThemeResolver
+2026-06-06 10:49:18.893 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Detected org.springframework.web.servlet.view.DefaultRequestToViewNameTranslator@1f3dcb82
+2026-06-06 10:49:18.894 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Detected org.springframework.web.servlet.support.SessionFlashMapManager@5408784a
+2026-06-06 10:49:18.895 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : enableLoggingRequestDetails='false': request parameters and headers will be masked to prevent unsafe logging of potentially sensitive data
+2026-06-06 10:49:18.896  INFO 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Completed initialization in 7 ms
+2026-06-06 10:49:18.918 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : GET "/auth/sucursales", parameters={}
+2026-06-06 10:49:18.925 DEBUG 19308 --- [nio-9061-exec-1] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.example.TigoStarSystem.auth.controller.AuthController#listarSucursales()
+2026-06-06 10:49:18.995  INFO 19308 --- [nio-9061-exec-1] c.e.T.auth.controller.AuthController     : Request GET /auth/sucursales
+2026-06-06 10:49:19.000 DEBUG 19308 --- [nio-9061-exec-1] o.s.jdbc.core.JdbcTemplate               : Executing SQL query [EXEC dbo.spx_ObtenerSucursalesConexionWeb]
+2026-06-06 10:49:19.004 DEBUG 19308 --- [nio-9061-exec-1] o.s.jdbc.datasource.DataSourceUtils      : Fetching JDBC Connection from DataSource
+2026-06-06 10:49:19.004 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : HikariPool-1 - configuration:
+2026-06-06 10:49:19.005 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : allowPoolSuspension................................false
+2026-06-06 10:49:19.006 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : autoCommit................................true
+2026-06-06 10:49:19.007 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : catalog................................none
+2026-06-06 10:49:19.008 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : connectionInitSql................................none
+2026-06-06 10:49:19.008 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : connectionTestQuery................................"SELECT 1"
+2026-06-06 10:49:19.009 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : connectionTimeout................................15000
+2026-06-06 10:49:19.010 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : dataSource................................none
+2026-06-06 10:49:19.010 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : dataSourceClassName................................none
+2026-06-06 10:49:19.010 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : dataSourceJNDI................................none
+2026-06-06 10:49:19.011 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : dataSourceProperties................................{password=<masked>}
+2026-06-06 10:49:19.011 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : driverClassName................................"net.sourceforge.jtds.jdbc.Driver"
+2026-06-06 10:49:19.012 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : exceptionOverrideClassName................................none
+2026-06-06 10:49:19.012 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : healthCheckProperties................................{}
+2026-06-06 10:49:19.013 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : healthCheckRegistry................................none
+2026-06-06 10:49:19.014 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : idleTimeout................................300000
+2026-06-06 10:49:19.015 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : initializationFailTimeout................................-1
+2026-06-06 10:49:19.015 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : isolateInternalQueries................................false
+2026-06-06 10:49:19.016 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : jdbcUrl................................jdbc:jtds:sqlserver://tigo.makiro.com.bo/BDSistemaAntenaPM
+2026-06-06 10:49:19.016 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : keepaliveTime................................120000
+2026-06-06 10:49:19.016 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : leakDetectionThreshold................................0
+2026-06-06 10:49:19.017 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : maxLifetime................................900000
+2026-06-06 10:49:19.017 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : maximumPoolSize................................10
+2026-06-06 10:49:19.018 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : metricRegistry................................none
+2026-06-06 10:49:19.018 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : metricsTrackerFactory................................none
+2026-06-06 10:49:19.018 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : minimumIdle................................0
+2026-06-06 10:49:19.019 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : password................................<masked>
+2026-06-06 10:49:19.019 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : poolName................................"HikariPool-1"
+2026-06-06 10:49:19.020 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : readOnly................................false
+2026-06-06 10:49:19.021 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : registerMbeans................................false
+2026-06-06 10:49:19.021 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : scheduledExecutor................................none
+2026-06-06 10:49:19.021 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : schema................................none
+2026-06-06 10:49:19.022 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : threadFactory................................internal
+2026-06-06 10:49:19.022 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : transactionIsolation................................default
+2026-06-06 10:49:19.023 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : username................................"sistemas"
+2026-06-06 10:49:19.023 DEBUG 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariConfig           : validationTimeout................................5000
+2026-06-06 10:49:19.023  INFO 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-06-06 10:49:19.024  INFO 19308 --- [nio-9061-exec-1] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-06-06 10:49:19.101  INFO 19308 --- [onnection adder] com.zaxxer.hikari.pool.PoolBase          : HikariPool-1 - Driver does not support get/set network timeout for connections. (null)
+2026-06-06 10:49:19.105 DEBUG 19308 --- [onnection adder] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection net.sourceforge.jtds.jdbc.JtdsConnection@7b92030d
+2026-06-06 10:49:19.130 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=1, idle=0, waiting=0)
+2026-06-06 10:49:19.130 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=1, idle=0, waiting=0)
+2026-06-06 10:49:19.131 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:19.217 DEBUG 19308 --- [nio-9061-exec-1] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/json, application/*+json]
+2026-06-06 10:49:19.219 DEBUG 19308 --- [nio-9061-exec-1] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [com.example.TigoStarSystem.common.ApiResponse@5c0138a3]
+2026-06-06 10:49:19.246 DEBUG 19308 --- [nio-9061-exec-1] o.s.web.servlet.DispatcherServlet        : Completed 200 OK
+2026-06-06 10:49:22.025 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:22.035 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:22.036 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:22.180 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:22.182 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:22.183 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:35.908 DEBUG 19308 --- [nio-9061-exec-3] o.s.web.servlet.DispatcherServlet        : POST "/auth/login", parameters={}
+2026-06-06 10:49:35.911 DEBUG 19308 --- [nio-9061-exec-3] s.w.s.m.m.a.RequestMappingHandlerMapping : Mapped to com.example.TigoStarSystem.auth.controller.AuthController#login(AuthLoginRequest)
+2026-06-06 10:49:35.977 DEBUG 19308 --- [nio-9061-exec-3] m.m.a.RequestResponseBodyMethodProcessor : Read "application/json;charset=UTF-8" to [com.example.TigoStarSystem.auth.dto.AuthLoginRequest@63dda5b9]
+2026-06-06 10:49:36.026  INFO 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Login attempt usuario=gcoca, idSucursal=9, validarSucursal=false
+2026-06-06 10:49:36.027 DEBUG 19308 --- [nio-9061-exec-3] o.s.jdbc.core.JdbcTemplate               : Executing SQL query [EXEC dbo.spx_ObtenerSucursalesConexionWeb]
+2026-06-06 10:49:36.028 DEBUG 19308 --- [nio-9061-exec-3] o.s.jdbc.datasource.DataSourceUtils      : Fetching JDBC Connection from DataSource
+2026-06-06 10:49:36.035 DEBUG 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Sucursal resolved idSucursal=9, host=tigo.makiro.com.bo, baseDeDatos=BDSistemaAntenaPM
+2026-06-06 10:49:36.038 DEBUG 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Login target attempt=1 idSucursal=9, sucursal=SantaCruz, host=tigo.makiro.com.bo, baseDeDatos=BDSistemaAntenaPM
+2026-06-06 10:49:36.039 DEBUG 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Creating JDBC connection for sucursal host=tigo.makiro.com.bo baseDeDatos=BDSistemaAntenaPM
+2026-06-06 10:49:36.040 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : Driver class net.sourceforge.jtds.jdbc.Driver found in Thread context class loader TomcatEmbeddedWebappClassLoader
+  context: ROOT
+  delegate: true
+----------> Parent Classloader:
+jdk.internal.loader.ClassLoaders$AppClassLoader@70dea4e
+
+2026-06-06 10:49:36.041 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : ConnDb-SantaCruz - configuration:
+2026-06-06 10:49:36.044 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : allowPoolSuspension................................false
+2026-06-06 10:49:36.045 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : autoCommit................................true
+2026-06-06 10:49:36.045 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : catalog................................none
+2026-06-06 10:49:36.046 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : connectionInitSql................................none
+2026-06-06 10:49:36.047 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : connectionTestQuery................................"SELECT 1"
+2026-06-06 10:49:36.049 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : connectionTimeout................................30000
+2026-06-06 10:49:36.049 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : dataSource................................none
+2026-06-06 10:49:36.050 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : dataSourceClassName................................none
+2026-06-06 10:49:36.051 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : dataSourceJNDI................................none
+2026-06-06 10:49:36.052 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : dataSourceProperties................................{password=<masked>}
+2026-06-06 10:49:36.053 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : driverClassName................................"net.sourceforge.jtds.jdbc.Driver"
+2026-06-06 10:49:36.053 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : exceptionOverrideClassName................................none
+2026-06-06 10:49:36.054 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : healthCheckProperties................................{}
+2026-06-06 10:49:36.055 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : healthCheckRegistry................................none
+2026-06-06 10:49:36.056 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : idleTimeout................................600000
+2026-06-06 10:49:36.056 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : initializationFailTimeout................................-1
+2026-06-06 10:49:36.057 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : isolateInternalQueries................................false
+2026-06-06 10:49:36.058 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : jdbcUrl................................jdbc:jtds:sqlserver://tigo.makiro.com.bo/BDSistemaAntenaPM
+2026-06-06 10:49:36.058 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : keepaliveTime................................0
+2026-06-06 10:49:36.059 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : leakDetectionThreshold................................0
+2026-06-06 10:49:36.060 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : maxLifetime................................1800000
+2026-06-06 10:49:36.061 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : maximumPoolSize................................5
+2026-06-06 10:49:36.062 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : metricRegistry................................none
+2026-06-06 10:49:36.062 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : metricsTrackerFactory................................none
+2026-06-06 10:49:36.063 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : minimumIdle................................0
+2026-06-06 10:49:36.064 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : password................................<masked>
+2026-06-06 10:49:36.065 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : poolName................................"ConnDb-SantaCruz"
+2026-06-06 10:49:36.065 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : readOnly................................false
+2026-06-06 10:49:36.066 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : registerMbeans................................false
+2026-06-06 10:49:36.067 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : scheduledExecutor................................none
+2026-06-06 10:49:36.068 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : schema................................none
+2026-06-06 10:49:36.069 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : threadFactory................................internal
+2026-06-06 10:49:36.069 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : transactionIsolation................................default
+2026-06-06 10:49:36.070 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : username................................"sistemas"
+2026-06-06 10:49:36.071 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariConfig           : validationTimeout................................5000
+2026-06-06 10:49:36.076  INFO 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariDataSource       : ConnDb-SantaCruz - Starting...
+2026-06-06 10:49:36.077  INFO 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.HikariDataSource       : ConnDb-SantaCruz - Start completed.
+2026-06-06 10:49:36.078 DEBUG 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Calling SP dbo.spx_ValidarUsuario
+2026-06-06 10:49:36.085 DEBUG 19308 --- [nio-9061-exec-3] o.s.jdbc.core.JdbcTemplate               : Executing prepared SQL query
+2026-06-06 10:49:36.087 DEBUG 19308 --- [nio-9061-exec-3] o.s.jdbc.core.JdbcTemplate               : Executing prepared SQL statement [EXEC dbo.spx_ValidarUsuario ?, ?]
+2026-06-06 10:49:36.087 DEBUG 19308 --- [nio-9061-exec-3] o.s.jdbc.datasource.DataSourceUtils      : Fetching JDBC Connection from DataSource
+2026-06-06 10:49:36.177 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=1)
+2026-06-06 10:49:36.179 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=1)
+2026-06-06 10:49:36.180 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:49.145 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:49:49.192 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:49:49.192 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:52.048 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:52.098 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:52.099 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:52.189 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:52.241 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:49:52.242 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:49:55.241 DEBUG 19308 --- [onnection adder] com.zaxxer.hikari.pool.PoolBase          : ConnDb-SantaCruz - Failed to create/setup connection: I/O Error: Connection reset
+2026-06-06 10:49:55.261 DEBUG 19308 --- [onnection adder] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Cannot acquire connection from data source
+
+java.sql.SQLException: I/O Error: Connection reset
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2481) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.login(TdsCore.java:632) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.JtdsConnection.<init>(JtdsConnection.java:371) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.Driver.connect(Driver.java:184) ~[jtds-1.3.1.jar:1.3.1]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:138) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:364) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:206) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:476) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.access$100(HikariPool.java:71) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:726) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:712) ~[HikariCP-4.0.3.jar:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:318) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:346) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:796) ~[na:na]
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:1099) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:208) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:179) ~[na:na]
+	at net.sourceforge.jtds.jdbc.SharedSocket.readPacket(SharedSocket.java:850) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.SharedSocket.getNetPacket(SharedSocket.java:731) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.getPacket(ResponseStream.java:477) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.read(ResponseStream.java:114) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2368) ~[jtds-1.3.1.jar:1.3.1]
+	... 14 common frames omitted
+
+2026-06-06 10:50:06.098 DEBUG 19308 --- [nio-9061-exec-3] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Timeout failure stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:06.124  WARN 19308 --- [nio-9061-exec-3] c.e.T.auth.service.AuthService           : Login SP failed on attempt 1 usuario=gcoca, idSucursal=9, host=tigo.makiro.com.bo, baseDeDatos=BDSistemaAntenaPM
+
+org.springframework.jdbc.CannotGetJdbcConnectionException: Failed to obtain JDBC Connection; nested exception is java.sql.SQLTransientConnectionException: ConnDb-SantaCruz - Connection is not available, request timed out after 30028ms.
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:84) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.execute(JdbcTemplate.java:645) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:715) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:746) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:759) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.query(JdbcTemplate.java:812) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.core.JdbcTemplate.queryForList(JdbcTemplate.java:944) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at com.example.TigoStarSystem.auth.repository.AuthRepository.validarUsuario(AuthRepository.java:29) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.repository.AuthRepository$$FastClassBySpringCGLIB$$2d77c60f.invoke(<generated>) ~[classes/:na]
+	at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:218) ~[spring-core-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:792) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.dao.support.PersistenceExceptionTranslationInterceptor.invoke(PersistenceExceptionTranslationInterceptor.java:137) ~[spring-tx-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:186) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:707) ~[spring-aop-5.3.31.jar:5.3.31]
+	at com.example.TigoStarSystem.auth.repository.AuthRepository$$EnhancerBySpringCGLIB$$b6c2ca3f.validarUsuario(<generated>) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.service.AuthService.ejecutarValidacion(AuthService.java:489) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.service.AuthService.ejecutarValidacionConSpAlternativo(AuthService.java:502) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.service.AuthService.login(AuthService.java:115) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.controller.AuthController.login(AuthController.java:38) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.controller.AuthController$$FastClassBySpringCGLIB$$672fd7cf.invoke(<generated>) ~[classes/:na]
+	at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:218) ~[spring-core-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:792) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.validation.beanvalidation.MethodValidationInterceptor.invoke(MethodValidationInterceptor.java:123) ~[spring-context-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:186) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:707) ~[spring-aop-5.3.31.jar:5.3.31]
+	at com.example.TigoStarSystem.auth.controller.AuthController$$EnhancerBySpringCGLIB$$7e096ba3.login(<generated>) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:205) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:150) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:117) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:895) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:808) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1072) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:965) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:909) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:555) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:883) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:623) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:209) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1794) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: java.sql.SQLTransientConnectionException: ConnDb-SantaCruz - Connection is not available, request timed out after 30028ms.
+	at com.zaxxer.hikari.pool.HikariPool.createTimeoutException(HikariPool.java:696) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:197) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.getConnection(HikariPool.java:162) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.HikariDataSource.getConnection(HikariDataSource.java:100) ~[HikariCP-4.0.3.jar:na]
+	at org.springframework.jdbc.datasource.DataSourceUtils.fetchConnection(DataSourceUtils.java:160) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.datasource.DataSourceUtils.doGetConnection(DataSourceUtils.java:118) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	at org.springframework.jdbc.datasource.DataSourceUtils.getConnection(DataSourceUtils.java:81) ~[spring-jdbc-5.3.31.jar:5.3.31]
+	... 83 common frames omitted
+Caused by: java.sql.SQLException: I/O Error: Connection reset
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2481) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.login(TdsCore.java:632) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.JtdsConnection.<init>(JtdsConnection.java:371) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.Driver.connect(Driver.java:184) ~[jtds-1.3.1.jar:1.3.1]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:138) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:364) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:206) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:476) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.access$100(HikariPool.java:71) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:726) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:712) ~[HikariCP-4.0.3.jar:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	... 1 common frames omitted
+Caused by: java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:318) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:346) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:796) ~[na:na]
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:1099) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:208) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:179) ~[na:na]
+	at net.sourceforge.jtds.jdbc.SharedSocket.readPacket(SharedSocket.java:850) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.SharedSocket.getNetPacket(SharedSocket.java:731) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.getPacket(ResponseStream.java:477) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.read(ResponseStream.java:114) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2368) ~[jtds-1.3.1.jar:1.3.1]
+	... 14 common frames omitted
+
+2026-06-06 10:50:06.136 DEBUG 19308 --- [nio-9061-exec-3] .m.m.a.ExceptionHandlerExceptionResolver : Using @ExceptionHandler com.example.TigoStarSystem.common.GlobalExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+2026-06-06 10:50:06.145 DEBUG 19308 --- [nio-9061-exec-3] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Using 'application/json', given [*/*] and supported [application/json, application/*+json, application/json, application/*+json]
+2026-06-06 10:50:06.168 DEBUG 19308 --- [nio-9061-exec-3] o.s.w.s.m.m.a.HttpEntityMethodProcessor  : Writing [com.example.TigoStarSystem.common.ApiError@173445a1]
+2026-06-06 10:50:06.175  WARN 19308 --- [nio-9061-exec-3] .m.m.a.ExceptionHandlerExceptionResolver : Failure in @ExceptionHandler com.example.TigoStarSystem.common.GlobalExceptionHandler#handleApiException(ApiException, HttpServletRequest)
+
+org.apache.catalina.connector.ClientAbortException: java.io.IOException: Connection reset by peer
+	at org.apache.catalina.connector.OutputBuffer.doFlush(OutputBuffer.java:309) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.OutputBuffer.flush(OutputBuffer.java:271) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.CoyoteOutputStream.flush(CoyoteOutputStream.java:120) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at java.base/java.io.FilterOutputStream.flush(FilterOutputStream.java:155) ~[na:na]
+	at com.fasterxml.jackson.core.json.UTF8JsonGenerator.flush(UTF8JsonGenerator.java:1187) ~[jackson-core-2.13.5.jar:2.13.5]
+	at com.fasterxml.jackson.databind.ObjectWriter.writeValue(ObjectWriter.java:1009) ~[jackson-databind-2.13.5.jar:2.13.5]
+	at org.springframework.http.converter.json.AbstractJackson2HttpMessageConverter.writeInternal(AbstractJackson2HttpMessageConverter.java:456) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.http.converter.AbstractGenericHttpMessageConverter.write(AbstractGenericHttpMessageConverter.java:104) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.AbstractMessageConverterMethodProcessor.writeWithMessageConverters(AbstractMessageConverterMethodProcessor.java:290) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.HttpEntityMethodProcessor.handleReturnValue(HttpEntityMethodProcessor.java:219) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.method.support.HandlerMethodReturnValueHandlerComposite.handleReturnValue(HandlerMethodReturnValueHandlerComposite.java:78) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:135) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver.doResolveHandlerMethodException(ExceptionHandlerExceptionResolver.java:428) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.handler.AbstractHandlerMethodExceptionResolver.doResolveException(AbstractHandlerMethodExceptionResolver.java:75) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.handler.AbstractHandlerExceptionResolver.resolveException(AbstractHandlerExceptionResolver.java:142) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.handler.HandlerExceptionResolverComposite.resolveException(HandlerExceptionResolverComposite.java:80) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.processHandlerException(DispatcherServlet.java:1332) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.processDispatchResult(DispatcherServlet.java:1143) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1089) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:965) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:909) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:555) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:883) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:623) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:209) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1794) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: java.io.IOException: Connection reset by peer
+	at java.base/sun.nio.ch.SocketDispatcher.write0(Native Method) ~[na:na]
+	at java.base/sun.nio.ch.SocketDispatcher.write(SocketDispatcher.java:54) ~[na:na]
+	at java.base/sun.nio.ch.IOUtil.writeFromNativeBuffer(IOUtil.java:137) ~[na:na]
+	at java.base/sun.nio.ch.IOUtil.write(IOUtil.java:102) ~[na:na]
+	at java.base/sun.nio.ch.IOUtil.write(IOUtil.java:58) ~[na:na]
+	at java.base/sun.nio.ch.SocketChannelImpl.write(SocketChannelImpl.java:542) ~[na:na]
+	at org.apache.tomcat.util.net.NioChannel.write(NioChannel.java:136) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.NioEndpoint$NioSocketWrapper.doWrite(NioEndpoint.java:1431) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketWrapperBase.doWrite(SocketWrapperBase.java:775) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketWrapperBase.flushBlocking(SocketWrapperBase.java:739) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketWrapperBase.flush(SocketWrapperBase.java:723) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11OutputBuffer$SocketOutputBuffer.flush(Http11OutputBuffer.java:566) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.filters.ChunkedOutputFilter.flush(ChunkedOutputFilter.java:157) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11OutputBuffer.flush(Http11OutputBuffer.java:220) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11Processor.flush(Http11Processor.java:1244) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProcessor.action(AbstractProcessor.java:399) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.Response.action(Response.java:207) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.OutputBuffer.doFlush(OutputBuffer.java:305) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	... 61 common frames omitted
+
+2026-06-06 10:50:06.180 DEBUG 19308 --- [nio-9061-exec-3] o.s.web.servlet.DispatcherServlet        : Failed to complete request: com.example.TigoStarSystem.common.ApiException: No se pudo conectar a la base de datos de la sucursal.
+2026-06-06 10:50:06.188 ERROR 19308 --- [nio-9061-exec-3] o.a.c.c.C.[.[.[/].[dispatcherServlet]    : Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is com.example.TigoStarSystem.common.ApiException: No se pudo conectar a la base de datos de la sucursal.] with root cause
+
+com.example.TigoStarSystem.common.ApiException: No se pudo conectar a la base de datos de la sucursal.
+	at com.example.TigoStarSystem.auth.service.AuthService.traducirErrorLogin(AuthService.java:532) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.service.AuthService.login(AuthService.java:145) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.controller.AuthController.login(AuthController.java:38) ~[classes/:na]
+	at com.example.TigoStarSystem.auth.controller.AuthController$$FastClassBySpringCGLIB$$672fd7cf.invoke(<generated>) ~[classes/:na]
+	at org.springframework.cglib.proxy.MethodProxy.invoke(MethodProxy.java:218) ~[spring-core-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.invokeJoinpoint(CglibAopProxy.java:792) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:163) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.validation.beanvalidation.MethodValidationInterceptor.invoke(MethodValidationInterceptor.java:123) ~[spring-context-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:186) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$CglibMethodInvocation.proceed(CglibAopProxy.java:762) ~[spring-aop-5.3.31.jar:5.3.31]
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:707) ~[spring-aop-5.3.31.jar:5.3.31]
+	at com.example.TigoStarSystem.auth.controller.AuthController$$EnhancerBySpringCGLIB$$7e096ba3.login(<generated>) ~[classes/:na]
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103) ~[na:na]
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580) ~[na:na]
+	at org.springframework.web.method.support.InvocableHandlerMethod.doInvoke(InvocableHandlerMethod.java:205) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.method.support.InvocableHandlerMethod.invokeForRequest(InvocableHandlerMethod.java:150) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod.invokeAndHandle(ServletInvocableHandlerMethod.java:117) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.invokeHandlerMethod(RequestMappingHandlerAdapter.java:895) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter.handleInternal(RequestMappingHandlerAdapter.java:808) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter.handle(AbstractHandlerMethodAdapter.java:87) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doDispatch(DispatcherServlet.java:1072) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.DispatcherServlet.doService(DispatcherServlet.java:965) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.processRequest(FrameworkServlet.java:1006) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at org.springframework.web.servlet.FrameworkServlet.doPost(FrameworkServlet.java:909) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:555) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.springframework.web.servlet.FrameworkServlet.service(FrameworkServlet.java:883) ~[spring-webmvc-5.3.31.jar:5.3.31]
+	at javax.servlet.http.HttpServlet.service(HttpServlet.java:623) ~[tomcat-embed-core-9.0.83.jar:4.0.FR]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:209) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.websocket.server.WsFilter.doFilter(WsFilter.java:51) ~[tomcat-embed-websocket-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.RequestContextFilter.doFilterInternal(RequestContextFilter.java:100) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.FormContentFilter.doFilterInternal(FormContentFilter.java:93) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CharacterEncodingFilter.doFilterInternal(CharacterEncodingFilter.java:201) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.springframework.web.filter.CorsFilter.doFilterInternal(CorsFilter.java:91) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.springframework.web.filter.OncePerRequestFilter.doFilter(OncePerRequestFilter.java:117) ~[spring-web-5.3.31.jar:5.3.31]
+	at org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:178) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:153) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:168) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:90) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.authenticator.AuthenticatorBase.invoke(AuthenticatorBase.java:481) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:130) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:93) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:74) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:342) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.http11.Http11Processor.service(Http11Processor.java:390) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProcessorLight.process(AbstractProcessorLight.java:63) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.coyote.AbstractProtocol$ConnectionHandler.process(AbstractProtocol.java:928) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.NioEndpoint$SocketProcessor.doRun(NioEndpoint.java:1794) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.net.SocketProcessorBase.run(SocketProcessorBase.java:52) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1191) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:659) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at org.apache.tomcat.util.threads.TaskThread$WrappingRunnable.run(TaskThread.java:61) ~[tomcat-embed-core-9.0.83.jar:9.0.83]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+
+2026-06-06 10:50:06.191 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:06.214 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:06.214 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:14.681 DEBUG 19308 --- [onnection adder] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Cannot acquire connection from data source
+
+java.sql.SQLException: I/O Error: Connection reset
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2481) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.login(TdsCore.java:632) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.JtdsConnection.<init>(JtdsConnection.java:371) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.Driver.connect(Driver.java:184) ~[jtds-1.3.1.jar:1.3.1]
+	at com.zaxxer.hikari.util.DriverDataSource.getConnection(DriverDataSource.java:138) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newConnection(PoolBase.java:364) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.PoolBase.newPoolEntry(PoolBase.java:206) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.createPoolEntry(HikariPool.java:476) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool.access$100(HikariPool.java:71) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:726) ~[HikariCP-4.0.3.jar:na]
+	at com.zaxxer.hikari.pool.HikariPool$PoolEntryCreator.call(HikariPool.java:712) ~[HikariCP-4.0.3.jar:na]
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144) ~[na:na]
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642) ~[na:na]
+	at java.base/java.lang.Thread.run(Thread.java:1583) ~[na:na]
+Caused by: java.net.SocketException: Connection reset
+	at java.base/sun.nio.ch.NioSocketImpl.implRead(NioSocketImpl.java:318) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl.read(NioSocketImpl.java:346) ~[na:na]
+	at java.base/sun.nio.ch.NioSocketImpl$1.read(NioSocketImpl.java:796) ~[na:na]
+	at java.base/java.net.Socket$SocketInputStream.read(Socket.java:1099) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:208) ~[na:na]
+	at java.base/java.io.DataInputStream.readFully(DataInputStream.java:179) ~[na:na]
+	at net.sourceforge.jtds.jdbc.SharedSocket.readPacket(SharedSocket.java:850) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.SharedSocket.getNetPacket(SharedSocket.java:731) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.getPacket(ResponseStream.java:477) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.ResponseStream.read(ResponseStream.java:114) ~[jtds-1.3.1.jar:1.3.1]
+	at net.sourceforge.jtds.jdbc.TdsCore.nextToken(TdsCore.java:2368) ~[jtds-1.3.1.jar:1.3.1]
+	... 14 common frames omitted
+
+2026-06-06 10:50:19.202 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:50:19.226 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:50:19.235 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:22.102 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:22.104 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:22.114 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:22.244 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:22.254 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:22.255 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:36.229 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:36.239 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:36.240 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:49.236 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:50:49.262 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:50:49.262 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:52.123 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:52.160 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:52.160 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:50:52.264 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:52.265 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:50:52.266 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:06.243 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:06.387 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:06.452 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:17.460 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - keepalive: connection net.sourceforge.jtds.jdbc.JtdsConnection@7b92030d is alive
+2026-06-06 10:51:19.265 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:51:19.275 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:51:19.275 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:22.163 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:22.173 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:22.174 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:22.273 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:22.273 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:22.274 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:36.492 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:36.544 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:36.561 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:49.281 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:51:49.372 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:51:49.388 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:52.185 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:52.203 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:52.219 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:51:52.277 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:52.279 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:51:52.279 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:06.589 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:06.591 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:06.591 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:19.392 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:52:19.392 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:52:19.392 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:22.251 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:22.254 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:22.261 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:22.282 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:22.299 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:22.300 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:36.608 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:36.790 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:36.808 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:49.404 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:52:49.426 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:52:49.427 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:52.273 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:52.274 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:52.274 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:52:52.305 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:52.305 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:52:52.306 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:06.816 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:06.848 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:06.858 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:15.814 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - keepalive: connection net.sourceforge.jtds.jdbc.JtdsConnection@7b92030d is alive
+2026-06-06 10:53:19.441 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:53:19.492 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:53:19.498 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:22.287 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:22.319 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:22.331 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:22.339 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:22.339 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:22.339 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:36.873 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:36.888 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:36.889 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:49.513 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:53:49.608 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:53:49.622 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:52.356 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:52.356 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:52.387 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:52.388 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:53:52.403 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:53:52.403 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:06.896 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:06.897 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:06.897 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:19.627 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:54:19.657 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:54:19.658 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:22.416 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:22.416 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:22.417 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:22.417 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:22.418 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:22.419 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:36.927 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:36.928 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:36.928 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:49.669 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=1, active=0, idle=1, waiting=0)
+2026-06-06 10:54:49.739 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:49.740 DEBUG 19308 --- [nnection closer] com.zaxxer.hikari.pool.PoolBase          : HikariPool-1 - Closing connection net.sourceforge.jtds.jdbc.JtdsConnection@7b92030d: (connection has passed idleTimeout)
+2026-06-06 10:54:49.754 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:49.754 DEBUG 19308 --- [nnection closer] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:52.432 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:52.432 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:52.500 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:52.516 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:54:52.516 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:54:52.516 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:55:06.942 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:06.966 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:06.967 DEBUG 19308 --- [ruz housekeeper] com.zaxxer.hikari.pool.HikariPool        : ConnDb-SantaCruz - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:55:19.760 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:19.764 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:19.765 DEBUG 19308 --- [l-1 housekeeper] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:55:22.529 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:22.531 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:22.532 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : CentralHikariPool - Fill pool skipped, pool is at sufficient level.
+2026-06-06 10:55:22.545 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Before cleanup stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:22.546 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - After cleanup  stats (total=0, active=0, idle=0, waiting=0)
+2026-06-06 10:55:22.546 DEBUG 19308 --- [ool housekeeper] com.zaxxer.hikari.pool.HikariPool        : TigoHogarHikariPool - Fill pool skipped, pool is at sufficient level.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  07:22 min
+[INFO] Finished at: 2026-06-06T10:55:28-04:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.springframework.boot:spring-boot-maven-plugin:2.7.18:run (default-cli) on project TigoStarSystem: Application finished with exit code: -1 -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

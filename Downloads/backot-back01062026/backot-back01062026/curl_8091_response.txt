@@ -1,0 +1,10 @@
+﻿HTTP/1.1 500 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Sat, 28 Mar 2026 15:03:45 GMT
+Connection: close
+
+{"code":"INTERNAL_ERROR","message":"Error inesperado.","details":null,"timestamp":"2026-03-28T11:03:45.174-04:00","path":"/ot/spx_ValidarVentaYDetallewb"}

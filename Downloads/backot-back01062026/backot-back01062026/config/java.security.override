@@ -1,0 +1,5 @@
+# Permite TLSv1 y ciphers legacy para SQL Server 2008 en entorno de desarrollo.
+jdk.tls.disabledAlgorithms=SSLv3, DTLSv1.0, anon, NULL
+# Desactiva restricciones de certificados legacy (SHA1/clave RSA < 2048) para
+# poder negociar con certificados antiguos del servidor.
+jdk.certpath.disabledAlgorithms=

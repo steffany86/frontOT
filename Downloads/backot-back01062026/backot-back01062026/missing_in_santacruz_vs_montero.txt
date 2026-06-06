@@ -1,0 +1,7 @@
+dbo.generarbackupdia
+dbo.generarbackuptarde
+dbo.spx_modicarmontocomision_cobroth
+dbo.spx_modificarserialchipid
+dbo.spx_modificarserialchipid_3_2
+dbo.spx_obtenerestadoproductobpce18
+dbo.spx_verificarestadoserie2

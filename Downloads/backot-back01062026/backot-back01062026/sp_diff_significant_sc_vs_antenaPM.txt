@@ -1,0 +1,6 @@
+sp_obtenerlistaordenestrabajo
+sp_obtenerlistaordenestrabajorfechas
+spx_obtenercaberaventapararegistrootwb
+spx_obtenerconformacioncuadrillabackoffice
+spx_obtenerrutaxidtecnico
+spx_obtenertecnicosenruta

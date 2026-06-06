@@ -1,0 +1,10 @@
+sp_obtenerlistaordenestrabajo_otweb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento sp_ObtenerListaOrdenesTrabajo_OTWEB, Línea 15 | El nombre de columna 'Origen' no es válido.
+spx_listarotfinalizadas	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ListarOtFinalizadas, Línea 42 | El nombre de columna 'Origen' no es válido.
+spx_obtenerauxiliaresconformacioncuadrillaweb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ObtenerAuxiliaresConformacionCuadrillaWeb, Línea 11 | El nombre de columna 'Habilidad' no es válido.
+spx_obtenerconformacioncuadrillaweb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ObtenerConformacionCuadrillaWeb, Línea 34 | El nombre de columna 'Habilidad' no es válido.
+spx_obtenerconformacioncuadrillawebporid	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ObtenerConformacionCuadrillaWebPorId, Línea 29 | El nombre de columna 'Habilidad' no es válido.
+spx_obtenertecnicosconformacioncuadrillaweb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ObtenerTecnicosConformacionCuadrillaWeb, Línea 11 | El nombre de columna 'Habilidad' no es válido.
+spx_registrarventapararegistrootwb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_RegistrarVentaParaRegistroOTwb, Línea 53 | El nombre de columna 'Origen' no es válido.
+spx_sepuedemodificarordentrabajo	Mensaje 2714, Nivel 16, Estado 3, Servidor DESKTOP-91JHDHL, Procedimiento spx_SePuedeModificarOrdenTrabajo, Línea 55
+spx_validarventaydetallewb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento spx_ValidarVentaYDetallewb, Línea 30 | El nombre de columna 'TieneDetalle' no es válido.
+traertodoslosproductos_sinfungibleweb	Mensaje 207, Nivel 16, Estado 1, Servidor DESKTOP-91JHDHL, Procedimiento TraerTodosLosProductos_SinFungibleWeb, Línea 3 | El nombre de columna 'tipomaterial' no es válido.

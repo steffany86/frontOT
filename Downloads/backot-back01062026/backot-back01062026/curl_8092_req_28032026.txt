@@ -1,0 +1,9 @@
+﻿HTTP/1.1 200 
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+Content-Type: application/json
+Transfer-Encoding: chunked
+Date: Sat, 28 Mar 2026 15:10:38 GMT
+
+{"data":{"fecha":"2026-03-28","nroOT":28759209,"numeroCliente":2620591,"existeVenta":true,"cantidadVentas":1,"tieneDetalleEnCodigoVenta":false,"cantidadDetalles":0},"message":"Validacion de venta y detalle ejecutada correctamente.","timestamp":"2026-03-28T11:10:38.26-04:00"}

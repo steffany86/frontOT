@@ -1,0 +1,2393 @@
+dbo	dt_addtosourcecontrol	create proc dbo.dt_addtosourcecontrol
+    @vchSourceSafeINI varchar(255) = '',
+    @vchProjectName   varchar(255) ='',
+    @vchComment       varchar(255) ='',
+    @vchLoginName     varchar(255) ='',
+    @vchPassword      varchar(255) =''
+
+as
+
+set 
+dbo	dt_addtosourcecontrol_u	create proc dbo.dt_addtosourcecontrol_u
+    @vchSourceSafeINI nvarchar(255) = '',
+    @vchProjectName   nvarchar(255) ='',
+    @vchComment       nvarchar(255) ='',
+    @vchLoginName     nvarchar(255) ='',
+    @vchPassword      nvarchar(255) =''
+
+as
+dbo	dt_adduserobject	/*
+**	Add an object to the dtproperties table
+*/
+create procedure dbo.dt_adduserobject
+as
+	set nocount on
+	/*
+	** Create the user object if it does not exist already
+	*/
+	begin transaction
+		insert dbo.dtproperties (property) VALUES ('DtgSchemaOB
+dbo	dt_adduserobject_vcs	create procedure dbo.dt_adduserobject_vcs
+    @vchProperty varchar(64)
+
+as
+
+set nocount on
+
+declare @iReturn int
+    /*
+    ** Create the user object if it does not exist already
+    */
+    begin transaction
+        select @iReturn = objectid f
+dbo	dt_checkinobject	create proc dbo.dt_checkinobject
+    @chObjectType  char(4),
+    @vchObjectName varchar(255),
+    @vchComment    varchar(255)='',
+    @vchLoginName  varchar(255),
+    @vchPassword   varchar(255)='',
+    @iVCSFlags     int = 0,
+    @iActionFlag   int
+dbo	dt_checkinobject_u	create proc dbo.dt_checkinobject_u
+    @chObjectType  char(4),
+    @vchObjectName nvarchar(255),
+    @vchComment    nvarchar(255)='',
+    @vchLoginName  nvarchar(255),
+    @vchPassword   nvarchar(255)='',
+    @iVCSFlags     int = 0,
+    @iActionFlag
+dbo	dt_checkoutobject	create proc dbo.dt_checkoutobject
+    @chObjectType  char(4),
+    @vchObjectName varchar(255),
+    @vchComment    varchar(255),
+    @vchLoginName  varchar(255),
+    @vchPassword   varchar(255),
+    @iVCSFlags     int = 0,
+    @iActionFlag   int = 0/
+dbo	dt_checkoutobject_u	create proc dbo.dt_checkoutobject_u
+    @chObjectType  char(4),
+    @vchObjectName nvarchar(255),
+    @vchComment    nvarchar(255),
+    @vchLoginName  nvarchar(255),
+    @vchPassword   nvarchar(255),
+    @iVCSFlags     int = 0,
+    @iActionFlag   in
+dbo	dt_displayoaerror	CREATE PROCEDURE dbo.dt_displayoaerror
+    @iObject int,
+    @iresult int
+as
+
+set nocount on
+
+declare @vchOutput      varchar(255)
+declare @hr             int
+declare @vchSource      varchar(255)
+declare @vchDescription varchar(255)
+
+    exec @
+dbo	dt_displayoaerror_u	CREATE PROCEDURE dbo.dt_displayoaerror_u
+    @iObject int,
+    @iresult int
+as
+
+set nocount on
+
+declare @vchOutput      nvarchar(255)
+declare @hr             int
+declare @vchSource      nvarchar(255)
+declare @vchDescription nvarchar(255)
+
+    e
+dbo	dt_droppropertiesbyid	/*
+**	Drop one or all the associated properties of an object or an attribute 
+**
+**	dt_dropproperties objid, null or '' -- drop all properties of the object itself
+**	dt_dropproperties objid, property -- drop the property
+*/
+create procedure dbo.dt_d
+dbo	dt_dropuserobjectbyid	/*
+**	Drop an object from the dbo.dtproperties table
+*/
+create procedure dbo.dt_dropuserobjectbyid
+	@id int
+as
+	set nocount on
+	delete from dbo.dtproperties where objectid=@id
+dbo	dt_generateansiname	/* 
+**	Generate an ansi name that is unique in the dtproperties.value column 
+*/ 
+create procedure dbo.dt_generateansiname(@name varchar(255) output) 
+as 
+	declare @prologue varchar(20) 
+	declare @indexstring varchar(20) 
+	declare @index integer 
+ 
+dbo	dt_getobjwithprop	/*
+**	Retrieve the owner object(s) of a given property
+*/
+create procedure dbo.dt_getobjwithprop
+	@property varchar(30),
+	@value varchar(255)
+as
+	set nocount on
+
+	if (@property is null) or (@property = '')
+	begin
+		raiserror('Must specify a prop
+dbo	dt_getobjwithprop_u	/*
+**	Retrieve the owner object(s) of a given property
+*/
+create procedure dbo.dt_getobjwithprop_u
+	@property varchar(30),
+	@uvalue nvarchar(255)
+as
+	set nocount on
+
+	if (@property is null) or (@property = '')
+	begin
+		raiserror('Must specify a 
+dbo	dt_getpropertiesbyid	/*
+**	Retrieve properties by id's
+**
+**	dt_getproperties objid, null or '' -- retrieve all properties of the object itself
+**	dt_getproperties objid, property -- retrieve the property specified
+*/
+create procedure dbo.dt_getpropertiesbyid
+	@id int,
+dbo	dt_getpropertiesbyid_u	/*
+**	Retrieve properties by id's
+**
+**	dt_getproperties objid, null or '' -- retrieve all properties of the object itself
+**	dt_getproperties objid, property -- retrieve the property specified
+*/
+create procedure dbo.dt_getpropertiesbyid_u
+	@id int
+dbo	dt_getpropertiesbyid_vcs	create procedure dbo.dt_getpropertiesbyid_vcs
+    @id       int,
+    @property varchar(64),
+    @value    varchar(255) = NULL OUT
+
+as
+
+    set nocount on
+
+    select @value = (
+        select value
+                from dbo.dtproperties
+        
+dbo	dt_getpropertiesbyid_vcs_u	create procedure dbo.dt_getpropertiesbyid_vcs_u
+    @id       int,
+    @property varchar(64),
+    @value    nvarchar(255) = NULL OUT
+
+as
+
+    set nocount on
+
+    select @value = (
+        select uvalue
+                from dbo.dtproperties
+    
+dbo	dt_isundersourcecontrol	create proc dbo.dt_isundersourcecontrol
+    @vchLoginName varchar(255) = '',
+    @vchPassword  varchar(255) = '',
+    @iWhoToo      int = 0 /* 0 => Just check project; 1 => get list of objs */
+
+as
+
+set nocount on
+
+declare @iReturn int
+declare @iO
+dbo	dt_isundersourcecontrol_u	create proc dbo.dt_isundersourcecontrol_u
+    @vchLoginName nvarchar(255) = '',
+    @vchPassword  nvarchar(255) = '',
+    @iWhoToo      int = 0 /* 0 => Just check project; 1 => get list of objs */
+
+as
+
+	set nocount on
+
+	declare @iReturn int
+	decl
+dbo	dt_removefromsourcecontrol	create procedure dbo.dt_removefromsourcecontrol
+
+as
+
+    set nocount on
+
+    declare @iPropertyObjectId int
+    select @iPropertyObjectId = (select objectid from dbo.dtproperties where property = 'VCSProjectID')
+
+    exec dbo.dt_droppropertiesbyid
+dbo	dt_setpropertybyid	/*
+**	If the property already exists, reset the value; otherwise add property
+**		id -- the id in sysobjects of the object
+**		property -- the name of the property
+**		value -- the text value of the property
+**		lvalue -- the binary value of the prope
+dbo	dt_setpropertybyid_u	/*
+**	If the property already exists, reset the value; otherwise add property
+**		id -- the id in sysobjects of the object
+**		property -- the name of the property
+**		uvalue -- the text value of the property
+**		lvalue -- the binary value of the prop
+dbo	dt_validateloginparams	create proc dbo.dt_validateloginparams
+    @vchLoginName  varchar(255),
+    @vchPassword   varchar(255)
+as
+
+set nocount on
+
+declare @iReturn int
+declare @iObjectId int
+select @iObjectId =0
+
+declare @VSSGUID varchar(100)
+select @VSSGUID = 'SQLVe
+dbo	dt_validateloginparams_u	create proc dbo.dt_validateloginparams_u
+    @vchLoginName  nvarchar(255),
+    @vchPassword   nvarchar(255)
+as
+
+set nocount on
+
+declare @iReturn int
+declare @iObjectId int
+select @iObjectId =0
+
+declare @VSSGUID nvarchar(100)
+select @VSSGUID = N
+dbo	dt_vcsenabled	create proc dbo.dt_vcsenabled
+
+as
+
+set nocount on
+
+declare @iObjectId int
+select @iObjectId = 0
+
+declare @VSSGUID varchar(100)
+select @VSSGUID = 'SQLVersionControl.VCS_SQL'
+
+    declare @iReturn int
+    exec @iReturn = sp_OACreate @VSSGUID, @i
+dbo	dt_verstamp006	/*
+**	This procedure returns the version number of the stored
+**    procedures used by the Microsoft Visual Database Tools.
+**    Current version is 7.0.00.
+*/
+create procedure dbo.dt_verstamp006
+as
+	select 7000
+dbo	dt_whocheckedout	create proc dbo.dt_whocheckedout
+        @chObjectType  char(4),
+        @vchObjectName varchar(255),
+        @vchLoginName  varchar(255),
+        @vchPassword   varchar(255)
+
+as
+
+set nocount on
+
+declare @iReturn int
+declare @iObjectId int
+sele
+dbo	dt_whocheckedout_u	create proc dbo.dt_whocheckedout_u
+        @chObjectType  char(4),
+        @vchObjectName nvarchar(255),
+        @vchLoginName  nvarchar(255),
+        @vchPassword   nvarchar(255)
+
+as
+
+set nocount on
+
+declare @iReturn int
+declare @iObjectId int
+dbo	GenerarBackupDia	
+
+CREATE proc [dbo].[GenerarBackupDia]
+as
+
+--parametros
+DECLARE @strBaseDatos nvarchar(50)
+DECLARE @strCarpeta nvarchar(500)
+DECLARE @strCarpetaOtraCopia nvarchar(500)
+
+--nombre de la base de datos
+set @strBaseDatos = N'BDSistemaAntenaPMMontero'
+dbo	GenerarBackupTarde	
+
+create proc [dbo].[GenerarBackupTarde]
+as
+
+--parametros
+DECLARE @strBaseDatos nvarchar(50)
+DECLARE @strCarpeta nvarchar(500)
+DECLARE @strCarpetaOtraCopia nvarchar(500)
+
+--nombre de la base de datos
+set @strBaseDatos = N'BDSistemaAntenaPMMonter
+dbo	ObtenerSalidaAlmacenBol	create proc [dbo].[ObtenerSalidaAlmacenBol] (@bol nvarchar(30), @id_ruta int)
+as
+SELECT     dbo.tbl_AlmacenVendedor.Id_AlmacenVendedor , dbo.tbl_Usuario.Nombre AS Usuario, 
+dbo.tbl_Ruta.Id_Ruta , dbo.tbl_Ruta.Nombre AS NombreRuta,
+dbo.tbl_Vendedor.Nomb
+dbo	prod_PuedeCerrarAlmacen	CREATE proc prod_PuedeCerrarAlmacen(@fecha datetime)
+as
+	-- validar si la ruta hizo el cuadre	
+	select * from tbl_Cuadre 
+	where dbo.DateOnly( Fecha ) = dbo.DateOnly( @fecha ) 
+		and E_Eliminado = 0
+		and Id_Ruta not in 
+					( select id_ruta from t
+dbo	PRU	
+--PRU 1
+CREATE proc PRU (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@DigitosImei int;
+		set @contador = 1;
+		set @con
+dbo	Rtp_TraerDetalleRetiro	
+create procedure [dbo].[Rtp_TraerDetalleRetiro] (@Id_Cuadre int)
+as
+begin
+	select Id_Venta, Id_Devolucion, NroOrdenTrabajo, Fecha, Nombre, Cod_Inicio, ChipID, Cantidad
+	from tbl_SaldoRetiro where id_cuadre = @Id_Cuadre
+end
+dbo	sp_actualizarEquipoTecnico	create proc [dbo].[sp_actualizarEquipoTecnico]( @id_vendedor int ,@ruta  int  )
+as
+	
+
+	update tbl_ruta set id_Vendedor = @id_vendedor
+	where id_ruta = @ruta
+dbo	sp_alterdiagram	
+	CREATE PROCEDURE dbo.sp_alterdiagram
+	(
+		@diagramname 	sysname,
+		@owner_id	int	= null,
+		@version 	int,
+		@definition 	varbinary(max)
+	)
+	WITH EXECUTE AS 'dbo'
+	AS
+	BEGIN
+		set nocount on
+	
+		declare @theId 			int
+		declare @retval 		int
+dbo	sp_BorrarLog	create proc sp_BorrarLog
+as
+begin
+
+-- cambiamos el recovery a nodo simple
+ALTER DATABASE BDSistemaAntenaPM
+SET RECOVERY SIMPLE;
+
+-- reducirmos el archivo log a 1 MB.
+DBCC SHRINKFILE (BDAlmacen_Log, 1);
+
+-- devolvemos el nivel de recovery a full
+dbo	sp_BuscarSerieIngresoAlmacen	
+CREATE proc [dbo].[sp_BuscarSerieIngresoAlmacen] (@Serie nvarchar(20))
+as 
+begin
+	select i.Id_IngresoAlmacen as ID, i.Proveedor as Proveedor_Ruta,i.Observacion,i.NroRecibo,dbo.DateOnly(i.Fecha)Fecha
+	,u.Id_Usuario, u.Nombre Usuario,p.Nombre Producto,
+dbo	sp_CrearProductoEnSaldoTarjetaVendedor	CREATE procedure [dbo].[sp_CrearProductoEnSaldoTarjetaVendedor]
+as
+declare @contador int
+declare @cuantos int
+declare @contador2 int
+declare @cuantos2 int
+declare @Id_Producto  int
+ 
+declare @Id_Ruta int
+set @cuantos = 1
+set @contador = 1
+ 
+dec
+dbo	sp_creatediagram	
+	CREATE PROCEDURE dbo.sp_creatediagram
+	(
+		@diagramname 	sysname,
+		@owner_id		int	= null, 	
+		@version 		int,
+		@definition 	varbinary(max)
+	)
+	WITH EXECUTE AS 'dbo'
+	AS
+	BEGIN
+		set nocount on
+	
+		declare @theId int
+		declare @retval int
+dbo	sp_dropdiagram	
+	CREATE PROCEDURE dbo.sp_dropdiagram
+	(
+		@diagramname 	sysname,
+		@owner_id	int	= null
+	)
+	WITH EXECUTE AS 'dbo'
+	AS
+	BEGIN
+		set nocount on
+		declare @theId 			int
+		declare @IsDbo 			int
+		
+		declare @UIDFound 		int
+		declare @DiagId			in
+dbo	sp_Eliminar_AlmacenVendedor_PedidoVendedor_ModificarSaldoTarjeta_X_Id_PedidoVendedor	create procedure [dbo].[sp_Eliminar_AlmacenVendedor_PedidoVendedor_ModificarSaldoTarjeta_X_Id_PedidoVendedor](@Id_PedidoVendedor int,@Observacion nvarchar(150))
+as
+update tbl_almacenvendedor set e_eliminado = 1, Observacion=Observacion + ' - ' +@Observac
+dbo	sp_EliminarCuadre_ModificarSaldoTarjeta_X_Id_Cuadre	
+CREATE procedure [dbo].[sp_EliminarCuadre_ModificarSaldoTarjeta_X_Id_Cuadre](@Id_Cuadre int,@Observacion nvarchar(150))
+as
+
+declare @id_ruta int
+set @id_ruta = (select id_ruta from tbl_Cuadre where Id_Cuadre=@Id_Cuadre )
+declare @sobrantes table (id
+dbo	sp_ExisteCierreAlmacen	
+CREATE proc [dbo].[sp_ExisteCierreAlmacen](@fecha datetime)
+as 
+Begin	
+	declare @FechaInicio datetime 
+	set @FechaInicio = (select Max (Fecha) as Fecha from tbl_cierrealmacen where e_eliminado = 0)
+	declare @cantidadcierres int
+	set @cantidadcierre
+dbo	sp_ExisteCierreAlmacenPRPD	
+create proc [dbo].[sp_ExisteCierreAlmacenPRPD](@fecha datetime)
+as 
+Begin	
+	declare @FechaInicio datetime 
+	set @FechaInicio = (select Max (Fecha) as Fecha from tbl_CierreAlmacenPR_PD where e_eliminado = 0)
+	declare @cantidadcierres int
+	set @canti
+dbo	sp_helpdiagramdefinition	
+	CREATE PROCEDURE dbo.sp_helpdiagramdefinition
+	(
+		@diagramname 	sysname,
+		@owner_id	int	= null 		
+	)
+	WITH EXECUTE AS N'dbo'
+	AS
+	BEGIN
+		set nocount on
+
+		declare @theId 		int
+		declare @IsDbo 		int
+		declare @DiagId		int
+		declare @UIDF
+dbo	sp_helpdiagrams	
+	CREATE PROCEDURE dbo.sp_helpdiagrams
+	(
+		@diagramname sysname = NULL,
+		@owner_id int = NULL
+	)
+	WITH EXECUTE AS N'dbo'
+	AS
+	BEGIN
+		DECLARE @user sysname
+		DECLARE @dboLogin bit
+		EXECUTE AS CALLER;
+			SET @user = USER_NAME();
+			SET @dboL
+dbo	sp_ModificarOT_OTRealizada	create proc [dbo].[sp_ModificarOT_OTRealizada](@Observacion nvarchar(max), @Id_Estado int, @NroOrden int)
+as
+	update tbl_OrdenTrabajo
+	set Observacion=@Observacion,
+	Id_Estado=@Id_Estado
+	where NroOrden=@NroOrden
+dbo	sp_ObtenerAlmacenVendedor_X_ID	
+
+CREATE proc [dbo].[sp_ObtenerAlmacenVendedor_X_ID] (@Id int)
+as 
+SELECT     dbo.tbl_AlmacenVendedor.Id_AlmacenVendedor AS Id_AlmacenCliente, UPPER(dbo.tbl_Usuario.Nombre) AS Usuario, 
+UPPER(dbo.tbl_Vendedor.Nombre +' - '+ dbo.tbl_Ruta.Nombre)  AS Cl
+dbo	sp_ObtenerAlmacenVendedorLocal	create  proc [dbo].[sp_ObtenerAlmacenVendedorLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_AlmacenVendedorLocal,c.Id_AlmacenVendedor,c.Id_codigoAlmacenVendedor,c.Id_Ruta,r.nombre Ruta,
+	c.Id_Vendedor,v.nombre Vendedor, c.id_pedidoVendedor,c.Id_usu
+dbo	sp_ObtenerBajaProductosLocal	create proc [dbo].[sp_ObtenerBajaProductosLocal]--(@id_tipoTransaccion int)
+as
+	select c.Id_BajaProductoLocal,c.Id_BajaProductos,c.Id_CodigoBajaProductos 
+	,c.Id_Usuario,u.Nombre Usuario,
+	c.Observacion,c.Fecha,c.Fecha_Registro,c.Id_Ruta, r.nombre Ruta
+dbo	sp_ObtenerBitacoraLocal	create proc sp_ObtenerBitacoraLocal
+as
+	select  v.Id_BitacoraLocal,v.Id_Bitacora
+	,v.id_producto,(select nombre from tbl_producto  where id_producto = v.id_producto )Nombre
+	,v.serial,v.chipID, v.codigo, v.tabla, v.Fechatransaccion, v.Fecharegistro
+	,
+dbo	sp_ObtenerCierreAlmacen	CREATE proc [dbo].[sp_ObtenerCierreAlmacen](@Fecha datetime)
+as 
+Begin	
+	declare @tbl_Cierre 
+	table (
+	Id_Producto int, 
+	Nombre nvarchar(max),
+	SaldoDiaAnterior decimal(18,2),
+	SaldoDiaAnteriorDevolucion decimal(18,2),
+	IngresoDia decimal(18,2),
+dbo	sp_ObtenerCierreAlmacen_Prueba	CREATE proc [dbo].[sp_ObtenerCierreAlmacen_Prueba](@Fecha datetime)
+as 
+--[sp_ObtenerCierreAlmacen_Prueba] '28/12/2016'
+--go
+--[sp_ObtenerCierreAlmacen] '28/12/2016'
+
+--select * from tbl_Producto
+--select * from tbl_Tipodevolucion
+--declare @Fecha 
+dbo	sp_ObtenerCierreAlmacen_X_Fecha	
+create proc [dbo].[sp_ObtenerCierreAlmacen_X_Fecha](@Fecha datetime)
+as
+begin
+	select (select nombre from tbl_producto where id_producto = cc.id_producto) producto, cc.*, 'SC' Sucursal from tbl_cierrealmacen c inner join tbl_codigocierrealmacen cc on 
+dbo	sp_ObtenerCierreAlmacenDetalladasLocal	create proc [dbo].[sp_ObtenerCierreAlmacenDetalladasLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_CierreAlmacenlocal,c.Id_CierreAlmacen,c.Id_codigoCierreAlmacen,u.Id_usuario,u.Nombre Usuario,c.Fecha,c.observacion,
+	c.Fecha_Registro,c.Id_Producto,p
+dbo	sp_ObtenerCierreAlmacenPR_PD	CREATE proc [dbo].[sp_ObtenerCierreAlmacenPR_PD](@Fecha datetime)
+as 
+Begin	
+	declare @tbl_Cierre 
+	table (
+	Id_Producto int, 
+	Nombre nvarchar(max),
+	---PR productos retirados(OT) -- PD Productos dañados
+	SaldoDiaAnteriorPR decimal(18,2),	
+	--Ing
+dbo	sp_ObtenerCierreAlmacenPR_PD_PSaldos	CREATE proc [dbo].[sp_ObtenerCierreAlmacenPR_PD_PSaldos](@Fecha datetime)
+as 
+Begin	
+	declare @tbl_Cierre 
+	table (
+	Id_Producto int, 
+	Nombre nvarchar(max),
+	---PR productos retirados(OT) -- PD Productos dañados
+	SaldoDiaAnteriorPR decimal(18,2),	
+dbo	sp_ObtenerCierreAlmacenPR_PDLocal	create  proc [dbo].[sp_ObtenerCierreAlmacenPR_PDLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_CierreAlmacenPR_PDlocal ,c.Id_CierreAlmacenPR_PD , c.Id_CodigoCierreAlmacenPR_PD,c.Id_usuario,u.Nombre Usuario,
+	c.Fecha,c.Fecha_Registro,c.observacion
+
+dbo	sp_ObtenerCodigoDevolucion	
+CREATE proc [dbo].[sp_ObtenerCodigoDevolucion] (@Id_Devolucion int)
+as
+select cd.Id_Devolucion, Id_detalleDevolucion Id_CodigoDevolucion,cd.Id_Producto,p.Nombre,cd.Cod_Inicio,cd.ChipID,
+cd.Cantidad,
+case when Entregado = 1 then 'Entregado' else 'NoEn
+dbo	sp_ObtenerCuadre_X_Fecha	create proc [dbo].[sp_ObtenerCuadre_X_Fecha](@Fecha datetime)
+as
+begin
+	select (select nombre from tbl_ruta where id_ruta = c.id_ruta)Ruta, c.*, cc.*, p.nombre, 'SC' Sucursal from tbl_cuadre c inner join tbl_codigocuadre cc on c.id_cuadre = cc.id_cuadre
+dbo	sp_ObtenerCuadreLocal	create  proc [dbo].[sp_ObtenerCuadreLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_cuadreLocal,c.Id_Cuadre,c.id_Codigocuadre,c.Id_Ruta,r.nombre Ruta,
+	c.Id_Vendedor,v.nombre, c.Id_usuario,u.Nombre Usuario,c.Fecha,c.Fecha_Registro,c.observacion,c.To
+dbo	sp_ObtenerDatosCliente	CREATE PROC sp_ObtenerDatosCliente(@CodigoCliente int)
+as
+SELECT  c.Id_Cliente, c.CodigoCliente,c.Nombre Cliente, ca.Direccion,ca.Referencia_Adicional,ca.Zona,ca.Tipo_Casa,ca.Color ,ca.Servicio,ca.PosicionGeografica,
+ca.CodigoCRE,ca.Repetidora,ca.Recepc
+dbo	sp_ObtenerDecodificadores	
+create proc [dbo].[sp_ObtenerDecodificadores]
+as
+select * from tbl_Producto where (Prefijo like '%DEC%' )
+and E_Eliminado = 0
+dbo	sp_ObtenerDecodificadoresPVSeriales	
+CREATE proc [dbo].[sp_ObtenerDecodificadoresPVSeriales]
+as
+
+select * from tbl_Producto where id_tipoproducto=1
+and E_Eliminado = 0
+dbo	sp_ObtenerDetalleAlmacenVendedor_X_ID	CREATE proc [dbo].[sp_ObtenerDetalleAlmacenVendedor_X_ID] (@id int)
+as
+SELECT     dbo.tbl_CodigoAlmacenVendedor.Id_CodigoAlmacenVendedor Id_CodigoAlmacenCliente, dbo.tbl_Producto.Id_Producto, 
+dbo.tbl_Producto.Nombre, dbo.tbl_Producto.Medida,  dbo.tbl_C
+dbo	sp_ObtenerDetalleAlmacenVendedor_X_IDPedidoVendedor	create proc [dbo].[sp_ObtenerDetalleAlmacenVendedor_X_IDPedidoVendedor] (@id int)
+as
+declare @Id_Almacenvendedor int
+set @Id_Almacenvendedor  = (select id_almacenvendedor from tbl_AlmacenVendedor where Id_PedidoVendedor =@id)
+
+SELECT     dbo.tbl_Codig
+dbo	sp_ObtenerDetalleCuadre	
+CREATE proc [dbo].[sp_ObtenerDetalleCuadre] (@id_Cuadre int)
+as
+begin
+	SELECT     dbo.tbl_Cuadre.Id_Cuadre, dbo.tbl_CodigoCuadre.Id_CodigoCuadre, dbo.tbl_Producto.Id_Producto, dbo.tbl_Producto.Nombre,  
+	dbo.tbl_CodigoCuadre.Precio,dbo.tbl_CodigoCuad
+dbo	sp_ObtenerDetalleEntregaAlmacenOtros_X_ID	CREATE proc sp_ObtenerDetalleEntregaAlmacenOtros_X_ID (@Id int)
+as 
+	select c.Id_CodigoEntregaAlmacenOtros,c.Id_EntregaAlmacenOtros, c.Id_Producto,pr.Nombre,pr.Medida,
+	c.Imei,c.Cantidad
+	from tbl_CodigoEntregaAlmacenOtros c, tbl_Producto pr
+	where c.
+dbo	sp_ObtenerDetalleIngresoAlmacen	
+CREATE proc [dbo].[sp_ObtenerDetalleIngresoAlmacen](@Id_IngresoAlmacen int)
+as
+SELECT     dbo.tbl_CodigoIngresoAlmacen.Id_CodigoIngresoAlmacen, dbo.tbl_Producto.Id_Producto, dbo.tbl_Producto.Nombre, dbo.tbl_Producto.Medida,
+dbo.tbl_CodigoIngresoAlmace
+dbo	sp_ObtenerDetallePedidoVendedor_X_ID	
+
+
+
+CREATE proc [dbo].[sp_ObtenerDetallePedidoVendedor_X_ID] (@id int)
+as
+SELECT     dbo.tbl_CodigoPedidoVendedor.Id_CodigoPedidoVendedor, dbo.tbl_PedidoVendedor.Id_PedidoVendedor, dbo.tbl_Producto.Id_Producto, dbo.tbl_Producto.Nombre, 
+dbo.tbl_Codi
+dbo	sp_ObtenerDetalleVenta_CargoUsuario_X_ID	
+CREATE proc [dbo].[sp_ObtenerDetalleVenta_CargoUsuario_X_ID] (@id int)
+as
+SELECT   cvu.Id,p.Id_Producto,p.Nombre, p.Medida,cvu.Serial Cod_Inicio,cvu.ChipId,cvu.Cantidad
+FROM         dbo.tbl_Venta v INNER JOIN
+dbo.tbl_codigoventacargousuario cvu ON v.
+dbo	sp_ObtenerDetalleVenta_Excedente_X_ID	
+CREATE proc [dbo].[sp_ObtenerDetalleVenta_Excedente_X_ID] (@id int)
+as
+SELECT     dbo.tbl_CodigoVenta.Id_Venta Id_CodigoAlmacenCliente, dbo.tbl_Producto.Id_Producto, 
+dbo.tbl_Producto.Nombre, dbo.tbl_Producto.Medida,  dbo.tbl_CodigoVenta.Cod_Inicio, d
+dbo	sp_ObtenerDetalleVenta_Instalado_X_ID	
+CREATE proc [dbo].[sp_ObtenerDetalleVenta_Instalado_X_ID] (@id int)
+as
+SELECT     dbo.tbl_CodigoVenta.Id_Venta Id_CodigoAlmacenCliente, dbo.tbl_Producto.Id_Producto, 
+dbo.tbl_Producto.Nombre, dbo.tbl_Producto.Medida,  dbo.tbl_CodigoVenta.Cod_Inicio, d
+dbo	sp_ObtenerDetalleVenta_Retirado_X_ID	CREATE proc [dbo].[sp_ObtenerDetalleVenta_Retirado_X_ID] (@id int)
+as
+SELECT     dbo.tbl_CodigoVenta.Id_Venta Id_CodigoAlmacenCliente, dbo.tbl_Producto.Id_Producto, 
+dbo.tbl_Producto.Nombre, dbo.tbl_Producto.Medida,  dbo.tbl_CodigoVenta.Cod_Inicio, dbo.
+dbo	sp_ObtenerDevolucion	CREATE proc [dbo].[sp_ObtenerDevolucion] (@Codigo int)
+as
+select i.Id_Devolucion,(isnull((select Nombre from tbl_Ruta where Id_Ruta= i.id_ruta),0))Proveedor,
+(td.Nombre +' - '+  i.Observacion) Observacion, 
+NroOrdenTrabajo,
+case when i.Estado = 0 then
+dbo	sp_ObtenerDevolucionLocal	create  proc [dbo].[sp_ObtenerDevolucionLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_DevolucionLocal  ,c.Id_Devolucion  , c.Id_DetalleDevolucion ,c.Id_usuario,u.Nombre Usuario,	
+	c.Id_Ruta , r.Nombre Ruta,
+	c.Id_Vendedor , v.Nombre Vendedor,
+	c
+dbo	sp_ObtenerEntregaAlmacenOtros_X_ID	CREATE proc sp_ObtenerEntregaAlmacenOtros_X_ID (@Id int)
+as 
+	select e.*,u.Nombre Usuario from tbl_EntregaAlmacenOtros e, tbl_Usuario u
+	where e.E_Eliminado=0 and Id_EntregaAlmacenOtros = @Id
+	and e.Id_Usuario = u.Id_Usuario
+dbo	sp_ObtenerEstado	create proc sp_ObtenerEstado
+as 
+	select * from tbl_estado where e_eliminado=0
+dbo	sp_ObtenerIdTipoServicioVerificar	create proc sp_ObtenerIdTipoServicioVerificar(@Id_TipoServicio int)
+as
+	if(@Id_TipoServicio = 1 )
+		select * from tbl_TipoServicio where Id_TipoServicio in (1,2,3)
+dbo	sp_ObtenerIngresoAlmacen	
+CREATE proc [dbo].[sp_ObtenerIngresoAlmacen] (@Id_IngresoAlmacen int)
+as
+SELECT     i.Id_IngresoAlmacen, dbo.tbl_Usuario.Nombre, i.Proveedor, i.Fecha, i.Fecha_Registro, i.Observacion, i.NroRecibo 
+FROM         dbo.tbl_IngresoAlmacen i INNER JOIN 
+dbo
+dbo	sp_ObtenerIngresoAlmacenBol	CREATE proc [dbo].[sp_ObtenerIngresoAlmacenBol](@bol nvarchar(25))
+as
+select i.Id_IngresoAlmacen,i.Proveedor, dbo.DateOnly(i.Fecha) as Fecha,i.Observacion,i.NroRecibo,p.Nombre as Producto,
+ci.Id_Producto
+from tbl_IngresoAlmacen i, tbl_CodigoIngresoAlma
+dbo	sp_ObtenerIngresoAlmacenLocal	create proc [dbo].[sp_ObtenerIngresoAlmacenLocal]--(@id_tipoTransaccion int)
+as
+
+	select c.Id_IngresoAlmacenLocal,c.Id_IngresoAlmacen, c.Id_CodigoIngresoAlmacen,c.Id_usuario,u.Nombre Usuario,c.Proveedor,c.Total,c.NroRecibo
+	,c.Fecha,c.Fecha_Registro,c.
+dbo	sp_ObtenerKitDecodificadores	CREATE proc [dbo].[sp_ObtenerKitDecodificadores]
+as
+select * from tbl_Producto where (Prefijo like '%DEC%' )
+and E_Eliminado = 0
+dbo	sp_ObtenerListaDevolucion	CREATE proc [dbo].[sp_ObtenerListaDevolucion](@Fecha datetime)
+as
+begin 
+
+	select * from (
+		select i.Id_Devolucion,(isnull((select Nombre from tbl_Ruta where Id_Ruta= i.id_ruta),0))Proveedor,
+		i.Observacion, NroOrdenTrabajo,
+		case when i.Estado =
+dbo	sp_ObtenerListaDevolucion_RangoFecha	CREATE proc [dbo].[sp_ObtenerListaDevolucion_RangoFecha](@FechaInicio datetime,@FechaFin datetime)
+as
+begin
+	select * from (
+		select i.Id_Devolucion,(isnull((select Nombre from tbl_Ruta where Id_Ruta= i.id_ruta),0))Proveedor,
+		i.Observacion, NroOrde
+dbo	sp_ObtenerListadoSucursal	CREATE proc [dbo].[sp_ObtenerListadoSucursal]
+as
+select * from tbl_sucursal where e_eliminado=0 order by Sucursal
+dbo	sp_ObtenerListaIngresoAlmacen	CREATE proc [dbo].[sp_ObtenerListaIngresoAlmacen](@Fecha datetime)
+as
+select i.Id_IngresoAlmacen,i.Proveedor, i.Fecha ,i.Observacion,i.NroRecibo,i.Id_Usuario,u.Nombre
+from tbl_IngresoAlmacen i, tbl_Usuario u
+where i.Id_Usuario=u.Id_Usuario 
+and dbo.Da
+dbo	sp_ObtenerListaIngresoAlmacen_Devolucion	create proc [dbo].[sp_ObtenerListaIngresoAlmacen_Devolucion](@Fecha datetime)
+as
+select i.Id_IngresoAlmacen,i.Proveedor, i.Fecha ,i.Observacion,i.NroRecibo,i.Id_Usuario,u.Nombre
+from tbl_IngresoAlmacen i, tbl_Usuario u
+where i.Id_Usuario=u.Id_Usuario 
+dbo	sp_ObtenerListaIngresoAlmacen_RangoFecha	
+CREATE proc [dbo].[sp_ObtenerListaIngresoAlmacen_RangoFecha](@FechaInicio datetime, @FechaFin datetime)
+as
+select i.Id_IngresoAlmacen,i.Proveedor,i.Observacion ,i.NroRecibo,'' EntregadoTigo, i.Fecha,i.Id_Usuario,u.Nombre,1 Tipo,'Ingreso Almacen'Detalle
+dbo	sp_ObtenerListaIngresoAlmacenMET_RangoFecha	create proc [dbo].[sp_ObtenerListaIngresoAlmacenMET_RangoFecha](@FechaInicio datetime, @FechaFin datetime)
+as
+select i.*
+from tbl_IngresoMaterialTigo i, tbl_Usuario u
+where i.Id_Usuario=u.Id_Usuario 
+and dbo.DateOnly(i.FechaEntregaTigo) between dbo.Da
+dbo	sp_ObtenerListaOrdenesTrabajo	CREATE proc dbo.sp_ObtenerListaOrdenesTrabajo(@Fecha_Registro datetime)
+as
+Begin
+	Select
+	R.Nombre as Ruta, V.Id_Venta, dbo.dateonly(V.Fecha_Ejecucion) Fecha_Ejecucion, dbo.dateonly(V.Fecha_Registro) Fecha_Registro, 
+	V.OrdenTrabajo, T.Nombre as TipoS
+dbo	sp_ObtenerListaOrdenesTrabajoRFechas	CREATE proc dbo.sp_ObtenerListaOrdenesTrabajoRFechas(@Fecha_RegistroInicio datetime,@Fecha_RegistroFin datetime)
+as
+Begin
+	Select
+	R.Nombre as Ruta, V.Id_Venta, dbo.dateonly(V.Fecha_Ejecucion) Fecha_Ejecucion, 
+	dbo.dateonly(V.Fecha_Registro) Fecha_Re
+dbo	sp_ObtenerListaTipoDevolucion	create proc [dbo].[sp_ObtenerListaTipoDevolucion]
+as 
+select * from tbl_TipoDevolucion where E_Eliminado=0
+dbo	sp_ObtenerNotasDeVenta	
+
+create proc [dbo].[sp_ObtenerNotasDeVenta] (@Id_Ruta int, @fecha datetime)
+as
+IF OBJECT_ID('dbo.NotasDeVenta') IS not NULL
+BEGIN
+	drop table NotasDeVenta;
+END
+--VERIFICA SI ES PDA
+--declare @EsPDA bit
+--	set @EsPDA = (SELECT E_EsPDA FROM TBL_RU
+dbo	sp_ObtenerOrdenesDetalladasLocal	create proc [dbo].[sp_ObtenerOrdenesDetalladasLocal]--(@id_tipoTransaccion int)
+as
+   select Id_OrdenesTrabajoDetalladasLocal, Id_venta,  Id_Usuario ,
+     (select nombre from tbl_usuario where Id_Usuario = v.id_usuario  )Usuario ,
+	 id_codigoVenta , i
+dbo	sp_ObtenerOrdenTrabajo_X_FechaRegistro	CREATE proc [dbo].[sp_ObtenerOrdenTrabajo_X_FechaRegistro](@FechaRInicio datetime,@FechaRFin datetime)
+as
+begin
+		select v.Id_Venta, v.Id_Vendedor, ven.Nombre,v.Fecha_Ejecucion,v.Observacion,v.OrdenTrabajo,r.Nombre Ruta,
+		v.CodigoCliente,
+		r.Id_Ruta
+dbo	sp_ObtenerOrdenTrabajo_X_Id_Venta	create proc [dbo].[sp_ObtenerOrdenTrabajo_X_Id_Venta](@Id_Venta int)
+as
+declare @NumeroOrden int;
+set @NumeroOrden = isnull((select ordentrabajo from tbl_Venta where Id_Venta =@Id_Venta and E_Eliminado=0),0);
+
+	exec [sp_ObtenerOrdenTrabajo_X_Numero] @
+dbo	sp_ObtenerOrdenTrabajo_X_Numero	CREATE proc [dbo].[sp_ObtenerOrdenTrabajo_X_Numero](@NumeroOrden int)
+as
+
+
+	--SELECT     o.Id_OrdenTrabajo, o.NumeroOrden, o.Nombre, o.Direccion, o.ReferenciaAdicional, o.Id_TipoServicio, 
+	--ts.Prefijo , ts.nombre TipoServicio, 
+	--o.Zona, o.TipoCas
+dbo	sp_ObtenerPasswordEncriptado	CREATE proc [dbo].[sp_ObtenerPasswordEncriptado](@Loggin nvarchar(15))
+as 
+select Password from tbl_Usuario where loggin=@Loggin and e_eliminado=0
+dbo	sp_ObtenerPedidoVendedor	
+CREATE  proc [dbo].[sp_ObtenerPedidoVendedor] (@fecha datetime)
+as
+SELECT     dbo.tbl_PedidoVendedor.Id_PedidoVendedor, dbo.tbl_PedidoVendedor.Id_Ruta, dbo.tbl_Ruta.Nombre, dbo.tbl_PedidoVendedor.Fecha, 
+dbo.tbl_PedidoVendedor.Observacion
+FROM       
+dbo	sp_ObtenerPedidoVendedor_X_ID	
+CREATE proc [dbo].[sp_ObtenerPedidoVendedor_X_ID] (@id int)
+as 
+SELECT     dbo.tbl_PedidoVendedor.Id_PedidoVendedor, dbo.tbl_Ruta.Nombre RutaNombre, dbo.tbl_Usuario.Nombre Usuario,
+dbo.tbl_PedidoVendedor.Fecha, dbo.tbl_PedidoVendedor.Fecha_Registro, d
+dbo	sp_ObtenerProductoAgrupado	
+
+
+create proc [dbo].[sp_ObtenerProductoAgrupado]
+as
+declare @tabla table (id int not null identity(1,1),nombre varchar (100),id_Producto int ,padre int)
+declare @cont int
+declare @contPadre int
+declare @TipoProducto int
+set  @cont = 1
+insert int
+dbo	sp_ObtenerProductoLocal	create  proc sp_ObtenerProductoLocal
+as
+	select  v.Id_productoLocal,v.Id_producto,
+	 (select nombre from tbl_producto  where id_producto = v.id_producto )Nombre,
+	 (select nombre from tbl_producto  where id_producto = v.id_producto )NombreAnterior,
+	 
+dbo	sp_ObtenerPromedioUsoMateriales	
+CREATE proc [dbo].[sp_ObtenerPromedioUsoMateriales]--38
+as
+	select pr.Id_PromedioUsoMateriales,ts.Id_TipoServicio,ts.Nombre TipoServicio,
+	pr.Id_Producto,pr.Cantidad,pr.CantidadMaxima,p.Nombre ,
+	pr.CantidadMaximaNM,pr.AdicionaEnForm,pr.Id_TipoProduc
+dbo	sp_ObtenerSaldoAlmacen_y_SaldoRetiro_X_Fecha	--sp_ObtenerSaldoAlmacen_y_SaldoRetiro_X_Fecha '17/01/2020'
+CREATE PROCEDURE sp_ObtenerSaldoAlmacen_y_SaldoRetiro_X_Fecha (@fecha datetime)
+AS
+BEGIN
+--Saldo sumar (tbl_codigocierrealmacen.SaldoDiaHoy + tbl_codigocierrealmacenPR_PD.SaldoDiaHoyPD + tbl_c
+dbo	sp_ObtenerSaldoCodigoCuadre	
+
+CREATE  proc [dbo].[sp_ObtenerSaldoCodigoCuadre] (@Id_Ruta int, @fecha datetime)
+as
+IF OBJECT_ID('dbo.SaldoPedido') IS not NULL
+BEGIN
+	drop table SaldoPedido;
+END
+--VERIFICA SI ES PDA
+--declare @EsPDA bit
+--	set @EsPDA = (SELECT E_EsPDA FROM TB
+dbo	sp_ObtenerSaldoCuadre	
+
+CREATE PROC [dbo].[sp_ObtenerSaldoCuadre](@Id_Cuadre int)
+as
+	SELECT     dbo.tbl_Cuadre.Id_Cuadre, dbo.tbl_Producto.Nombre, 
+	dbo.tbl_SaldoCuadre.Cod_Inicio, dbo.tbl_SaldoCuadre.Cod_Final, dbo.tbl_SaldoCuadre.Cantidad, dbo.tbl_CodigoCuadre.ItemsSobr
+dbo	sp_ObtenerSaldoPedido	
+
+CREATE proc [dbo].[sp_ObtenerSaldoPedido] (@Id_Ruta int, @fecha datetime)
+as
+IF OBJECT_ID('dbo.SaldoPedido') IS not NULL
+BEGIN
+	drop table SaldoPedido;
+END
+--VERIFICA SI ES PDA
+--declare @EsPDA bit
+--	set @EsPDA = (SELECT E_EsPDA FROM TBL_RUTA 
+dbo	sp_ObtenerSalidaAlmacenBol	CREATE proc [dbo].[sp_ObtenerSalidaAlmacenBol] (@bol nvarchar(30), @id_ruta int)
+as
+SELECT     dbo.tbl_AlmacenVendedor.Id_AlmacenVendedor , dbo.tbl_Usuario.Nombre AS Usuario, 
+dbo.tbl_Ruta.Id_Ruta , dbo.tbl_Ruta.Nombre AS NombreRuta,
+dbo.tbl_Vendedor.N
+dbo	sp_ObtenerSobrante	
+
+CREATE proc [dbo].[sp_ObtenerSobrante] (@Id_Ruta int, @fecha datetime) 
+as
+IF OBJECT_ID('dbo.Auxiliar') IS not NULL
+BEGIN
+	drop table Auxiliar;
+END
+
+--VERIFICA SI ES PDA
+--declare @EsPDA bit
+--	set @EsPDA = (SELECT E_EsPDA FROM TBL_RUTA  WHERE
+dbo	sp_ObtenerTipoGrupo	CREATE proc sp_ObtenerTipoGrupo
+as
+declare @tabla table (nombre nvarchar(100))
+insert into @tabla values ('ANTENERO')
+insert into @tabla values ('MAKIRO')
+insert into @tabla values ('SUCURSAL')
+SELECT * FROM @tabla
+dbo	sp_ObtenerTipoMaterial	CREATE proc [dbo].[sp_ObtenerTipoMaterial]( @TipoServicio int)
+as 
+	declare @TipoInstalacion int
+	set @TipoInstalacion = (select TipoMaterial from tbl_TipoServicio where Id_TipoServicio =@TipoServicio)
+		if(@TipoInstalacion = 1)	
+			select * from tbl_
+dbo	sp_ObtenerVenta	CREATE PROC [dbo].[sp_ObtenerVenta](@Id_Venta int)
+as
+	select v.Id_Venta, v.Id_Vendedor, ven.Nombre,v.Fecha_Ejecucion,v.Observacion,v.OrdenTrabajo
+	from tbl_Venta v, tbl_Vendedor  ven
+	where Id_Venta=@Id_Venta
+	AND v.id_vendedor= ven.Id_Vendedor
+dbo	sp_ObtenerVentaXID	create proc sp_ObtenerVentaXID(@Id_Venta int)
+as
+				
+	select 
+	v.Id_Venta,v.Id_Usuario,u.Nombre Usuario,ven.Id_Vendedor,ven.Nombre Vendedor,r.Id_Ruta,r.Nombre Ruta,
+	ts.Id_TipoServicio,ts.Nombre TipoServicio,v.Fecha_Ejecucion,v.Fecha_Registro,v.Orden
+dbo	sp_Producto_Treeview	
+
+
+CREATE  proc [dbo].[sp_Producto_Treeview]
+
+as
+
+      declare @productos as varchar(300)
+
+      set @productos = 'Tarjeta,T10,T15,T20,T30,T50,T100,MiniCarga,Chip,Chip_Blanco,Chip_Rescate,TigoGiro,TM_Venta,TM_Compra'
+
+      select @productos as
+dbo	sp_renamediagram	
+	CREATE PROCEDURE dbo.sp_renamediagram
+	(
+		@diagramname 		sysname,
+		@owner_id		int	= null,
+		@new_diagramname	sysname
+	
+	)
+	WITH EXECUTE AS 'dbo'
+	AS
+	BEGIN
+		set nocount on
+		declare @theId 			int
+		declare @IsDbo 			int
+		
+		declare @UI
+dbo	sp_TraerCierreAlmacen	
+create proc [dbo].[sp_TraerCierreAlmacen] (@fecha datetime)
+as 
+SELECT     ca.Id_CierreAlmacen, ca.Id_Usuario, dbo.tbl_Usuario.Nombre, 
+ca.Fecha,ca.Observacion, ca.E_Eliminado 
+FROM         dbo.tbl_cierrealmacen ca INNER JOIN 
+dbo.tbl_Usuario ON ca.
+dbo	sp_TraerCierreAlmacen_xID	
+CREATE proc [dbo].[sp_TraerCierreAlmacen_xID] (@id int)
+as 
+begin 
+	SELECT     ca.Id_CierreAlmacen, ca.Id_Usuario, dbo.tbl_Usuario.Nombre, 
+	ca.Fecha,ca.Observacion, ca.E_Eliminado 
+	FROM         dbo.tbl_cierrealmacen ca INNER JOIN 
+	dbo.tbl_Usuari
+dbo	sp_TraerCierreAlmacen_xRangoFecha	create proc [dbo].[sp_TraerCierreAlmacen_xRangoFecha] (@fechaInicio datetime,@fechaFin datetime)
+as 
+select * from(
+SELECT     ca.Id_CierreAlmacen, 'Cierre' Tipo,
+CONVERT(varchar,ca.Fecha,103)Fecha,  dbo.tbl_Usuario.Nombre
+FROM         dbo.tbl_cierrea
+dbo	sp_TraerCierreAlmacenPRPD	
+CREATE proc [dbo].[sp_TraerCierreAlmacenPRPD] (@fecha datetime)
+as 
+begin
+	declare @codigo int
+	set @codigo = (select top 1 Id_CierreAlmacenPR_PD from tbl_CierreAlmacenPR_PD where  dbo.DateOnly(Fecha) = dbo.DateOnly(@fecha) AND (E_Eliminado = 0))
+
+
+dbo	sp_TraerCierreAlmacenPRPD_xId	
+CREATE proc [dbo].[sp_TraerCierreAlmacenPRPD_xId] (@codigo int)
+as 
+begin
+
+	SELECT     ca.Id_CierreAlmacenPR_PD, ca.Id_Usuario, dbo.tbl_Usuario.Nombre, 
+	ca.Fecha,ca.Observacion, ca.E_Eliminado 
+	FROM         dbo.tbl_CierreAlmacenPR_PD ca INNER JOI
+dbo	sp_TraerCodigoCierreAlmacen	--[sp_TraerCodigoCierreAlmacen] '08/11/2017'
+CREATE proc [dbo].[sp_TraerCodigoCierreAlmacen] (@fecha datetime)
+as 
+SELECT dbo.tbl_Producto.Id_Producto, dbo.tbl_Producto.Nombre, 
+cca.SaldoDiaAnterior, ISNULL( cca.SaldoDiaAnteriorDevolucion,0)SaldoDiaAnt
+dbo	sp_TraerCuadre	
+CREATE proc [dbo].[sp_TraerCuadre](@Id_Cuadre int)
+as
+SELECT     dbo.tbl_Cuadre.Id_Cuadre, dbo.tbl_Ruta.Nombre AS NombreRuta, dbo.tbl_Vendedor.Nombre AS Vendedor, 
+dbo.tbl_Cuadre.Fecha, dbo.tbl_Cuadre.Fecha_Registro FechaRegistro, dbo.tbl_Usuario.Nomb
+dbo	sp_TraerEntregasVendedorCierreAlmacen		CREATE proc [dbo].[sp_TraerEntregasVendedorCierreAlmacen] (@fecha datetime)
+as 
+	select Id_Producto, Nombre,SUM(Cantidad)Cantidad
+	from
+		(SELECT     p.Id_Producto,p.Nombre, isnull(SUM(cav.Cantidad),0) AS Cantidad
+		FROM         dbo.tbl_CodigoAlmacen
+dbo	sp_TraerIngresosAlmacenCierreAlmacen	CREATE  proc [dbo].[sp_TraerIngresosAlmacenCierreAlmacen] (@fecha datetime)
+as
+	select Id_Producto, Nombre,SUM(Cantidad)Cantidad
+	from
+	(SELECT  dbo.tbl_Producto.Id_Producto,dbo.tbl_Producto.Nombre, sum(cia.Cantidad)AS Cantidad	
+	FROM    dbo.tbl_Ingre
+dbo	sp_TraerIngresosDiaHoy	
+create proc [dbo].[sp_TraerIngresosDiaHoy](@Fecha datetime)
+as
+select * from tbl_IngresoAlmacen where dbo.dateonly(Fecha)=dbo.dateonly(@Fecha)
+and E_Eliminado=0
+dbo	sp_TraerRutasNoCuadradas	CREATE proc [dbo].[sp_TraerRutasNoCuadradas] (@fecha datetime)
+as
+	select r.Id_Ruta , r.Nombre as NombreRuta, v.Id_Vendedor, v.Nombre as NombreVendedor, GETDATE() Fecha, SUM(st.Cantidad*p.PrecioVenta) as Total
+	from tbl_ruta r, tbl_Vendedor v, tbl_Saldo
+dbo	sp_TraerSaldoCierreAlmacen	
+CREATE proc [dbo].[sp_TraerSaldoCierreAlmacen] (@fecha datetime)
+as
+SELECT dbo.tbl_Producto.Id_Producto, dbo.tbl_Producto.Nombre,SUM(cc.SaldoDiaHoy) Cantidad, dbo.tbl_Producto.PrecioVenta Precio, sum(cc.SaldoDiaHoy*dbo.tbl_Producto.PrecioVenta) as Tota
+dbo	sp_TraerSaldoTarjetasRuta	CREATE proc [dbo].[sp_TraerSaldoTarjetasRuta] (@Id_Ruta int)
+as 
+SELECT     dbo.tbl_SaldoTarjetas.Id_SaldoTarjetas, dbo.tbl_SaldoTarjetas.Id_Producto, dbo.tbl_SaldoTarjetas.Id_Ruta, dbo.tbl_SaldoTarjetas.Cantidad, 
+dbo.tbl_SaldoTarjetas.E_Eliminado, dbo
+dbo	sp_TraerSucursal	create proc [dbo].[sp_TraerSucursal]
+as
+	select * from tbl_Sucursal where E_Eliminado=0 order by Observacion
+dbo	sp_TraerTodasLasRuta	
+CREATE proc [dbo].[sp_TraerTodasLasRuta]
+as
+select r.Id_Ruta,r.Nombre,r.Id_Vendedor ,v.Nombre NombreVendedor,BodegaTigo,r.E_Eliminado
+from tbl_Ruta r,tbl_Vendedor v
+where r.Id_Vendedor = v.Id_Vendedor
+and r.E_Eliminado=0 and Id_Ruta>0 --and visible 
+dbo	sp_TraerTodasLasRutaPDevolucion	
+CREATE proc [dbo].[sp_TraerTodasLasRutaPDevolucion]
+as
+select r.Id_Ruta,r.Nombre,r.Id_Vendedor,v.Id_Vendedor ,v.Nombre NombreVendedor,r.E_Eliminado 
+from tbl_Ruta r,tbl_Vendedor v
+where r.Id_Vendedor = v.Id_Vendedor
+and r.E_Eliminado=0  and visible=
+dbo	sp_TraerTodasVenta	CREATE PROC [dbo].[sp_TraerTodasVenta](@fecha datetime )
+as
+	select v.Id_Venta, v.Id_Vendedor, ven.Nombre,v.Fecha_Ejecucion,v.Observacion,v.OrdenTrabajo,r.Nombre Ruta
+	from tbl_Venta v, tbl_Vendedor  ven, tbl_Ruta r
+	where dbo.DateOnly(Fecha_Ejecucion)
+dbo	sp_TraerTodosAlmacenEntregadoOtrosHoy	create proc sp_TraerTodosAlmacenEntregadoOtrosHoy(@Fecha datetime)
+as
+select *
+from tbl_EntregaAlmacenOtros 
+where dbo.DateOnly(Fecha)=dbo.DateOnly(@Fecha)
+and E_Eliminado=0
+dbo	sp_TraerTodosAlmacenEntregadosHoy	
+CREATE proc [dbo].[sp_TraerTodosAlmacenEntregadosHoy](@Fecha datetime)
+as
+SELECT     dbo.tbl_AlmacenVendedor.Id_AlmacenVendedor, dbo.tbl_AlmacenVendedor.Id_Ruta, dbo.tbl_Ruta.Nombre, dbo.tbl_Vendedor.Id_Vendedor, 
+dbo.tbl_Vendedor.Nombre AS NombreVend
+dbo	sp_TraerTodosAlmacenEntregadosRangoFechas	
+create proc [dbo].[sp_TraerTodosAlmacenEntregadosRangoFechas](@Fecha datetime,@FechaFin datetime)
+as
+SELECT     dbo.tbl_AlmacenVendedor.Id_AlmacenVendedor, dbo.tbl_AlmacenVendedor.Id_Ruta, dbo.tbl_Ruta.Nombre, dbo.tbl_Vendedor.Id_Vendedor, 
+dbo.tbl_Ve
+dbo	sp_TraerTodosIngresos_RangoFecha	CREATE proc [dbo].[sp_TraerTodosIngresos_RangoFecha](@FechaInicio datetime, @FechaFin datetime)
+as 
+select i.Id_IngresoAlmacen,i.Id_Usuario, u.Nombre,i.Proveedor,i.Fecha,i.Fecha_Registro, i.Observacion,i.Total
+from tbl_IngresoAlmacen i, tbl_Usuario u
+w
+dbo	sp_TraerTodosIngresosMET_RangoFecha	create proc [dbo].[sp_TraerTodosIngresosMET_RangoFecha](@FechaInicio datetime, @FechaFin datetime)
+as 
+select i.Id_IngresoMaterialTigo,u.Nombre Usuario,i.Proveedor,i.FechaEntregaTigo,i.FechaIngreso,i.NroComprobante, i.Observacion,
+case when estadoingres
+dbo	sp_TraerTodosLosCuadres	
+
+CREATE proc [dbo].[sp_TraerTodosLosCuadres] (@fecha datetime)
+as 
+	SELECT c.Id_Cuadre, c.Id_Ruta, r.Nombre, c.Fecha,c.Observacion, c.Total,  
+	c.E_Eliminado ,v.Id_Vendedor, v.Nombre as NombreVendedor
+	FROM   dbo.tbl_Cuadre c, dbo.tbl_Ruta r, tbl_Ve
+dbo	sp_TraerTodosLosCuadres_RangoFecha	
+
+CREATE proc [dbo].[sp_TraerTodosLosCuadres_RangoFecha] (@FechaInicio datetime,@FechaFin datetime,@Id_Ruta int)
+as 
+	SELECT c.Id_Cuadre, c.Id_Ruta, r.Nombre, c.Fecha,c.Observacion, c.Total,  
+	c.E_Eliminado ,v.Id_Vendedor, v.Nombre as NombreVendedor
+dbo	sp_TraerTodosLosProductosMascara	CREATE proc  [dbo].[sp_TraerTodosLosProductosMascara]--46
+ as
+  select m.Id_producto,m.Mascara,p.Nombre,p.DigitosImei,MascaraChipID,p.DigitosChipId
+   from tbl_ProductosMascaras m 
+        inner join tbl_Producto p on  m.Id_producto = p.Id_Producto and
+dbo	sp_TraerVentaDiaRuta	CREATE proc [dbo].[sp_TraerVentaDiaRuta](@Id_Ruta int, @Fecha datetime)
+as
+SELECT p.Id_Producto,v.Id_ruta,SUM(cv.Cantidad)Venta,p.Nombre
+FROM         dbo.tbl_Venta v INNER JOIN
+dbo.tbl_CodigoVenta cv ON v.Id_Venta = cv.Id_Venta INNER JOIN
+dbo.tbl_Prod
+dbo	sp_TraerVentaDiaRuta_CantOt	
+create proc [dbo].[sp_TraerVentaDiaRuta_CantOt](@Id_Ruta int, @Fecha datetime)
+as
+select count(id_venta) CantOrden
+from tbl_venta 
+where id_ruta=@Id_Ruta and dbo.dateonly(fecha_ejecucion)=dbo.dateonly(@Fecha) and e_eliminado=0
+dbo	sp_upgraddiagrams	
+	CREATE PROCEDURE dbo.sp_upgraddiagrams
+	AS
+	BEGIN
+		IF OBJECT_ID(N'dbo.sysdiagrams') IS NOT NULL
+			return 0;
+	
+		CREATE TABLE dbo.sysdiagrams
+		(
+			name sysname NOT NULL,
+			principal_id int NOT NULL,	-- we may change it to varbinary(85)
+			
+dbo	sp_VentasExcedente	
+
+--select * from tbl_Producto where excedente=1
+
+CREATE proc [dbo].[sp_VentasExcedente] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador in
+dbo	sp_VentasExcedenteCopia	
+
+
+--select * from tbl_Producto where excedente=1
+
+create proc [dbo].[sp_VentasExcedenteCopia] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @cont
+dbo	sp_VentasInstalado	CREATE proc [dbo].[sp_VentasInstalado] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@DigitosImei int,@CantDeco int ,@CantDe
+dbo	sp_VentasInstalado_cOPIA	
+
+--[sp_VentasInstalado] 1
+CREATE proc [dbo].[sp_VentasInstalado_cOPIA] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@Di
+dbo	sp_VentasInstalado1	
+
+CREATE proc [dbo].[sp_VentasInstalado1] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@DigitosImei int,@CantDeco int ,@C
+dbo	sp_VentasRetirado	CREATE proc [dbo].[sp_VentasRetirado] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@DigitosImei int,@CantDeco int ,@CantDec
+dbo	sp_VentasRetiradoCopia	
+
+
+CREATE proc [dbo].[sp_VentasRetiradoCopia] (@Id_OrdenVentaRealizada int)
+as
+BEGIN
+	IF OBJECT_ID('dbo.Temporal') IS not NULL
+		drop table Temporal;
+
+	declare @contador2 int, @cuantos2 int, @contador int,@cuantos int,@DigitosImei int;
+		set @con
+dbo	spb_ObtenerProductos	CREATE proc spb_ObtenerProductos(@nombre nvarchar(15))
+as
+select * from tbl_producto  where Nombre like '%' + @nombre+'%'
+dbo	spb_ObtenerProductos2	create proc spb_ObtenerProductos2(@nombre nvarchar(15),@numero int)
+as
+select * from tbl_producto  where Nombre like '%' + @nombre+'%' and DigitosChipId>@numero
+dbo	spr_BuscarImei	
+CREATE proc spr_BuscarImei (@cod_inicio nvarchar(50))
+--declare @cod_inicio nvarchar(50)
+--set @cod_inicio = 'TIC-1313-005332'     
+as
+select i.Fecha,ci.Cod_Inicio,p.Nombre , 'Ingreso'  Origen,'' TipoMaterial,'0' NRO_ORDEN ,'0'Tipo_servicio
+,(select
+dbo	spr_CrearSadoTarjetasRutas	create proc spr_CrearSadoTarjetasRutas
+as
+declare @contador int
+declare @cuantos int
+declare @contador2 int
+declare @cuantos2 int
+declare @Id_Producto  int
+
+declare @Id_Ruta int
+set @cuantos = 1
+set @contador = 1
+
+declare @Indice int
+set @Indi
+dbo	spr_ObtenerOrdenTrabajo	
+CREATE proc [dbo].[spr_ObtenerOrdenTrabajo] (@id_venta int )
+as 
+begin
+	select v.Id_Venta id_PedidoVendedor,r.Nombre RutaNombre ,	 u.Nombre Usuario,
+	 v.Fecha_Ejecucion Fecha,v.Fecha_Registro Fecha_Registro,
+     0 Total,	 
+	isnull(v.Nombre,(select
+dbo	spr_TraerVendedores	CREATE proc [dbo].[spr_TraerVendedores]
+as
+begin
+	select v.*, ts.id_Tipo_Solicitante, ts.Nombre TipoSolicitante
+	from tbl_Vendedor v inner join tbl_TipoSolicitante ts on ts.id_Tipo_Solicitante = v.id_tiposolicitante
+	where v.E_Eliminado = 0  order by 
+dbo	spr_TraerVendedores_x_FormTecnico	CREATE proc [dbo].[spr_TraerVendedores_x_FormTecnico]
+as
+begin
+	select v.*, ts.id_Tipo_Solicitante, ts.Nombre TipoSolicitante
+	from tbl_Vendedor v inner join tbl_TipoSolicitante ts on ts.id_Tipo_Solicitante = v.id_tiposolicitante
+	where v.E_Eliminado 
+dbo	spr_TraerVendedoresAlmaceneros	create proc [dbo].[spr_TraerVendedoresAlmaceneros]
+as
+begin
+	select v.*, ts.id_Tipo_Solicitante, ts.Nombre TipoSolicitante
+	from tbl_Vendedor v inner join tbl_TipoSolicitante ts on ts.id_Tipo_Solicitante = v.id_tiposolicitante
+	where v.E_Eliminado = 0
+dbo	spr_TraerVendedoresSocioEmbajador	CREATE proc [dbo].[spr_TraerVendedoresSocioEmbajador]
+as
+begin
+	select v.*, ts.id_Tipo_Solicitante, ts.Nombre TipoSolicitante
+	from tbl_Vendedor v inner join tbl_TipoSolicitante ts on ts.id_Tipo_Solicitante = v.id_tiposolicitante
+	where v.E_Eliminado 
+dbo	spx_Actualizacion_tbl_BajaProductoControlEnvio	create proc [dbo].[spx_Actualizacion_tbl_BajaProductoControlEnvio](@Id_Sucursal int,@cuantos int,@Sucursal nvarchar(250))
+as
+update tbl_BajaProductoControlEnvio set e_eliminado=1 where e_eliminado=0 and id_sucursal=@Id_Sucursal
+
+insert into tbl_BajaPro
+dbo	spx_BorrarRegistroPromedioUsoMaterial	create proc spx_BorrarRegistroPromedioUsoMaterial(@Id_TipoInstalacion int)
+as
+	update tbl_PromedioUsoMateriales set E_Eliminado =1 where Id_TipoServicio =@Id_TipoInstalacion
+dbo	spx_BuscarSerialCargoUsuario	create proc [dbo].[spx_BuscarSerialCargoUsuario](@serial nvarchar(50),@chipid nvarchar(50), @tipocodigo int)
+as
+	if (@tipocodigo =0)--serial
+	begin
+		Select	
+		 --distinct(v.Id_Venta)
+		 v.Id_Venta,r.Id_Ruta,r.Nombre Ruta,ve.Id_Vendedor, ve.Nombre Ve
+dbo	spx_BusquedaSerieChipID	
+CREATE proc [dbo].[spx_BusquedaSerieChipID](@serie nvarchar(150),@tiposerie bit)
+as
+if(@tiposerie=0)
+begin
+	select  * from tbl_CorreccionErrores where serialErroneo =@serie and e_eliminado=0
+	union all
+	select  * from tbl_CorreccionErrores where se
+dbo	spx_CargarDatosFaltanteE18	CREATE proc [dbo].[spx_CargarDatosFaltanteE18]
+as
+insert into tbl_faltanteE18
+select  AÑO,Sucursal,BODEGA,EQUIPO,SERIE,CHIPID,ESTADO_INICIAL,REVTIGO,CAT,SERIEMAGIC,REGIONAL,DICTAMENFINAL,MONTO
+from [tigo.makiro.com.bo].bdSistemaantenaPM.dbo.tbl_faltant
+dbo	spx_CargarRutaSegunEstado		--------------------------------------------------------	
+CREATE proc [dbo].[spx_CargarRutaSegunEstado](@Id_Estado int)
+as
+begin
+	if(@Id_Estado=1 or @Id_Estado=5 or @Id_Estado=4)
+	 select * from tbl_Ruta where Id_Ruta=0 and E_Eliminado=0 order by Nom
+dbo	spx_CrearProducto	
+CREATE proc [dbo].[spx_CrearProducto](@Nombre nvarchar(100),@IdTipoProducto int,@PermiteDecimal bit,@Habilitado bit,@CantDigitosSerial int,
+    @TieneEspacioSerial bit,@Mascara nvarchar(50),@SerialImportacion nvarchar(150),@CantDigitosChipId int,@TieneE
+dbo	spx_CrearProductoEnSaldoAlmacenProductos	CREATE proc spx_CrearProductoEnSaldoAlmacenProductos
+as
+declare @contador int
+declare @cuantos int
+
+declare @Id_Producto  int 
+set @cuantos = 1
+set @contador = 1
+ 
+     
+       declare @ProductosNuevos table(Id int identity, Id_Producto int)     
+dbo	spx_DarBajaUsuario	CREATE proc [dbo].[spx_DarBajaUsuario](@Id_Usuario int)
+as
+	update tbl_Usuario set E_Eliminado=1 where Id_Usuario = @Id_Usuario
+dbo	spx_DarDeBajaCorreccionErrores	
+CREATE proc [dbo].[spx_DarDeBajaCorreccionErrores](@id int)
+as
+update tbl_CorreccionErrores set e_eliminado=1 where id=@id
+dbo	spx_EliminarBajaProductos	
+create proc spx_EliminarBajaProductos(@codigo int)
+as
+update tbl_bajaproductos set e_eliminado=1 where id_bajaproductos=@codigo
+update tbl_codigobajaproductos set e_eliminado=1 where id_bajaproductos=@codigo
+update tbl_detallebajaproductos set e_elim
+dbo	spx_EliminarBajaProductosPendiente	create proc spx_EliminarBajaProductosPendiente(@codigo int)
+as 
+update tbl_bajaproductospendiente set e_eliminado=1 where id_bajaproductospendiente =@codigo
+update tbl_codigobajaproductospendiente set e_eliminado=1 where id_bajaproductospendiente =@codi
+dbo	spx_EliminarCierreAlmacen	create proc [dbo].[spx_EliminarCierreAlmacen](@Id_Cierrealmacen int)
+as
+update tbl_cierrealmacen set e_eliminado=1 where id_cierrealmacen=@Id_Cierrealmacen
+update tbl_codigocierrealmacen set e_eliminado=1 where id_cierrealmacen=@Id_Cierrealmacen
+dbo	spx_EliminarCierreAlmacenPR_PD	
+create proc spx_EliminarCierreAlmacenPR_PD(@Id_Cierrealmacen int)
+as
+update tbl_cierrealmacenpr_pd set e_eliminado=1 where id_cierrealmacenpr_pd=@Id_Cierrealmacen
+update tbl_codigocierrealmacenpr_pd set e_eliminado=1 where id_cierrealmacenpr_pd=@Id_Ci
+dbo	spx_EliminarCodigoUsuario_Venta	create proc [dbo].[spx_EliminarCodigoUsuario_Venta](@Id_Venta int , @IdUsuario int)
+as
+declare @count int 
+set @count = (select count(*) from tbl_codigoventa where id_venta=@Id_Venta and e_eliminado=0)
+if(@count>0)
+update tbl_venta set observacion=obs
+dbo	spx_EliminarDetalleDevolucionTigoPendiente	create proc spx_EliminarDetalleDevolucionTigoPendiente(@Id_DevolucionTigoPendiente int)
+as
+update tbl_detalledevoluciontigopendiente 
+set e_eliminado=1 
+where id_devoluciontigopendiente=@Id_DevolucionTigoPendiente
+dbo	spx_eliminardevoluciontigopendiente	
+CREATE proc [dbo].[spx_eliminarDevolucionTigoPendiente](@codigo int)
+as 
+update tbl_DevolucionTigoPendiente set e_eliminado=1 where id_devoluciontigopendiente=@codigo
+update tbl_detalleDevolucionTigoPendiente set e_eliminado=1 where id_devoluciontigop
+dbo	spx_EliminarIngresoMaterialTigo	 
+create proc spx_EliminarIngresoMaterialTigo(@codigo int,@FechaRegistro datetime,@Id_Usuario int,@Observacion nvarchar(max) )
+as
+begin
+	update tbl_IngresoMaterialTigo 
+	set e_eliminado=1 
+	where id_IngresoMaterialTigo =@codigo
+
+	update tbl_codigoI
+dbo	spx_EliminarMenu_usuario	create proc spx_EliminarMenu_usuario(@Id_Usuario int)
+as
+update tbl_tabla_menu_usuario 
+set e_eliminado=1 
+where id_usuario=@Id_Usuario
+dbo	spx_EliminarRol	create proc spx_EliminarRol(@Id_Rol int)
+as
+update tbl_rol set e_eliminado=1 where id_rol=@Id_Rol
+dbo	spx_eliminarSalidaTraspasoPendiente	create proc spx_eliminarSalidaTraspasoPendiente(@codigo int)
+as
+update tbl_SalidaTraspasopendiente set e_eliminado=1 where id_salidatraspasopendiente=@codigo
+update tbl_codigoSalidaTraspasopendiente set e_eliminado=1 where id_salidatraspasopendiente=@co
+dbo	spx_EliminarTecnico	create proc spx_EliminarTecnico(@Id_Tecnico int)
+as
+begin
+	update tbl_vendedor set e_eliminado=1 where id_vendedor=@id_tecnico
+end
+dbo	spx_EstadosNoPermitidosCambioNombre	CREATE proc [dbo].[spx_EstadosNoPermitidosCambioNombre]
+as
+select * from tbl_estadoproducto where id_estadoproducto in (1,2,4,5,6,9,10,11,13,14,17) and e_eliminado=0
+dbo	spx_EstadosPermitidosCambioNombreCU	create proc [dbo].[spx_EstadosPermitidosCambioNombreCU]
+as
+select * from tbl_estadoproducto where id_estadoproducto in (17) and e_eliminado=0
+dbo	spx_ExisteCierreAlmacenHoy	--SELECT 'una linea' + CHAR(13) + CHAR(10) + 'otra linea'
+--spx_ExisteCierreAlmacenHoy '18/05/2021'
+CREATE proc [dbo].[spx_ExisteCierreAlmacenHoy](@FechaRegistro datetime)
+as
+begin
+	declare @cuantostablamov_pendientes int
+	declare @tablamov_pendiente
+dbo	spx_ExisteCierreAlmacenHoyPR_PD	
+CREATE proc [dbo].[spx_ExisteCierreAlmacenHoyPR_PD](@FechaRegistro datetime)
+as
+begin
+	declare @cuantostablamov_pendientes int
+	declare @tablamov_pendientes table(movimiento nvarchar(150), cantidad int)
+	insert into @tablamov_pendientes exec [spx_Va
+dbo	spx_ExisteDatoCorreccionErrores	
+CREATE proc [dbo].[spx_ExisteDatoCorreccionErrores](@serieErronea nvarchar(150),@chipidErroneo nvarchar(150))
+as
+select count(*) from tbl_CorreccionErrores
+where serialErroneo=@serieErronea and chipidErroneo=@chipidErroneo and estadoModificacion ='Pen
+dbo	spx_ExisteDatoDescuentoDTHPrepagoAntesBaja	create proc spx_ExisteDatoDescuentoDTHPrepagoAntesBaja
+(@eh nvarchar(150),@mescomision int,@pago decimal(18,2))
+as
+select * from tbl_DescuentosDTHPrepagoAntesBaja where eh=@eh and mescomision=@mescomision
+and pago=@pago and e_eliminado=0
+dbo	spx_ExisteNomenclador	create proc [dbo].[spx_ExisteNomenclador](@SufijoNomenclador nvarchar(5))
+as
+select * from tbl_producto where sufijonomenclador=@SufijoNomenclador and e_eliminado=0
+dbo	spx_ExisteNomencladorModificar	create proc [dbo].[spx_ExisteNomencladorModificar](@SufijoNomenclador nvarchar(5),@IdProducto int)
+as
+select * from tbl_producto where sufijonomenclador=@SufijoNomenclador and id_producto<>@IdProducto and e_eliminado=0
+dbo	spx_ExisteOrdenRegistrada	CREATE proc [dbo].[spx_ExisteOrdenRegistrada](@OrdenTrabajo nvarchar(15),@Tabla nvarchar(50))
+as
+	if(@Tabla='DTH_PREPAGO')
+	BEGIN	
+		select * from tbl_DatosDTHPrepago where ORDENNRO=@OrdenTrabajo
+	END 
+		if(@Tabla='HFC')
+	BEGIN	
+		select * from tbl
+dbo	spx_ExisteProducto	-------------------------------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------------------------------
+CREATE proc [dbo].[spx_ExisteProdu
+dbo	spx_ExisteTecnico	CREATE proc [dbo].[spx_ExisteTecnico](@nombre nvarchar(150),@CodEmpleado nvarchar(15))
+as
+begin
+	select * from tbl_Vendedor 
+	where (Nombre = @nombre or codempleado=@codempleado) and E_Eliminado=0
+end
+dbo	spx_ExportarDatosConfirmados	
+create proc spx_ExportarDatosConfirmados(@FechaGestion datetime,@Id_Sucursal int)
+as
+		select CLIENTENRO NumeroCliente,ORDENNRO OrdenTrabajo, TipoServicioTS TipoSolicitud,FechaGestion,EstadoGestionDealer,FechaProgramacion ,Observacion 
+		from tbl_Dato
+dbo	spx_ExportarDatosDevueltosATigo	CREATE proc spx_ExportarDatosDevueltosATigo(@FechaGestion datetime,@Id_Sucursal int)
+as
+		select CLIENTENRO NumeroCliente,ORDENNRO OrdenTrabajo, TipoServicioTS TipoSolicitud,FechaGestion,EstadoGestionDealer,FechaProgramacion ,Observacion 
+		from tbl_Dat
+dbo	spx_getArchivo	CREATE proc [dbo].[spx_getArchivo]( @ID int, @Tabla int )
+as 
+begin
+	if ( @Tabla = 0 ) -- Ingreso Material Tigo.
+		select nombrearchivo, archivo from tbl_IngresoMaterialTigo where id_IngresoMaterialTigo = @ID;
+	
+	if ( @Tabla = 1 ) -- devolución.
+		s
+dbo	spx_getMaterialDevueltoTigo	CREATE proc [dbo].[spx_getMaterialDevueltoTigo]( @idDevolucionTigo int )
+as		
+	select td.Observacion, td.nombrearchivo, tp.Id_Producto, tp.Nombre, sum(tdd.Cantidad) as Cantidad
+	from tbl_producto tp inner join tbl_DetalleDevolucion tdd on tdd.Id_Product
+dbo	spx_getMaterialDevueltoTigoPendiente	
+create proc [dbo].[spx_getMaterialDevueltoTigoPendiente]( @idDevolucionTigo int )
+as		
+	select td.Observacion,td.Estado, tp.Id_Producto, tp.Nombre, sum(tdd.Cantidad) as Cantidad
+	from tbl_producto tp inner join tbl_CodigoDevolucionTigoPendiente tdd on
+dbo	spx_getMaterialDevueltoTigoPendienteSAgrupar	CREATE proc [dbo].[spx_getMaterialDevueltoTigoPendienteSAgrupar]( @idDevolucionTigo int )
+as		
+	select td.Id_DevolucionTigoPendiente Id_Devolucion, tdd.Id_CodigoDevolucionTipoPendiente Id_DetalleDevolucion, 
+	tp.Id_Producto, tp.Nombre, tdd.Serial Cod_In
+dbo	spx_getMaterialDevueltoTigoSAgrupar	CREATE proc [dbo].[spx_getMaterialDevueltoTigoSAgrupar]( @idDevolucionTigo int )
+as		
+	select td.Id_Devolucion, tdd.Id_DetalleDevolucion, tp.Id_Producto, tp.Nombre, tdd.Cod_Inicio,tdd.ChipID, tdd.Cantidad
+	from tbl_producto tp inner join tbl_DetalleDevo
+dbo	spx_getMaterialPreIngresado	CREATE proc [dbo].[spx_getMaterialPreIngresado]( @idIngresoMaterialTigo int )
+as
+	select tp.Id_Producto, tp.Nombre, SUM( tcia.Cantidad )
+	from tbl_producto tp inner join tbl_CodigoIngresoAlmacen tcia on tcia.Id_Producto = tp.Id_Producto and tp.e_elimina
+dbo	spx_GetProductoExcedenteRuta	CREATE proc spx_GetProductoExcedenteRuta
+as
+	select tr.Id_Ruta, tr.Nombre, tp.Id_Producto, tp.Nombre, tp.limitePromedio, tst.Cantidad
+		from tbl_Ruta tr 
+		inner join tbl_SaldoTarjetas tst on tr.Id_Ruta = tst.Id_Ruta and tst.E_Eliminado = 0 and tr.E_El
+dbo	spx_ImportFromExcel03	 CREATE PROCEDURE spx_ImportFromExcel03
+    @SheetName varchar(20),
+    @FilePath varchar(100),
+    @HDR varchar(3),
+    @TableName varchar(50)
+AS
+BEGIN
+    DECLARE @SQL nvarchar(1000)
+    IF OBJECT_ID (@TableName,'U') IS NOT NULL
+      SET @SQL =
+dbo	spx_ImportFromExcel07	CREATE PROCEDURE spx_ImportFromExcel07
+   @SheetName varchar(20),
+   @FilePath varchar(100),
+   @HDR varchar(3),
+   @TableName varchar(50)
+AS
+BEGIN
+    DECLARE @SQL nvarchar(1000)
+    IF OBJECT_ID (@TableName,'U') IS NOT NULL
+      SET @SQL = 'INS
+dbo	spx_ListaCorreccionErrores	
+
+CREATE proc [dbo].[spx_ListaCorreccionErrores]
+as
+select  * from tbl_CorreccionErrores where e_eliminado=0
+order by estadomodificacion desc
+dbo	spx_ListadoBajasProductos	CREATE proc spx_ListadoBajasProductos
+as
+	select b.* , u.Nombre Usuario
+	from tbl_BajaProductos b inner join tbl_Usuario u
+	on b.id_Usuario = u.Id_Usuario
+	order by b.id_BajaProductos desc
+dbo	spx_ListadoDescuentosDTHPrepagoAntesBaja	create proc [dbo].[spx_ListadoDescuentosDTHPrepagoAntesBaja] 
+as
+select * from tbl_DescuentosDTHPrepagoAntesBaja where e_eliminado=0
+order by id desc
+dbo	spx_ListadoProducto	CREATE proc [dbo].[spx_ListadoProducto]
+as
+begin
+	select pr.Id_Producto,-- pr.Prefijo,
+	 pr.Nombre NombreProducto,--pr.Medida,
+	tp.Id_TipoProducto, tp.Nombre NombreTipoProducto,
+	case when pr.PermiteDecimales=1 then 'Si' else 'No' end PermiteDecimale
+dbo	spx_ListadoPromedioUsoMateriales	create proc spx_ListadoPromedioUsoMateriales
+as
+select pr.Id_TipoServicio,ts.Nombre TipoServicio,tp.Id_TipoProducto ,tp.Nombre TipoProducto,pro.Id_Producto,pro.Nombre Producto,Cantidad,
+case when pr.AdicionaEnForm=0 then  'No' else 'Si' end AdicionaEnFo
+dbo	spx_ModicarMontoComision_CobroTH	create proc spx_ModicarMontoComision_CobroTH(@idcontrol int, @agente nvarchar(15),@EH int,@mescomision int, @TotalComision decimal(18,2),
+@Prepago decimal(18,2),@Postpago decimal(18,2),@HfcHome decimal(18,2),@observacion nvarchar(max),@idUsuario int  )
+a
+dbo	spx_ModIdIngresoMaterialTigo	CREATE proc spx_ModIdIngresoMaterialTigo( @Id_Ingreso int, @Id_IngresoMaterialTigo int, @completo bit )
+as 
+	insert into tbl_IngresoMaterialTigo_Almacen values( @Id_IngresoMaterialTigo, @Id_Ingreso );
+	if ( @completo = 1)
+	begin
+		update tbl_IngresoMa
+dbo	spx_ModificarAnticipo_BajaProductos	create proc [dbo].[spx_ModificarAnticipo_BajaProductos](@codigoTransaccion int, @id int , @codigoBaja int , @tabla nvarchar(50))
+as 
+begin
+	SET XACT_ABORT ON
+	
+		update [tigo.makiro.com.bo].bdSistemaboletasmakiro.dbo.tbl_anticipo  
+		set idUsuarioReg
+dbo	spx_ModificarAnticipoPago_BajaCUNR	CREATE proc spx_ModificarAnticipoPago_BajaCUNR(@codigo int, @idAnticipo int,@tabla nvarchar(25))
+as 
+SET XACT_ABORT ON
+ update [tigo.makiro.com.bo].bdSistemaBoletasMakiro.dbo.tbl_anticipo 
+ set idUsuarioRegPlanillaQ = @codigo,
+ ObservacionRegPlanillaQ
+dbo	spx_ModificarBajaProductosPendienteRegistrado	CREATE proc [dbo].[spx_ModificarBajaProductosPendienteRegistrado](@Id_BajaProductosPendiente int, @FechaRegistrado datetime,@Id_UsuarioRegistrado int,
+@Observacion nvarchar(max),@id_BajaProductos int)
+as
+begin
+	update tbl_BajaProductosPendiente
+	set F
+dbo	spx_ModificarContraseña	
+CREATE proc [dbo].[spx_ModificarContraseña](@Id_Usuario int,@Loggin nvarchar(50),@Contraseña nvarchar(50),@accion int,@TipoUsuario int,@Id_TipoUsuario int,@correo nvarchar(150))--,@Id_Rol int)
+as
+if(@accion = 1) --modificar datos formulario usuario
+be
+dbo	spx_ModificarDatosVendedor	create proc [dbo].[spx_ModificarDatosVendedor](@Direccion nvarchar(250),@Ci nvarchar(100), @Telefono nvarchar(50), 
+	@Observacion nvarchar(max), @CodEmpleado nvarchar(15),@Id_Vendedor int,@Id_TipoSolicitante int )
+as
+update tbl_vendedor
+set direccion=@
+dbo	spx_ModificarDescuentoDTHPrepago	 create proc spx_ModificarDescuentoDTHPrepago(@id int, @codigobaja int , @tabla nvarchar(15))
+ as 
+ begin
+	SET XACT_ABORT ON
+	
+		update [tigo.makiro.com.bo].bdcomisiones.dbo.tbl_controldthprepagoDescuentos_Cobros  
+		set tomadoEnCuentaBaja = 1, Codig
+dbo	spx_ModificarDescuentoPdaInstaladores	 create proc spx_ModificarDescuentoPdaInstaladores(@id int, @codigobaja int , @tabla nvarchar(15))
+ as 
+ begin
+	SET XACT_ABORT ON
+	
+		update [tigo.makiro.com.bo].bdcomisiones.dbo.tbl_controlPdaInstaladoresDescuentos_Cobros  
+		set tomadoEnCuentaBaja 
+dbo	spx_ModificarDevolucionTigoPendienteEntregado	
+CREATE proc [dbo].[spx_ModificarDevolucionTigoPendienteEntregado](@Id_DevolucionTP int, @FechaEntregado datetime,@Id_UsuarioEntregado int,
+@Observacion nvarchar(max),@accion int,@iddevolucion int)
+as
+if(@accion =1 )
+begin
+	update tbl_devoluciontigop
+dbo	spx_ModificarEstadoCierrePRPD_Cierre	create proc [dbo].[spx_ModificarEstadoCierrePRPD_Cierre](@fecha datetime)
+as
+begin
+update tbl_CierreAlmacen set CierreAlmacenPR_PD=1 where dbo.DateOnly(fecha)=dbo.DateOnly(@fecha)
+end
+dbo	spx_ModificarIdEstado	
+create proc [dbo].[spx_ModificarIdEstado](@idNuevoEstado int,@serial nvarchar(150),@chipid nvarchar(150),@id_producto int) 
+as
+update tbl_productos 
+set id_estadoproducto=@idNuevoEstado
+where serial=@serial and chipid=@chipid and id_producto=@id_prod
+dbo	spx_ModificarNombreProductoC4	
+create proc [dbo].[spx_ModificarNombreProductoC4](@idProducto int,@serial nvarchar(25),@chipid nvarchar(25))
+as
+begin 
+	begin transaction
+		begin try							
+			--aqui tiene q ir el codigo
+			update tbl_productos set id_producto=@idProducto where se
+dbo	spx_ModificarObservacionEjecutados	
+CREATE proc [dbo].[spx_ModificarObservacionEjecutados]
+(@Id int,@TipoServicio nvarchar(50),@Tor nvarchar(50),@Poblacion nvarchar(50),
+@FechaCierre datetime,@Georeferencia nvarchar(50),@Altura nvarchar(50),
+@Cierre nvarchar(50),@ObservacionCierre nvarc
+dbo	spx_ModificarObservacionProgramados	CREATE proc [dbo].[spx_ModificarObservacionProgramados]
+(@Id int,@TipoServicio nvarchar(50),@FechaGestion datetime,@EstadoGestionDealer nvarchar(50),@FechaProgramacion datetime,
+@Observacion nvarchar(max),@Id_UsuarioModifica int)
+as
+	if(@TipoServicio =
+dbo	spx_ModificarOrdenTrabajoFecha	create proc [dbo].[spx_ModificarOrdenTrabajoFecha](@Id_UsuarioModifico int, @fecha datetime,@Id_Venta int)
+as
+declare @Id_Devolucion int
+set @Id_Devolucion = 0
+set @Id_Devolucion= (select Id_devolucion from tbl_Devolucion WHERE Id_Venta=@Id_Venta)
+sel
+dbo	spx_ModificarProducto	
+CREATE proc [dbo].[spx_ModificarProducto](@IdProducto int,@PermiteDecimal bit,@Habilitado bit
+,@CantDigitosSerial int,@TieneEspacioSerial bit,@Mascara nvarchar(50),@SerialImportacion nvarchar(150)
+,@CantDigitosChipId int,@TieneEspacioChipId bit,@Mascar
+dbo	spx_ModificarSalidaTraspasoPendienteRegistrado	
+CREATE proc [dbo].[spx_ModificarSalidaTraspasoPendienteRegistrado](@Id_SalidaTraspasoPendiente int, @FechaRegistrado datetime,@Id_UsuarioRegistrado int,
+@Observacion nvarchar(max),@id_SalidaTraspaso int)
+as
+begin
+	update tbl_SalidaTraspasoPendiente
+
+dbo	spx_ModificarSerialChipId	CREATE proc [dbo].[spx_ModificarSerialChipId](@serialAntiguo nvarchar(50),@serialNuevo nvarchar(50),@serieChipId bit,@Id_Usuario int)
+as
+--0 serial 1 chipid
+begin
+	begin transaction
+		begin try
+			declare @table  table(id int identity, tabla nvarchar
+dbo	spx_ModificarSerialChipId_3_2	create proc [dbo].[spx_ModificarSerialChipId_3_2](@serie1 nvarchar(25),@serie2 nvarchar(25),@chipid2 nvarchar(25))
+as
+--declare @serie1 nvarchar(20),@serie2 nvarchar(20),@chipid2 nvarchar(20)
+declare @id_bitacora int, @idventa int
+set @id_bitacora = (s
+dbo	spx_ModificarSerialChipId_CE_CNE_c1	
+create proc [dbo].[spx_ModificarSerialChipId_CE_CNE_c1](@serialErrado nvarchar(50),@chipIdErrado nvarchar(50),
+														@serialCorrecto nvarchar(50),@ChipIdCorrecto nvarchar(50),@serieChipId int,@Id_Usuario int)
+as
+--0 serial 1 chipid
+begin
+	be
+dbo	spx_ModificarUsuarioSucursal	create proc spx_ModificarUsuarioSucursal(@Id_Usuario int, @Id_Sucursal int,@Estado bit)
+as
+	update tbl_usuariosucursal  set e_Eliminado = @Estado where Id_Usuario=@Id_Usuario and Id_Sucursal=@Id_Sucursal
+dbo	spx_Obtener_BajaProductosNacional	create proc dbo.spx_Obtener_BajaProductosNacional
+as
+	select Id,Id_BajaProductos,Id_CodigoBajaProductos, Observacion,FechaTransaccion,Id_Ruta,Ruta,Id_EstadoProductos,
+	EstadoProductos,Id_Tecnico,Tecnico,Id_TipoBajaProductosPendiente,TipoBajaProductosPen
+dbo	spx_Obtener_CasosCorrecionErrores	
+
+create proc [dbo].[spx_Obtener_CasosCorrecionErrores]
+as
+select * from tbl_CasosCorrecionErrores where e_Eliminado=0
+dbo	spx_ObtenerAnticiposEmpleado	
+
+ --spx_ObtenerAnticiposEmpleado 'DMK-2074',1
+
+CREATE proc [dbo].[spx_ObtenerAnticiposEmpleado](@codEmpleado nvarchar(15),@Makiro int)
+as 
+if(@Makiro=1)
+begin
+	select 1 IdFormaDePago,'Anticipo'FormaDePago,Monto Cobro,9 Id_EntidadBancaria,'ANTICIPO
+dbo	spx_ObtenerBajaProductos	CREATE proc [dbo].[spx_ObtenerBajaProductos](@codigo int)
+as
+	SELECT b.id_BajaProductos,b.id_Usuario, u.Nombre Usuario,b.observacion,b.fecha,b.fechaRegistro,
+	b.Id_Ruta , r.Nombre Ruta,b.id_EstadoProductos,ep.Nombre EstadoProductos,
+	v.Id_Vendedor,v.No
+dbo	spx_ObtenerBajaProductosNacional_xID	create proc [dbo].[spx_ObtenerBajaProductosNacional_xID](@idBaja int,@idSucursal int)
+as 
+select * from tbl_bajaproductosnacional  where id_bajaproductos=@idBaja and id_sucursal=@idSucursal
+---------------------------------------------------------------
+dbo	spx_ObtenerBajaProductosPendiente	CREATE proc [dbo].[spx_ObtenerBajaProductosPendiente](@codigo int)
+as
+BEGIN
+	SELECT b.Id_BajaProductosPendiente,b.FechaPendiente,b.FechaRegistrado,b.Estado,
+	b.Id_UsuarioPendiente,	u.Nombre UsuarioPendiente,	
+	b.observacion,	b.Id_Ruta ,	 r.Nombre Ruta
+dbo	spx_ObtenerCantidadIngresos	create proc [dbo].[spx_ObtenerCantidadIngresos](@Fecha datetime)
+as
+declare @FechaInicio datetime
+declare @FechaFin datetime
+set @FechaInicio = (SELECT CONVERT(VARCHAR(25),DATEADD(dd,-(DAY(@Fecha)-1),@Fecha),103))
+set @FechaFin = (SELECT CONVERT(VARCH
+dbo	spx_ObtenerCargoUsuario_XIDVenta		
+create proc [dbo].[spx_ObtenerCargoUsuario_XIDVenta](@Id_Venta int)
+as
+select * from tbl_venta where id_venta=@Id_Venta and e_eliminado=0
+SELECT 
+    c.*,
+    pr.Nombre AS NombreProducto,
+    pr.PrecioUsado AS Precio,(pr.PrecioUsado*c.cantidad )To
+dbo	spx_ObtenerCargoUsuarioNoRealizado_ID	create proc [dbo].[spx_ObtenerCargoUsuarioNoRealizado_ID](@Codigo int)
+as
+select Id	,Id_Usuario	,Id_VendedorDigitador	,Nombre	,
+case when EsVendedorUsuario=1 then 'Tecnico' else 'Digitador' end EsVendedorUsuario
+,CodigoEmpleado	,Id_TipoServicio	,Nombre
+dbo	spx_ObtenerCargoUsuarioNoRealizado_Listado	CREATE proc [dbo].[spx_ObtenerCargoUsuarioNoRealizado_Listado]
+as
+select * from (
+	select Id,Id CodigoCUNR,Id_VendedorDigitador,Nombre,
+	case when EsVendedorUsuario = 1 then 'Tecnico' else 'Digitador' end EsVendedorUsuario,
+	Id_TipoServicio,NombreTipo
+dbo	spx_ObtenerCierreAlmacen_PSaldos	create proc [dbo].[spx_ObtenerCierreAlmacen_PSaldos](@Fecha datetime)
+as 
+Begin	
+	declare @tbl_Cierre 
+	table (
+	Id_Producto int, 
+	Nombre nvarchar(max),
+	SaldoDiaAnterior decimal(18,2),
+	SaldoDiaAnteriorDevolucion decimal(18,2),
+	IngresoDia decim
+dbo	spx_ObtenerContraseñasAntiguas	CREATE proc spx_ObtenerContraseñasAntiguas(@loggin nvarchar(100))
+as
+select top 15 * from tbl_UsuarioContraseñas
+where Loggin =@loggin
+order by Id_UsuarioContraseñas desc
+dbo	spx_ObtenerContraseñaUsuario	create proc spx_ObtenerContraseñaUsuario(@Login nvarchar(25))
+as
+	select Password from tbl_usuario where Loggin=@Login and E_Eliminado=0
+dbo	spx_ObtenerCorrecionErrores_XID	CREATE proc [dbo].[spx_ObtenerCorrecionErrores_XID](@codigo int)
+as
+select  * from tbl_CorreccionErrores where e_eliminado=0 and id=@codigo
+dbo	spx_ObtenerCorreosBackOffice	create proc [dbo].[spx_ObtenerCorreosBackOffice]
+as 
+select * from tbl_correoBackOffice where e_eliminado=0
+dbo	spx_ObtenerDatoEmbajadoresBDComision	CREATE proc [dbo].[spx_ObtenerDatoEmbajadoresBDComision]
+as 
+SELECT cast(Eh as nvarchar(15))EH,Nombre,Sucursal FROM [tigo.makiro.com.bo].bdCOMISION.DBO.pdaricardo
+union all
+SELECT cast(Eh as nvarchar(15))Eh,Nombre,Sucursal FROM [tigo.makiro.com.bo].bdC
+dbo	spx_ObtenerDatoEmpleadoBDBoletasMakiro	CREATE proc [dbo].[spx_ObtenerDatoEmpleadoBDBoletasMakiro]
+as
+select CodEmpleado,(e.Nombre + ' '+Apellido+' ' + ApellidoMaterno)Nombre , c.Cargo, suc.nombre Sucursal,
+e.Id_Empleado
+from  [tigo.makiro.com.bo].bdsistemaboletasmakiro.dbo.tbl_empleado e in
+dbo	spx_ObtenerDatoEmpleadoBDBoletasMakiroXSucursal	create proc [dbo].[spx_ObtenerDatoEmpleadoBDBoletasMakiroXSucursal](@sucursal nvarchar(250))
+as
+select CodEmpleado,(e.Nombre + ' '+Apellido+' ' + ApellidoMaterno)Nombre , c.Cargo, suc.nombre Sucursal,
+e.Id_Empleado
+from  bdsistemaboletasmakiro..tbl_emp
+dbo	spx_ObtenerDatosParaEjecucion	--select * from tbl_DatosDTHPrepago
+--[spx_ObtenerDatosParaEjecucion] 2
+CREATE proc [dbo].[spx_ObtenerDatosParaEjecucion](@Id_Sucursal int)
+as
+	
+		select ID,TipoServicioTS,ORDENNRO OT,CLIENTENRO CODIGO,TOR,
+		IdSucursal,Sucursal,Poblacion_ Poblacion,
+dbo	spx_ObtenerDatosParaProgramacion	CREATE proc [dbo].[spx_ObtenerDatosParaProgramacion](@Id_Sucursal int)
+as
+		select ID,CLIENTENRO NumeroCliente,ORDENNRO OrdenTrabajo, TipoServicioTS TipoSolicitud,FechaGestion,EstadoGestionDealer,FechaProgramacion ,Observacion 
+		from tbl_DatosDTHPrepag
+dbo	spx_ObtenerDatosTipoTrabajo	
+CREATE PROC spx_ObtenerDatosTipoTrabajo
+as 
+select * from tbl_TipoTrabajo where e_eliminado=0
+dbo	spx_ObtenerDatosUsuario	CREATE proc [dbo].[spx_ObtenerDatosUsuario](@Id_Usuario int)
+as
+select * from tbl_usuario where e_eliminado=0 and id_usuario=@Id_Usuario
+dbo	spx_ObtenerDeudaBajasReporte	create proc [dbo].[spx_ObtenerDeudaBajasReporte](@codigo int)
+as
+select * from tbl_DeudaBajas where id = @codigo and e_eliminado=0
+select * from tbl_DeudaBajasDetallePago where iddeudaBajas=@codigo and e_eliminado=0
+dbo	spx_ObtenerDeudaCUNRReporte	
+create proc [dbo].[spx_ObtenerDeudaCUNRReporte](@codigo int)
+as
+select * from tbl_DeudaCUNR where id = @codigo and e_eliminado=0
+select * from tbl_DeudaCUNRDetallePago where idCUNR=@codigo and e_eliminado=0
+dbo	spx_ObtenerDeudasPEvaluaciones	create proc spx_ObtenerDeudasPEvaluaciones(@Id_Empleado int, @FechaInicio datetime,@FechaFin datetime)
+as 
+select id_empleado, FechaDeuda,MontoDeuda
+from BDAlmacenNacional.dbo.tbl_DeudasNacionalGestion 
+where E_eliminado = 0 and Cobrar = 1 and id_emple
+dbo	spx_ObtenerDevolucionTigoPendiente	CREATE proc [dbo].[spx_ObtenerDevolucionTigoPendiente](@Id_Devolucion int)
+as
+begin
+	select d.Id_DevolucionTigoPendiente , (TP.Nombre +' - '+ d.Observacion) Observacion,Estado,
+	d.FechaPendiente,d.FechaEntregado,d.FechaRegistrado ,d.Id_UsuarioPendiente
+dbo	spx_ObtenerEntidadBancaria	create proc [dbo].[spx_ObtenerEntidadBancaria]
+as
+	select * from tbl_EntidadBancaria where e_eliminado=0
+dbo	spx_ObtenerEstadoProducto	create proc spx_ObtenerEstadoProducto
+as 
+select * from tbl_EstadoProducto
+dbo	spx_ObtenerEstadoProductoBP	
+CREATE proc [dbo].[spx_ObtenerEstadoProductoBP]
+as 
+--if(@Id_Ruta>0)--si es ruta cualquiera solo tiene q cargar en ruta y dañado---1,2,4,5
+	select * from tbl_EstadoProducto where e_eliminado=0 and id_estadoproducto in (1,2,4,5)
+----------------------
+dbo	spx_ObtenerEstadoProductoBP_RetNoEntregado	
+create proc [dbo].[spx_ObtenerEstadoProductoBP_RetNoEntregado]
+as 
+--if(@Id_Ruta>0)--si es ruta cualquiera solo tiene q cargar en ruta y dañado---1,2,4,5
+	select * from tbl_EstadoProducto where e_eliminado=0 and id_estadoproducto in (11)
+dbo	spx_ObtenerEstadoProductoBPCE18	create proc [dbo].[spx_ObtenerEstadoProductoBPCE18]
+as
+	select * from tbl_EstadoProducto where e_eliminado=0 and id_estadoproducto in (1,2,4,5,23)
+dbo	spx_ObtenerEstadoProductoTA	
+CREATE proc [dbo].[spx_ObtenerEstadoProductoTA]
+as 
+	select * from tbl_EstadoProducto where e_eliminado=0 and id_estadoproducto in (1)
+dbo	spx_ObtenerEstadoProductoXSerial	create proc [dbo].[spx_ObtenerEstadoProductoXSerial](@serial nvarchar(150))
+as
+begin
+	select * from tbl_productos where serial =@serial
+end
+dbo	spx_ObtenerEstadoSiguiente	create proc [dbo].[spx_ObtenerEstadoSiguiente](@idestado int)
+as
+if (@idestado =17)
+begin
+select * from tbl_estadoproducto 
+where id_EstadoProducto in (20,21)
+end
+dbo	spx_ObtenerFechaActual	
+/********************************/
+
+create proc spx_ObtenerFechaActual
+as 
+select getdate()Fecha
+dbo	spx_ObtenerFormaDePago	create proc [dbo].[spx_ObtenerFormaDePago]
+as
+
+		select * from tbl_FormaDePago where e_eliminado=0 and id in (3,4)
+dbo	spx_ObtenerIngresoDetMaterialTigo_xId	CREATE proc dbo.spx_ObtenerIngresoDetMaterialTigo_xId( @idIngresoMaterialTigo int )
+as
+	select 	imt.id_IngresoMaterialTigo,
+			imt.fechaEntregaTigo,
+			imt.fechaIngreso,
+			imt.proveedor,
+			imt.nroComprobante,
+			imt.observacion,
+			imt.archivo,
+
+dbo	spx_ObtenerIngresoMaterialTigo	  
+create proc spx_ObtenerIngresoMaterialTigo(@Id_IngresoMaterialTigo int)
+as
+begin
+	select id_IngresoMaterialTigo,fechaEntregaTigo,fechaIngreso,proveedor,nroComprobante,observacion,estadoIngresoCompleto
+	from tbl_IngresoMaterialTigo where id_IngresoM
+dbo	spx_ObtenerListaCierresAlmacen	
+
+create PROC [dbo].[spx_ObtenerListaCierresAlmacen]
+as 
+select top 50* from
+( 
+	SELECT c.Id_CierreAlmacen,'Cierre Almacen PNuevos' Tipo,c.Fecha,c.Observacion,c.Fecha_Registro,u.Nombre Usuario
+	FROM tbl_CierreAlmacen c inner join tbl_Usuario u on u.
+dbo	spx_ObtenerListaCU	
+create proc [dbo].[spx_ObtenerListaCU]
+as
+Begin
+	Select	
+	 distinct(v.Id_Venta)Id_Venta,r.Id_Ruta,r.Nombre Ruta,ve.Id_Vendedor, ve.Nombre Vendedor,t.Id_TipoServicio,t.Nombre TipoServicio,
+	 v.Fecha_Ejecucion,v.Fecha_Registro,v.OrdenTrabajo,v.CodigoC
+dbo	spx_ObtenerListadoSucursalXUsuario	create proc [dbo].[spx_ObtenerListadoSucursalXUsuario](@Id_Usuario int)
+as
+select * from tbl_sucursal suc inner join tbl_UsuarioSucursal us on us.Id_Sucursal = suc.Id_Sucursal
+inner join tbl_Usuario u on u.Id_Usuario = us.Id_Usuario
+where suc.E_Elimina
+dbo	spx_ObtenerListaIngresoAlmacen_Devolucion	
+CREATE proc [dbo].[spx_ObtenerListaIngresoAlmacen_Devolucion]
+as
+	select * from (
+		select 	im.Id_IngresoAlmacen Codigo,
+				--im.Id_IngresoAlmacen,
+				im.Proveedor, 
+				im.Fecha,
+				im.Observacion,
+				im.NroRecibo,
+				im.Id_Usuario,
+				u
+dbo	spx_ObtenerListaIngresoAlmacenPedidos	
+create proc spx_ObtenerListaIngresoAlmacenPedidos
+as
+begin
+	select top 100 id_IngresoMaterialTigo Codigo,fechaIngreso Fecha,'Pedido'TipoIngreso,
+	case when estadoIngresoCompleto = 1 then 'Completo' else 'Incompleto' end EstadoIngresoCompleto,
+	prove
+dbo	spx_ObtenerListaRol	create proc spx_ObtenerListaRol
+as
+select Id_Rol, Nombre Rol from tbl_rol 
+where e_eliminado=0
+order by nombre
+dbo	spx_ObtenerListaUsuario	CREATE proc [dbo].[spx_ObtenerListaUsuario]
+as
+select u.id_usuario Código, u.Nombre,Loggin,TipoUsuario EsAdmin,tu.Id_Rol , tu.Nombre Rol,CodEmpleado
+from tbl_usuario u inner join tbl_Rol tu on tu.id_rol=u.id_rol
+where u.E_Eliminado=0 order by u.nombre
+dbo	spx_ObtenerMenu_X_IdRol	CREATE proc [dbo].[spx_ObtenerMenu_X_IdRol](@id_rol int)
+as
+select * from tbl_Rolmenu where E_Eliminado = 0
+and id_rol =@id_rol
+dbo	spx_ObtenerMenuRolXIdRol	CREATE proc [dbo].[spx_ObtenerMenuRolXIdRol](@IdRol int)
+as 
+declare @id int 
+set @id = (select top 1 id_rol from tbl_Rol where id_rol = @IdRol and E_Eliminado=0) 
+set @id=isnull(@id,-1)
+SELECT  m.Id_Menu,upper(m.NOMBRE) as Nombre, m.E_Eliminado
+FROM
+dbo	spx_ObtenerMenuXUsuario	CREATE proc [dbo].[spx_ObtenerMenuXUsuario](@Id_Usuario int)
+as
+	select * from tbl_TablaMenu tm inner join tbl_TablaMenuUsuario tmu on tmu.Id_Menu= tm.Id_TablaMenu
+	where tm.E_Eliminado=0
+	and tmu.Id_Usuario=@Id_Usuario
+dbo	spx_ObtenerNombre_Rol	create proc spx_ObtenerNombre_Rol(@rol nvarchar(150))
+as
+select nombre from tbl_rol where e_eliminado=0 and nombre=@rol
+dbo	spx_ObtenerNomencladores	CREATE proc [dbo].[spx_ObtenerNomencladores]
+as
+	select * from tbl_producto where sufijonomenclador <> '' and e_eliminado=0
+dbo	spx_ObtenerOrdeTrabajoCompletaXID	
+	
+
+CREATE proc [dbo].[spx_ObtenerOrdeTrabajoCompletaXID](@id int)
+as
+begin 
+	select v.Id_Venta,v.Id_Usuario,u.Nombre,v.Id_Vendedor, ve.Nombre Tecnico, r.Id_Ruta,r.Nombre Ruta,
+	ts.Id_TipoServicio,ts.Nombre TipoServicio,v.Fecha_Ejecucion,v.Fecha_Reg
+dbo	spx_ObtenerPedidoVendedorRFechas	
+create  proc [dbo].[spx_ObtenerPedidoVendedorRFechas] (@fecha datetime,@FechaFin datetime)
+as
+SELECT     dbo.tbl_PedidoVendedor.Id_PedidoVendedor, dbo.tbl_PedidoVendedor.Id_Ruta, dbo.tbl_Ruta.Nombre, dbo.tbl_PedidoVendedor.Fecha, 
+dbo.tbl_PedidoVended
+dbo	spx_ObtenerProductosConSerie	CREATE proc [dbo].[spx_ObtenerProductosConSerie]
+as
+	select p.* 
+	from tbl_producto p inner join tbl_ProductosMascaras pm on pm.id_producto=p.id_producto
+	where p.E_Eliminado = 0 and pm.E_Eliminado = 0 and
+	(p.DigitosImei > 0 or p.Digitoschipid > 0)
+
+dbo	spx_ObtenerProductosConSerieSinTarjeta	
+
+create proc [dbo].[spx_ObtenerProductosConSerieSinTarjeta]
+as
+	select * 
+	from tbl_producto 
+	where DigitosImei > 0  and DigitosChipId>0 and E_Eliminado = 0
+	order by nombre
+dbo	spx_ObtenerProductosDatosXRuta	CREATE proc [dbo].[spx_ObtenerProductosDatosXRuta](@Id_Ruta int,@Id_Estado int)
+as
+
+if(@Id_Estado >0)
+begin
+	if (@Id_Ruta = -1)
+	begin
+		select r.Nombre Ruta, pr.Id_Producto,pr.Nombre Producto ,p.serial,p.chipId,ep.Nombre EstadoProducto,FechaTransac
+dbo	spx_ObtenerProductosNoEntregadosOT	CREATE proc [dbo].[spx_ObtenerProductosNoEntregadosOT]( @Id_Ruta int)
+as	
+select dev.Id_Devolucion,dd.Id_DetalleDevolucion,dev.NroOrdenTrabajo,dev.Id_Ruta,dev.Id_TipoDevolucion,dev.Id_Vendedor,
+pr.Id_Producto,
+pr.Nombre,dd.Cod_Inicio,dd.ChipID,dd.Canti
+dbo	spx_ObtenerProductosPCargoUsuario	CREATE proc [dbo].[spx_ObtenerProductosPCargoUsuario]
+as
+select * from 
+(
+	--select * 
+	--from tbl_producto 
+	--where DigitosImei > 0 and E_Eliminado = 0
+	--union all
+	select * 
+	from tbl_producto where  E_Eliminado = 0
+---	where id_producto in (
+dbo	spx_ObtenerProductosPendientesEntrega	
+CREATE proc spx_ObtenerProductosPendientesEntrega
+as
+
+declare @tabla table(Id_Producto int,Producto nvarchar(150),Cantidad int)
+declare @tabla1 table(Id_Producto int,Producto nvarchar(150),Cantidad int)
+insert into @tabla
+	select pr.Id_Producto,pr.
+dbo	spx_ObtenerRutaXIdTecnico	--sp_ObtenerTipoMaterial 1
+--select * from tbl_usuariotecnico
+
+create proc spx_ObtenerRutaXIdTecnico(@Id_Tecnico int)
+as
+select * from tbl_ruta  where id_vendedor =@Id_Tecnico and e_eliminado=0
+dbo	spx_ObtenerSaldoRuta	CREATE proc spx_ObtenerSaldoRuta(@Id_Ruta int,@Fecha datetime)
+as
+declare @tablaSaldo table(
+	Id_Producto int,
+	Nombre nvarchar(max),
+	Saldo decimal(18,2),
+	Venta decimal(18,2),
+	Sobrante decimal(18,2),		
+	Precio decimal(18,2),
+	TotalVendidos deci
+dbo	spx_ObtenerSaldoRuta_CierreAlmacen	
+--spx_ObtenerSaldoRuta_CierreAlmacen '06/07/2022'
+create proc spx_ObtenerSaldoRuta_CierreAlmacen(@fecha datetime)
+as
+declare @tbsaldoAlmacen table(id_producto int, nombre nvarchar(150),SaldoDiaAnterior decimal(18,2),SaldoDiaAnteriorDevolucion decimal(
+dbo	spx_ObtenerSalidaTraspaso	
+CREATE proc [dbo].[spx_ObtenerSalidaTraspaso](@Codigo int)
+as
+begin
+	select st.Id_SalidaTraspaso,st.Id_Ruta,r.Nombre Ruta,st.Fecha,st.Fecha_Registro,st.Observacion,
+	u.Id_Usuario,u.Nombre Usuario 
+	from tbl_SalidaTraspaso st inner join tbl_ruta r on
+dbo	spx_ObtenerSalidaTraspasoPendiente	CREATE proc [dbo].[spx_ObtenerSalidaTraspasoPendiente](@Codigo int)
+as
+begin
+---select * from tbl_SalidaTraspasoPendiente
+	select st.Id_SalidaTraspasoPendiente,st.Id_SalidaTraspaso,st.FechaPendiente,st.FechaRegistrado,st.Estado,st.Observacion,
+	st.Id_
+dbo	spx_ObtenerSucursal	CREATE proc spx_ObtenerSucursal
+as
+select * from tbl_sucursal where e_eliminado=0
+dbo	spx_ObtenerTablaProcedimientos	create proc [dbo].[spx_ObtenerTablaProcedimientos]
+as
+select * from tbl_TablaProcedimientos where E_Eliminado = 0
+dbo	spx_ObtenerTipoBajaProductosPendiente	create proc spx_ObtenerTipoBajaProductosPendiente
+as
+select * from tbl_TipoBajaProductosPendiente where e_eliminado=0
+dbo	spx_ObtenerTipoCobroBaja	
+create proc dbo.spx_ObtenerTipoCobroBaja 
+as
+select * from tbl_TipoCobroBaja where e_eliminado=0 order by tipocobro
+dbo	spx_ObtenerTipoDatosXTabla	create proc [dbo].[sp_ObtenerTipoDatosXTabla](@NombreTabla nvarchar(100))
+as
+Select  TABLE_NAME,COLUMN_NAME,IS_NULLABLE,DATA_TYPE,CHARACTER_MAXIMUM_LENGTH,NUMERIC_PRECISION,NUMERIC_PRECISION_RADIX
+from information_schema.columns WHERE TABLE_NAME=@Nombre
+dbo	spx_ObtenerTipoProducto	create proc spx_ObtenerTipoProducto
+as 
+select * from tbl_TipoProducto where E_Eliminado = 0
+dbo	spx_ObtenerTipoServicio	--select * from tbl_usuariotecnico
+--update tbl_usuario set ultimamodificacion ='04/02/2028' where id_usuario=1
+--select * from tbl_saldotarjetas
+
+
+create proc spx_ObtenerTipoServicio
+as
+select * from tbl_tiposervicio where e_eliminado=0 order by pr
+dbo	spx_ObtenerTipoServicioCUNR	create proc [dbo].[spx_ObtenerTipoServicioCUNR]
+as
+select * from tbl_tiposervicio where id_tiposervicio in (4,5,12,14,6,8,7) order by nombre
+dbo	spx_ObtenerTodasRuta	CREATE proc [dbo].[spx_ObtenerTodasRuta]
+as
+select * from tbl_Ruta where E_Eliminado=0 order by Id_ruta, Nombre
+dbo	spx_ObtenerTodosRol	CREATE proc [dbo].[spx_ObtenerTodosRol]
+as
+select * from tbl_Rol where E_Eliminado = 0
+dbo	spx_ObtenerUsoPromedioMaterialOT	--spx_ObtenerUsoPromedioMaterialOT 92,'16/10/2018 9:44:43','15/11/2018 9:44:43'
+
+CREATE proc [dbo].[spx_ObtenerUsoPromedioMaterialOT](@Id_Ruta int, @FechaInicio datetime , @FechaFin datetime)
+as
+
+declare @Ordenes table (Id_Venta int ,Fecha datetime,Gr
+dbo	spx_ObtenerUsoPromedioMaterialOTAlarma	
+CREATE proc [dbo].[spx_ObtenerUsoPromedioMaterialOTAlarma](@FechaInicio datetime , @FechaFin datetime)
+as
+
+declare @Ordenes table (Id_Venta int ,Fecha datetime,Grupo nvarchar(250), Id_TipoServicio int, TipoServicio nvarchar(250),Ordenes nvarchar(15),m
+dbo	spx_obtenerUsuarioCNR	create proc [dbo].[spx_obtenerUsuarioCNR]
+as 
+select * from tbl_usuario where e_eliminado=0 and id_rol not in(4,5)
+dbo	spx_ObtenerUsuarioSucursal	create proc spx_ObtenerUsuarioSucursal(@Id_Usuario int)
+ as
+ select * from tbl_UsuarioSucursal where Id_Usuario=@Id_Usuario 
+ and E_Eliminado=0
+dbo	spx_ObtenerVersionActual	create proc [dbo].[spx_ObtenerVersionActual]
+as 
+select top 1* from tbl_Version where Habilitado=0
+dbo	spx_ObtenerVersionCentral_tblSucrusal	create proc spx_ObtenerVersionCentral_tblSucrusal(@sucursal nvarchar(50))
+as
+select * from tbl_sucursal where sucursal=@sucursal and e_eliminado=0
+dbo	spx_QuitarPendienteRecojo	create proc [dbo].[spx_QuitarPendienteRecojo](@Id_DetalleDevolucion int,@PendienteRecojo bit)
+as
+update tbl_DetalleDevolucion set PendienteRecojo = @PendienteRecojo  where Id_DetalleDevolucion =@Id_DetalleDevolucion
+dbo	spx_rechazarProductoDevuelvo	CREATE proc [dbo].[spx_rechazarProductoDevuelvo]( @idDevolucion int, @idDetalleDevolucion int, @idProducto int, @Serial nvarchar(50), @ChipID nvarchar(50), @conSerial int, @fechaTransaccion datetime, @idUsuario int )
+as
+	--update tbl_DetalleDevolucion se
+dbo	spx_rechazarProductoDevuelvoTigoPendiente	create proc [dbo].[spx_rechazarProductoDevuelvoTigoPendiente]( @idDevolucion int, @idDetalleDevolucion int, @FechaRegistro datetime,@Id_UsuarioM  int)
+as
+declare  @id_tipoDevolucion int
+
+--set @id_tipoDevolucion = (select id_tipodevolucion from tbl_Dev
+dbo	spx_RegistrarProductosSaldos	
+create proc [dbo].[spx_RegistrarProductosSaldos] (@accion int,@Id_Ruta int)
+as
+--1 cierre de productos nuevos
+if(@accion = 1)
+begin
+	insert into tbl_productosSaldos
+	select *,1,'tbl_CierreAlmacen',getdate(),'Nuevo' 
+	from tbl_productos where e_eli
+dbo	spx_RegMod_Productos	CREATE proc [dbo].[spx_RegMod_Productos](@Serie nvarchar(150),@ChipID nvarchar(150),@Id_Ruta int,@Id_Producto int,
+@Accion int,@codigoTabla int,@Id_Usuario int,@MaterialInsRetirado int,@FechaTransaccion datetime)
+as 
+--1registrar
+declare @cuantos int
+
+dbo	spx_rutasCuadre	CREATE proc [dbo].[spx_rutasCuadre]( @fecha datetime )
+as
+	declare @tablaRutaCuadre table ( idRuta int, idCuadre int, cantPedido int, cantOT int, cantDevolucion int) 
+	-- idRuta | idCuadre
+	insert into @tablaRutaCuadre select tr.Id_Ruta, ISNULL ( tc.Id
+dbo	spx_SePuedeBorrarIngresoMaterialTigo	create proc spx_SePuedeBorrarIngresoMaterialTigo(@Id_IngresoMaterialTigo int)
+as 
+begin 
+	declare @contador int,@respuesta nvarchar(25)
+	set @respuesta = 'NoSePuede'
+	set @contador = (select COUNT(*) from tbl_IngresoMaterialTigo_Almacen where id_Ingre
+dbo	spx_SePuedeCrearGrupo	CREATE proc [dbo].[spx_SePuedeCrearGrupo](@nombre nvarchar(150))
+as
+declare @sePuede nvarchar(150)
+set @sePuede ='NoSePuede'
+declare @cuantos int
+set @cuantos = (select count(id_ruta) from tbl_ruta where nombre = @nombre)
+if(@cuantos<=0)
+begin
+	set
+dbo	spx_SePuedeEliminarProducto	CREATE proc [dbo].[spx_SePuedeEliminarProducto](@IdProducto int)
+as
+declare @respuesta nvarchar(25)
+set @respuesta ='NoSePuede'
+declare @tableRespuesta table(SaldoRuta int, SaldoProductos int, SaldoPendienteEntregaRetirados int, SaldoMovimientos int)
+
+dbo	spx_SePuedeEliminarRuta	CREATE proc [dbo].[spx_SePuedeEliminarRuta](@Idruta int)
+as
+--declare @Idruta int
+declare @fechaInicio datetime
+declare @fechaFin datetime
+set @fechaInicio =  DATEADD(day, -3, getdate()) 
+set @fechaFin = (select getdate())
+--set @Idruta  =5
+
+				s
+dbo	spx_SePuedeEliminarTecnico	create proc spx_SePuedeEliminarTecnico(@Id_Vendedor int)
+as
+begin
+	declare @SePuedeEliminar nvarchar(max)
+	declare @cuantos int
+	set @cuantos = (select count(*) from tbl_ruta where id_vendedor= @Id_Vendedor and e_eliminado=0)
+	if(@cuantos=0)
+		set @
+dbo	spx_SePuedeHacerCierreAlmacen	
+
+create proc [dbo].[spx_SePuedeHacerCierreAlmacen](@Fecha datetime)
+as
+BEGIN
+declare @RespuestaFinal table(respuesta nvarchar(150),Observacion nvarchar(500))
+declare @respuesta nvarchar(500),@Observacion nvarchar(500), @diferenciaDias int 
+	
+decla
+dbo	spx_SePuedeHacerCierreAlmacenPR_PD	
+create proc [dbo].[spx_SePuedeHacerCierreAlmacenPR_PD](@Fecha datetime)
+as
+BEGIN
+declare @RespuestaFinal table(respuesta nvarchar(150),Observacion nvarchar(500))
+declare @respuesta nvarchar(500),@Observacion nvarchar(500), @diferenciaDias int 
+	
+de
+dbo	spx_SePuedeRegistrarCierrePR_PD	
+create proc [dbo].[spx_SePuedeRegistrarCierrePR_PD](@fecha datetime)
+as 
+Begin	
+declare @RespuestaFinal table(respuesta nvarchar(150),Observacion nvarchar(500))
+declare @respuesta nvarchar(500)
+declare @Observacion nvarchar(500)
+declare @CantidadCi
+dbo	spx_sp_ObtenerListadoTipoServicioTSTablas	Create proc spx_sp_ObtenerListadoTipoServicioTSTablas
+as
+select * from tbl_TipoServicioTSTablas where e_eliminado=0
+dbo	spx_TipoDevolucion_Dañado	create proc [dbo].[spx_TipoDevolucion_Dañado]
+as
+ select * from tbl_TipoDevolucion where E_Eliminado = 0 and Id_TipoDevolucion in ( 1 )
+dbo	spx_TipoDevolucion_ExcedenteDanado	CREATE proc [dbo].[spx_TipoDevolucion_ExcedenteDanado]
+as
+	select * from tbl_TipoDevolucion where E_Eliminado = 0 and Id_TipoDevolucion in ( 1, 3 )
+dbo	spx_TipoDevolucion_ExcRuta	create proc [dbo].[spx_TipoDevolucion_ExcRuta]
+as
+ select * from tbl_TipoDevolucion where E_Eliminado = 0 and Id_TipoDevolucion in ( 3 )
+dbo	spx_TraerChipID	CREATE proc [dbo].[spx_TraerChipID](@Id_Producto int,@Serie nvarchar(50))
+as
+begin
+	select * from tbl_productos where serial = @Serie and id_producto=@Id_Producto and e_eliminado=0
+end
+dbo	spx_TraerChipID2	
+
+
+CREATE proc [dbo].[spx_TraerChipID2](@Serie nvarchar(50))
+as
+begin
+	select ps.*,pr.nombre NombreProducto , e.Nombre EstadoProducto
+	from tbl_productos ps inner join tbl_producto pr on pr.id_producto = ps.id_producto
+	inner join tbl_estadoproduct
+dbo	spx_TraerChipID2_vacio	create proc [dbo].[spx_TraerChipID2_vacio](@Serie nvarchar(50),@ChipId nvarchar(50))
+as
+begin
+	select ps.*,pr.nombre NombreProducto , e.Nombre EstadoProducto
+	from tbl_productos ps inner join tbl_producto pr on pr.id_producto = ps.id_producto
+	inner j
+dbo	spx_TraerDatoSerieChipIdCU	
+
+CREATE proc [dbo].[spx_TraerDatoSerieChipIdCU](@serial nvarchar(70))
+as
+begin
+declare @EstadosPermitidos table(id_Estado int)
+insert into @EstadosPermitidos select id_estadoproducto from tbl_estadoproducto where id_estadoproducto in (3,12,7,15,16)
+dbo	spx_TraerDatoSerieChipIdCU_CUNR2	
+create proc [dbo].[spx_TraerDatoSerieChipIdCU_CUNR2](@serial nvarchar(70),@chipid nvarchar(70))
+as
+begin
+declare @EstadosPermitidos table(id_Estado int)
+insert into @EstadosPermitidos select id_estadoproducto from tbl_estadoproducto where id_estadopr
+dbo	spx_TraerDatoSerieChipIdCU_ImportarIngreso	
+
+CREATE proc [dbo].[spx_TraerDatoSerieChipIdCU_ImportarIngreso](@serial nvarchar(70))
+as
+begin
+declare @Existe nvarchar(150), @SePuede nvarchar(150),@Observacion nvarchar(150)
+declare @contador int ,@contador2 int
+declare @tablaDatos table(Id_Produ
+dbo	spx_TraerDatoSerieChipIdCU_OT	--select top 10* from tbl_productos
+--[spx_TraerDatoSerieChipIdCU_OT] '8080248952',51,2,3
+--select top 10* from tbl_productos where id_estadoproducto=8
+--[spx_TraerDatoSerieChipIdCU_OTVF] '8080248952','0600817B2D661971',51,2
+---------------------------
+dbo	spx_TraerDatoSerieChipIdCU_OT_OTProductoBaja	
+
+
+CREATE proc [dbo].[spx_TraerDatoSerieChipIdCU_OT_OTProductoBaja](@serial nvarchar(70),@IdProducto int,@TipoMaterial int,@IdRuta int)
+as
+begin
+declare @EstadosPermitidos table(id_Estado int)
+insert into @EstadosPermitidos select id_estadoproducto 
+dbo	spx_TraerDatoSerieChipIdCU_OTVF	
+--select top 10* from tbl_productos where id_estadoproducto=8
+--[spx_TraerDatoSerieChipIdCU_OTVF] '8080248952','0600817B2D661971',51,2
+--[spx_TraerDatoSerieChipIdCU_OTVF] 'TIG-1443-015903',106,2,136
+----------------------------------------------------
+dbo	spx_TraerDatoSerieChipIdCU_OTVF_OTProductoBaja	----------------------------------------------------------------------------
+--select * from tbl_productos where id_estadoproducto=8
+--select * from tbl_bitacora where serial='TIG-1502-005542'--no
+--select * from tbl_bajaproductos where id_bajaproductos
+dbo	spx_TraerProductoUniversoE18	
+create proc [dbo].[spx_TraerProductoUniversoE18] (@serie nvarchar(50))
+as
+select * from tbl_FaltanteE18 where serie=@serie
+dbo	spx_TraerSerie2	
+create proc [dbo].[spx_TraerSerie2](@ChipId nvarchar(50))
+as
+begin
+	select ps.*,pr.nombre NombreProducto , e.Nombre EstadoProducto
+	from tbl_productos ps inner join tbl_producto pr on pr.id_producto = ps.id_producto
+	inner join tbl_estadoproducto e 
+dbo	spx_TraerTipoSolicitante	
+create proc spx_TraerTipoSolicitante
+as
+select* from tbl_TipoSolicitante where e_eliminado=0
+dbo	spx_TraerTipoSolicitanteEmpleado	
+create proc [dbo].[spx_TraerTipoSolicitanteEmpleado]
+as 
+select * from tbl_tiposolicitante where e_eliminado=0 and id_tipo_solicitante in (1,4)
+dbo	spx_TraerTipoSolicitanteSociosEmbajador	CREATE proc [dbo].[spx_TraerTipoSolicitanteSociosEmbajador]
+as
+select* from tbl_TipoSolicitante where e_eliminado=0 and id_tipo_solicitante in (3,5)
+dbo	spx_TraerTipoUsuario	
+create proc spx_TraerTipoUsuario
+as
+select * from tbl_tipousuario where e_eliminado=0 order by nombre
+dbo	spx_TraerTodosBajasProductos	
+CREATE proc [dbo].[spx_TraerTodosBajasProductos]
+as
+begin
+	select * from
+	(
+		SELECT     b.Id_BajaProductosPendiente Id_BajaProductos,r.Nombre Ruta,v.Nombre Tecnico,'BajaProductosAnticipados' Tipo,Estado,
+		es.Nombre EstadoProductos,b.observacion,
+dbo	spx_TraerTodosBajasProductos_Cobro	CREATE proc [dbo].[spx_TraerTodosBajasProductos_Cobro]
+as
+begin
+	select * from
+	(
+		SELECT Id, CodigoBaja Id_BajaProductos,0 Id_Ruta,'DEUDA' Ruta,Id_Vendedor Id_Tecnico, TipoSolicitante,CodigoEH CodEmpleado,NombreDeudor Tecnico,
+			'Deuda'Tipo, Estad
+dbo	spx_TraerTodosBajasProductosHoy	CREATE proc dbo.spx_TraerTodosBajasProductosHoy(@Fecha datetime)
+as
+	SELECT     b.id_BajaProductos,b.observacion,b.fecha
+	FROM         dbo.tbl_BajaProductos b 
+	where b.E_Eliminado=0 and dbo.dateonly(b.Fecha)=dbo.dateonly(@Fecha)
+dbo	spx_TraerTodosBajasProductosRangoFechas	CREATE proc [dbo].[spx_TraerTodosBajasProductosRangoFechas](@FechaInicio datetime, @FechaFin datetime )
+as
+begin
+select * from
+	(
+	SELECT     b.Id_BajaProductosPendiente Id_BajaProductos,b.FechaPendiente Fecha,r.Nombre Ruta,v.Nombre Tecnico ,'BajaProd
+dbo	spx_TraerTodosSalidasTraspaso	
+CREATE proc [dbo].[spx_TraerTodosSalidasTraspaso]
+as
+select * from (
+	SELECT     b.Id_SalidaTraspasoPendiente Id_SalidaTraspaso,0 Id_Ruta,'GRUPO ALMACEN'  Ruta,'SalidaTraspasoAnticipado' Tipo,Estado,b.FechaPendiente Fecha,b.FechaRegistrado Fecha_Regis
+dbo	spx_TraerTodosSalidasTraspasoHoy	create proc [dbo].[spx_TraerTodosSalidasTraspasoHoy](@Fecha datetime)
+as
+SELECT     b.Id_SalidaTraspaso,b.Id_Ruta,r.Nombre Ruta,b.Fecha,b.Fecha_Registro,b.Observacion,u.Nombre Usuario
+FROM         dbo.tbl_SalidaTraspaso b inner join tbl_Usuario u on u.I
+dbo	spx_TraerTodosSalidasTraspasoRangoFechas	CREATE proc [dbo].[spx_TraerTodosSalidasTraspasoRangoFechas](@FechaInicio datetime,@FechaFin datetime)
+as
+begin
+	select * from (
+		SELECT     b.Id_SalidaTraspasoPendiente Id_SalidaTraspaso,0 Id_Ruta,'GRUPO ALMACEN'  Ruta,'SalidaTraspasoAnticipado' Tipo
+dbo	spx_TraerTodosVendedores	create proc spx_TraerTodosVendedores
+as 
+select * from tbl_vendedor where e_eliminado=0
+dbo	spx_Trazabilidad	CREATE proc [dbo].[spx_Trazabilidad](@serial nvarchar(50),@ChipID nvarchar(50), @Id_TipoCodigo int)
+as
+	if(@Id_TipoCodigo = 0)
+	begin
+		select tb.id_bitacora, tep.Nombre Estado, tb.id_producto, tp.Nombre Producto, tb.serial,tb.ChipID, tb.codigo, tb.tab
+dbo	spx_Trazabilidad_X_SerialChipId	
+CREATE proc [dbo].[spx_Trazabilidad_X_SerialChipId](@serial nvarchar(50),@ChipID nvarchar(50))
+as
+	
+		select tb.id_bitacora, tep.Nombre Estado, tb.id_producto, tp.Nombre Producto, tb.serial,tb.ChipID, tb.codigo, tb.tabla, 
+				tb.observacion Accion, 
+dbo	spx_updateArchivoBajaProducto	
+create proc [dbo].[spx_updateArchivoBajaProducto]( @Id int, @Observacion nvarchar(max), 
+		 @Archivo nvarchar(max), @NombreArchivo nvarchar(150))
+as
+		update tbl_BajaProductos
+		set Observacion = @Observacion, 			
+			archivo = @Archivo,
+			nombrear
+dbo	spx_updateArchivoLlamadaAtencion	create proc [dbo].[spx_updateArchivoLlamadaAtencion]( @Id int,
+		@Archivo nvarchar(max), @NombreArchivo nvarchar(150),
+		@ArchivoF nvarchar(max), @NombreArchivoF nvarchar(150),@QueMod int)
+as
+if(@QueMod =1)--1 modifica archivo firmado
+begin
+		update 
+dbo	spx_updateDevolucion	CREATE proc spx_updateDevolucion( @Id int, @Observacion nvarchar(max), 
+		@FechaRegistro datetime, @Archivo nvarchar(max), @NombreArchivo nvarchar(150), @ModArchivo int )
+as
+	if ( @ModArchivo = 0 ) -- actualizar el detalle o la observacion.
+		update tb
+dbo	spx_ValidaMovimientos	
+CREATE proc [dbo].[spx_ValidaMovimientos](@fecha datetime)
+as 
+Begin	
+	declare @resultado table(movimiento nvarchar(150),cantidad int)
+	declare @FechaUltimoCierre datetime, @cantidadcierres int,@CantidadCierrePRPD int
+	set @FechaUltimoCierre = (sele
+dbo	spx_ValidaMovimientosSCierre	
+create proc [dbo].[spx_ValidaMovimientosSCierre](@fecha datetime)
+as 
+Begin	
+	declare @resultado table(movimiento nvarchar(150),cantidad int)
+	declare @FechaUltimoCierre datetime, @cantidadcierres int,@CantidadCierrePRPD int
+	set @FechaUltimoCierre 
+dbo	spx_ValidarCuadreRuta	CREATE proc dbo.spx_ValidarCuadreRuta(@idRuta int, @fecha datetime )
+as
+	select count(*) from tbl_Cuadre 
+	where dbo.DateOnly( Fecha ) = dbo.DateOnly( @fecha ) 
+		and E_Eliminado = 0 and Id_Ruta = @idRuta;
+dbo	spx_VerificarEstadoSerie	--spx_VerificarEstadoSerie '017981809100','',116,7,1,0
+
+CREATE proc [dbo].[spx_VerificarEstadoSerie]( 
+	@serie nvarchar( 150 ),  -- serie del producto/material a verificar.
+	@ChipId  nvarchar( 150 ),
+	@Id_Producto int, 		-- llave del producto/material
+dbo	spx_VerificarEstadoSerie2	
+CREATE proc [dbo].[spx_VerificarEstadoSerie2]( 
+	@serie nvarchar( 20 ),  -- serie del producto/material a verificar.
+	@ChipId  nvarchar( 20 ),
+	@Id_Producto int, 		-- llave del producto/material
+	@Accion int, 			-- acción a realizar
+	@InstRetirado i
+dbo	spx_VerificarEstadoSerieAntesAccion3	--spx_VerificarEstadoSerie 'TIG-5252-525253','52525252222',1,3,2,3
+create proc [dbo].[spx_VerificarEstadoSerieAntesAccion3]( 
+	@serie nvarchar( 20 ),  -- serie del producto/material a verificar.
+	@ChipId  nvarchar( 20 ),
+	@Id_Producto int, 		-- llave d
+dbo	spx_VerificarEstadoSerieOriginal	CREATE proc [dbo].[spx_VerificarEstadoSerieOriginal]( 
+
+	@serie nvarchar( 20 ),  -- serie del producto/material a verificar.
+
+	@Id_Producto int, 		-- llave del producto/material
+
+	@Accion int, 			-- acción a realizar
+
+	@InstRetirado int, 		-- 
+
+	
+dbo	spz_ObtenerTodosLosBajasXRangoFechas	CREATE proc [dbo].[spz_ObtenerTodosLosBajasXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal,i.id_BajaProductos, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha)Fecha,i.fechaRegistr
+dbo	spz_ObtenerTodosLosCierresXRangoFechas	CREATE proc [dbo].[spz_ObtenerTodosLosCierresXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+AS
+SELECT    (select sucursal from tbl_version)Sucursal, c.id_cierrealmacen, c.id_usuario, c.fecha, c.observacion, c.e_eliminado, c.fecha_regis
+dbo	spz_ObtenerTodosLosCuadreXRangoFechas	
+CREATE proc [dbo].[spz_ObtenerTodosLosCuadreXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal, i.Id_Cuadre, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha)Fecha,i.Fecha_Registro,
+dbo	spz_ObtenerTodosLosDevolucionXRangoFechas	CREATE proc [dbo].[spz_ObtenerTodosLosDevolucionXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal, i.Id_Devolucion, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha)Fecha,i.Fecha_Reg
+dbo	spz_ObtenerTodosLosEntregasXRangoFechas	
+CREATE proc [dbo].[spz_ObtenerTodosLosEntregasXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal,i.Id_AlmacenVendedor, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha)Fecha,i.Fecha
+dbo	spz_ObtenerTodosLosIngresosXRangoFechas	
+
+
+
+
+CREATE proc  [dbo].[spz_ObtenerTodosLosIngresosXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal,i.Id_IngresoAlmacen, u.Nombre Usuario,i.Proveedor,dbo.DateOnly(i.Fecha)Fecha,i
+dbo	spz_ObtenerTodosLosOrdenesTrabajoXRangoFechas	CREATE proc [dbo].[spz_ObtenerTodosLosOrdenesTrabajoXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal,i.Id_Venta, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha_Ejecucion)Fecha,i.F
+dbo	spz_ObtenerTodosLosTraspasosXRangoFechas	CREATE proc [dbo].[spz_ObtenerTodosLosTraspasosXRangoFechas](@FechaInicioDatos datetime,@FechaFinDatos datetime)
+as
+select (select sucursal from tbl_version)Sucursal,i.Id_SalidaTraspaso, u.Nombre Usuario,r.Nombre Ruta,dbo.DateOnly(i.Fecha)Fecha,i.Fecha_R
+dbo	TraerTodosLosProductos	
+CREATE proc [dbo].[TraerTodosLosProductos]
+as
+select * from tbl_producto  where E_Eliminado=0
+order by Nombre Asc

@@ -1,0 +1,1 @@
+JAVA_TOOL_OPTIONS=-Djava.security.properties==C:\Users\JOSUE CABRERA\Downloads\backot-back01062026\backot-back01062026\config\\java.security.override -Djdk.tls.client.protocols=TLSv1,TLSv1.1,TLSv1.2 -Dhttps.protocols=TLSv1,TLSv1.1,TLSv1.2
