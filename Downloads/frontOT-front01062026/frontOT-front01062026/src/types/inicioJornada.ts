@@ -1,0 +1,49 @@
+export type InicioJornadaEstado = {
+  idTecnico: number
+  pendiente: boolean
+  fechaServidor?: string
+  idEncargado?: string
+  encargado?: string
+}
+
+export type CierreJornadaEstado = {
+  idTecnico: number
+  tieneInicioHoy: boolean
+  cerradoHoy: boolean
+  requiereCierre: boolean
+  noMarcoCount: number
+}
+
+export type InicioJornadaEncargado = {
+  idEncargado: string
+  encargado: string
+}
+
+export type InicioJornadaCreatePayload = {
+  idAuxiliar?: number | null
+  idEncargado?: number
+  capacitado: 'SI' | 'NO'
+  charla: 'SI' | 'NO'
+  botiquin: 'SI' | 'NO'
+  extintor: 'SI' | 'NO'
+  fechaVencimiento: string
+  equipoEpp: 'SI' | 'NO'
+  estadoEpp: 'SI' | 'NO'
+  apr: 'SI' | 'NO'
+  escalera: 'SI' | 'NO'
+  anclaje: 'SI' | 'NO'
+  imagen: string
+  ubicacionGeoRef?: string
+  sucursal?: string
+}
+
+export type CierreJornadaPayload = {
+  codigoCliente: string
+  danoMaterial: 'SI' | 'NO'
+  observacionMaterial?: string
+  danoPersona: 'SI' | 'NO'
+  observacionPersona?: string
+  novedadesTrabajo: 'SI' | 'NO'
+  observacionNovedades?: string
+  ubicacionGeoRef: string
+}
