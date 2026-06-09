@@ -47,6 +47,7 @@ export type SupervisionRegistro = {
   fotoObservacion2?: string
   fotoObservacion3?: string
   fotoObservacion4?: string
+  estadoSup?: 'pendiente' | 'completado' | string
 }
 
 export type SupervisionListParams = {

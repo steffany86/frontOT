@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { useMemo, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -99,6 +99,7 @@ const TECNOLOGIA_OPTIONS = ['DTH', 'HFC'] as const
 const TIPO_REVISION_OPTIONS = ['EXTERNA', 'INTERNA', 'Externa/Interna'] as const
 
 const normalizeId = (value?: string | number | null): string => String(value ?? '').trim()
+const normalizeUpperText = (value: string): string => value.trimStart().toUpperCase()
 
 const resolveImageSrc = (value?: string): string | null => {
   const raw = value?.trim()
@@ -208,33 +209,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
 
   const tecnicos = tecnicosQuery.data ?? []
 
-  const tecnicoMap = useMemo(() => {
-    const map = new Map<string, (typeof tecnicos)[number]>()
-    for (const tecnico of tecnicos) {
-      map.set(normalizeId(tecnico.idTecnico), tecnico)
-    }
-    return map
-  }, [tecnicos])
-
-  const tecnicosAuxiliar = useMemo(() => {
-    const idPrincipal = normalizeId(form.idTecnicoPrincipal)
-    if (!idPrincipal) return tecnicos
-    const principal = tecnicoMap.get(idPrincipal)
-    if (!principal) return tecnicos
-
-    const grupoRef = (principal.grupo ?? '').trim().toLowerCase()
-    const rutaRef = normalizeId(principal.idRuta)
-
-    const filtered = tecnicos.filter((item) => {
-      if (normalizeId(item.idTecnico) === idPrincipal) return false
-      const sameGrupo = grupoRef && (item.grupo ?? '').trim().toLowerCase() === grupoRef
-      const sameRuta = rutaRef && normalizeId(item.idRuta) === rutaRef
-      return Boolean(sameGrupo || sameRuta)
-    })
-
-    return filtered.length ? filtered : tecnicos.filter((item) => normalizeId(item.idTecnico) !== idPrincipal)
-  }, [form.idTecnicoPrincipal, tecnicoMap, tecnicos])
-
   const filterTecnicos = (items: typeof tecnicos) => {
     const query = tecnicoFilter.trim().toLowerCase()
     if (!query) return items
@@ -246,15 +220,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   }
 
   const tecnicosPrincipalFiltrados = useMemo(() => filterTecnicos(tecnicos), [tecnicoFilter, tecnicos])
-  const tecnicosAuxiliarFiltrados = useMemo(() => filterTecnicos(tecnicosAuxiliar), [tecnicoFilter, tecnicosAuxiliar])
-
-  useEffect(() => {
-    if (!form.idTecnicoAuxiliar) return
-    const exists = tecnicosAuxiliar.some((item) => normalizeId(item.idTecnico) === normalizeId(form.idTecnicoAuxiliar))
-    if (!exists) {
-      setForm((prev) => ({ ...prev, idTecnicoAuxiliar: '' }))
-    }
-  }, [form.idTecnicoAuxiliar, tecnicosAuxiliar])
 
   const handlePhotoChange = async (field: keyof SupervisionForm, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -292,7 +257,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     const requiredFields: Array<keyof SupervisionForm> = [
       'idSupervisorAsignado',
       'idTecnicoPrincipal',
-      'idTecnicoAuxiliar',
       'idTipoSupervision',
       'idTipoTrabajo',
       'idTipoPenalizacion',
@@ -301,7 +265,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
       'codigo',
       'ordenTrabajo',
       'tipoRevision',
-      'ubicacion',
     ]
 
     const missing = requiredFields.filter((field) => !form[field]?.trim())
@@ -311,7 +274,10 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     }
 
     setErrorForm(null)
-    createMutation.mutate(form)
+    createMutation.mutate({
+      ...form,
+      idTecnicoAuxiliar: form.idTecnicoAuxiliar.trim().toUpperCase(),
+    })
   }
 
   const handleClose = () => {
@@ -347,7 +313,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                     idSupervisorAsignado: newSuperId,
                     idTecnicoPrincipal: '',
                     idTecnicoAuxiliar: '',
-                    codigo: ''
                   }))
                   setTecnicoFilter('')
                 }}
@@ -392,13 +357,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                     setForm((prev) => ({
                       ...prev,
                       idTecnicoPrincipal: event.target.value,
-                      codigo: tecnicoMap.get(normalizeId(event.target.value))?.codigo
-                        || tecnicoMap.get(normalizeId(event.target.value))?.codEmpleado
-                        || '',
-                      idTecnicoAuxiliar:
-                        prev.idTecnicoAuxiliar && prev.idTecnicoAuxiliar === event.target.value
-                          ? ''
-                          : prev.idTecnicoAuxiliar,
                     }))
                   }
                   disabled={!form.idSupervisorAsignado || tecnicosQuery.isLoading}
@@ -417,28 +375,17 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Tecnico Auxiliar (Obligatorio)">
-                <select
+              <Field label="Tecnico auxiliar">
+                <input
                   className="input-base"
+                  type="text"
+                  placeholder="Escribe el nombre del auxiliar"
                   value={form.idTecnicoAuxiliar}
-                  onChange={(event) => setForm((prev) => ({ ...prev, idTecnicoAuxiliar: event.target.value }))}
-                  disabled={!form.idSupervisorAsignado || tecnicosQuery.isLoading}
-                >
-                  <option value="">
-                    {!form.idSupervisorAsignado 
-                      ? 'Selecciona supervisor primero' 
-                      : tecnicosQuery.isLoading 
-                      ? 'Cargando tecnicos...' 
-                      : 'Selecciona tecnico'}
-                  </option>
-                  {tecnicosAuxiliarFiltrados.map((tec) => (
-                    <option key={tec.idTecnico} value={tec.idTecnico}>
-                      {tec.tecnico}
-                    </option>
-                  ))}
-                </select>
+                  maxLength={150}
+                  onChange={(event) => setForm((prev) => ({ ...prev, idTecnicoAuxiliar: normalizeUpperText(event.target.value) }))}
+                />
               </Field>
-              <Field label="Codigo (Obligatorio)">
+              <Field label="Codigo cliente (Obligatorio)">
                 <input
                   className="input-base"
                   value={form.codigo}
@@ -554,7 +501,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
               Ubicacion
             </h4>
             <div className="space-y-3">
-              <Field label="Coordenadas / direccion (Obligatorio)">
+              <Field label="Coordenadas / direccion">
                 <input className="input-base" value={form.ubicacion} onChange={(e) => setForm((p) => ({ ...p, ubicacion: e.target.value }))} />
               </Field>
               <Button type="button" variant="secondary" onClick={resolverUbicacionAltaPrecision} disabled={ubicacionResolviendo} className="w-full">

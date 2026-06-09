@@ -103,6 +103,8 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
   const tecnicoAuxiliarNombre = normalizeString(
     readValue(row, ['tecnicoAuxiliarNombre', 'auxiliarNombre', 'nombreTecnicoAuxiliar', 'tecnico_auxiliar_nombre'])
   ) || undefined
+  const idTecnicoAuxiliar = normalizeString(readValue(row, ['idTecnicoAuxiliar', 'id_tecnico_auxiliar', 'Id_TecnicoAuxiliar'])) || undefined
+  const idTecnicoAuxiliarEsNombre = idTecnicoAuxiliar ? !/^\d+$/.test(idTecnicoAuxiliar) : false
 
   return {
     idSupervision: normalizeString(readValue(row, ['idSupervision', 'id_supervision', 'idsupervision', 'Id_Supervision'])),
@@ -111,9 +113,11 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     supervisor: supervisorNombre || normalizeString(readValue(row, ['supervisor', 'nombreSupervisor'])) || undefined,
     idTecnicoPrincipal: normalizeString(readValue(row, ['idTecnicoPrincipal', 'id_tecnico_principal', 'Id_TecnicoPrincipal'])) || undefined,
     tecnicoPrincipal: tecnicoPrincipalNombre || normalizeString(readValue(row, ['tecnicoPrincipal', 'nombreTecnicoPrincipal', 'tecnico'])) || undefined,
-    idTecnicoAuxiliar: normalizeString(readValue(row, ['idTecnicoAuxiliar', 'id_tecnico_auxiliar', 'Id_TecnicoAuxiliar'])) || undefined,
+    idTecnicoAuxiliar,
     tecnicoAuxiliar:
-      tecnicoAuxiliarNombre || normalizeString(readValue(row, ['tecnicoAuxiliar', 'nombreTecnicoAuxiliar', 'auxiliar'])) || undefined,
+      tecnicoAuxiliarNombre ||
+      normalizeString(readValue(row, ['tecnicoAuxiliar', 'nombreTecnicoAuxiliar', 'auxiliar'])) ||
+      (idTecnicoAuxiliarEsNombre ? idTecnicoAuxiliar : undefined),
     idTipoSupervision,
     tipoSupervision: normalizeString(readValue(row, ['tipoSupervision', 'TipoSupervision'])) || idTipoSupervision || undefined,
     idTipoTrabajo,
@@ -138,6 +142,7 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     fotoObservacion2: normalizeString(readValue(row, ['fotoObservacion2', 'FotoObservacion2'])) || undefined,
     fotoObservacion3: normalizeString(readValue(row, ['fotoObservacion3', 'FotoObservacion3'])) || undefined,
     fotoObservacion4: normalizeString(readValue(row, ['fotoObservacion4', 'FotoObservacion4'])) || undefined,
+    estadoSup: normalizeString(readValue(row, ['estadoSup', 'estado_sup', 'estdo_sup', 'EstadoSup'])) || undefined,
   }
 }
 
@@ -205,6 +210,20 @@ export const fetchSupervisionesPendientes = async (params?: SupervisionListParam
   return rows.map(mapRegistro).filter((item) => item.idSupervision)
 }
 
+export const fetchBackofficeSupervisionesPorEstado = async (
+  estado: 'pendiente' | 'completado',
+  params?: SupervisionListParams
+): Promise<SupervisionRegistro[]> => {
+  const { data } = await api.get('/backoffice/supervision/listado', {
+    params: {
+      ...sanitizeListParams(params),
+      estado,
+    },
+  })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapRegistro).filter((item) => item.idSupervision)
+}
+
 export const fetchSupervisionDetalle = async (idSupervision: string): Promise<SupervisionRegistro> => {
   const { data } = await api.get(`${SUPERVISION_BASE_PATH}/${idSupervision}`)
   const payload = normalizeObjectResponse<Record<string, unknown>>(data)
@@ -213,6 +232,16 @@ export const fetchSupervisionDetalle = async (idSupervision: string): Promise<Su
 
 export const createSupervision = async (payload: SupervisionCreatePayload): Promise<SupervisionCreateResult> => {
   const { data } = await api.post(SUPERVISION_BASE_PATH, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return normalizeObjectResponse<SupervisionCreateResult>(data)
+}
+
+export const realizarSupervisionPendiente = async (
+  idSupervision: string,
+  payload: SupervisionCreatePayload
+): Promise<SupervisionCreateResult> => {
+  const { data } = await api.post(`${SUPERVISION_BASE_PATH}/${idSupervision}/realizar`, payload, {
     headers: { 'Content-Type': 'application/json' },
   })
   return normalizeObjectResponse<SupervisionCreateResult>(data)

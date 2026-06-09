@@ -21,6 +21,7 @@ import {
   fetchSupervisionTiposTrabajo,
   fetchSupervisiones,
   fetchSupervisionesPendientes,
+  realizarSupervisionPendiente,
 } from '../api/supervisionApi'
 import type {
   SupervisionCreatePayload,
@@ -93,7 +94,6 @@ const emptyFiltro = (): SupervisionFiltro => ({
 
 const requiredFields: Array<keyof SupervisionForm> = [
   'idTecnicoPrincipal',
-  'idTecnicoAuxiliar',
   'idTipoSupervision',
   'idTipoTrabajo',
   'idTipoPenalizacion',
@@ -123,6 +123,7 @@ const TECNOLOGIA_OPTIONS = ['DTH', 'HFC'] as const
 const TIPO_REVISION_OPTIONS = ['EXTERNA', 'INTERNA', 'Externa/Interna'] as const
 
 const normalizeId = (value?: string | number | null): string => String(value ?? '').trim()
+const normalizeUpperText = (value: string): string => value.trimStart().toUpperCase()
 
 const toOptional = (value: string): string | undefined => {
   const trimmed = value.trim()
@@ -290,6 +291,8 @@ const SupervisorSupervisionPage = () => {
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [inicioPendienteDetalle, setInicioPendienteDetalle] = useState<SupervisionInicioPendiente | null>(null)
+  const [jornadaDetalleModo, setJornadaDetalleModo] = useState<'inicio' | 'cierre'>('inicio')
+  const [realizandoPendienteId, setRealizandoPendienteId] = useState<string>('')
 
   const tecnicosQuery = useQuery({
     queryKey: ['supervision', 'tecnicos', usuario?.idUsuario ?? 0],
@@ -362,11 +365,31 @@ const SupervisorSupervisionPage = () => {
       setSuccessForm(`Nota de supervision registrada. ID: ${result.idSupervision}`)
       setRegistroModalOpen(false)
       setForm(emptyForm())
+      setRealizandoPendienteId('')
       queryClient.invalidateQueries({ queryKey: ['supervision', 'listado'] })
+      queryClient.invalidateQueries({ queryKey: ['supervision', 'listado-pendientes'] })
     },
     onError: (error) => {
       setSuccessForm(null)
       setErrorForm(getApiErrorMessage(error, 'No se pudo registrar la supervision.'))
+    },
+  })
+
+  const realizarPendienteMutation = useMutation({
+    mutationFn: ({ idSupervision, payload }: { idSupervision: string; payload: SupervisionCreatePayload }) =>
+      realizarSupervisionPendiente(idSupervision, payload),
+    onSuccess: (result) => {
+      setErrorForm(null)
+      setSuccessForm(`Supervision realizada. ID: ${result.idSupervision}`)
+      setRegistroModalOpen(false)
+      setForm(emptyForm())
+      setRealizandoPendienteId('')
+      queryClient.invalidateQueries({ queryKey: ['supervision', 'listado'] })
+      queryClient.invalidateQueries({ queryKey: ['supervision', 'listado-pendientes'] })
+    },
+    onError: (error) => {
+      setSuccessForm(null)
+      setErrorForm(getApiErrorMessage(error, 'No se pudo realizar la supervision pendiente.'))
     },
   })
 
@@ -391,10 +414,34 @@ const SupervisorSupervisionPage = () => {
   const listadosPendientes = listadoPendientesQuery.data ?? []
   const iniciosPendientes = iniciosPendientesQuery.data ?? []
   const iniciosConfirmadosHoy = iniciosConfirmadosHoyQuery.data ?? []
+  const tieneCierreJornada = (row: SupervisionInicioPendiente): boolean =>
+    Boolean(row.fechaCierre) ||
+    Boolean(row.codigoClienteCierre) ||
+    Boolean(row.danoMaterial) ||
+    Boolean(row.danoPersona) ||
+    Boolean(row.novedadesTrabajo) ||
+    Boolean(row.ubicacionCierreGeoref)
+  const iniciosConfirmadosAbiertosHoy = useMemo(
+    () => iniciosConfirmadosHoy.filter((row) => !tieneCierreJornada(row)),
+    [iniciosConfirmadosHoy]
+  )
+  const cierresJornadaHoy = useMemo(
+    () => iniciosConfirmadosHoy.filter((row) => tieneCierreJornada(row)),
+    [iniciosConfirmadosHoy]
+  )
   const tecnicos = useMemo(
     () => mergeTecnicosDisponibles(catalogoTecnicos, iniciosPendientes, iniciosConfirmadosHoy),
     [catalogoTecnicos, iniciosConfirmadosHoy, iniciosPendientes]
   )
+  const idsSupervisionesPendientes = useMemo(
+    () => new Set(listadosPendientes.map((item) => item.idSupervision)),
+    [listadosPendientes]
+  )
+
+  const abrirDetalleJornada = (row: SupervisionInicioPendiente, modo: 'inicio' | 'cierre') => {
+    setInicioPendienteDetalle(row)
+    setJornadaDetalleModo(modo)
+  }
 
   const pendientesColumns = useMemo<Column<SupervisionInicioPendiente>[]>(() => {
     const resolveTecnicoNombre = (id?: string, nombre?: string): string => {
@@ -420,7 +467,7 @@ const SupervisorSupervisionPage = () => {
         header: 'Supervisor',
         render: (row) => row.supervisorNombre || row.idSupervisor || '-',
       },
-      { key: 'estado', header: 'Estado', render: (row) => row.estado || (row.fechaCierre ? 'JORNADA FINALIZADA' : 'PENDIENTE') },
+      { key: 'estado', header: 'Estado', render: (row) => tieneCierreJornada(row) ? 'JORNADA FINALIZADA' : (row.estado || 'PENDIENTE') },
       {
         key: 'imagen',
         header: 'Imagen inicio',
@@ -439,17 +486,18 @@ const SupervisorSupervisionPage = () => {
         header: 'Acciones',
         render: (row) => {
           const isAprobada = String(row.estado ?? '').toUpperCase().includes('APROBAD')
+          const isCerrada = tieneCierreJornada(row)
           return (
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
                 variant="secondary"
-                onClick={() => setInicioPendienteDetalle(row)}
+                onClick={() => abrirDetalleJornada(row, 'inicio')}
                 disabled={aprobarInicioMutation.isPending || rechazarInicioMutation.isPending}
               >
-                Ver formulario
+                Ver inicio
               </Button>
-              {!isAprobada ? (
+              {!isAprobada && !isCerrada ? (
                 <>
                   <Button
                     type="button"
@@ -475,6 +523,29 @@ const SupervisorSupervisionPage = () => {
     ]
   }, [aprobarInicioMutation, rechazarInicioMutation, tecnicos])
 
+  const confirmadasColumns = useMemo<Column<SupervisionInicioPendiente>[]>(() => {
+    const baseColumns = pendientesColumns.filter((column) => column.key !== 'acciones')
+    return [
+      ...baseColumns,
+      {
+        key: 'acciones',
+        header: 'Acciones',
+        render: (row) => (
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'inicio')}>
+              Ver inicio
+            </Button>
+            {tieneCierreJornada(row) ? (
+              <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'cierre')}>
+                Ver cierre
+              </Button>
+            ) : null}
+          </div>
+        ),
+      },
+    ]
+  }, [pendientesColumns])
+
   const tecnicoMap = useMemo(() => {
     const map = new Map<string, (typeof tecnicos)[number]>()
     for (const tecnico of tecnicos) {
@@ -483,24 +554,39 @@ const SupervisorSupervisionPage = () => {
     return map
   }, [tecnicos])
 
-  const tecnicosAuxiliar = useMemo(() => {
-    const idPrincipal = normalizeId(form.idTecnicoPrincipal)
-    if (!idPrincipal) return tecnicos
-    const principal = tecnicoMap.get(idPrincipal)
-    if (!principal) return tecnicos
+  const camposBaseBloqueados = Boolean(realizandoPendienteId)
 
-    const grupoRef = (principal.grupo ?? '').trim().toLowerCase()
-    const rutaRef = normalizeId(principal.idRuta)
-
-    const filtered = tecnicos.filter((item) => {
-      if (normalizeId(item.idTecnico) === idPrincipal) return false
-      const sameGrupo = grupoRef && (item.grupo ?? '').trim().toLowerCase() === grupoRef
-      const sameRuta = rutaRef && normalizeId(item.idRuta) === rutaRef
-      return Boolean(sameGrupo || sameRuta)
+  const abrirRealizarPendiente = (row: SupervisionRegistro) => {
+    setForm({
+      idTecnicoPrincipal: normalizeId(row.idTecnicoPrincipal),
+      idTecnicoAuxiliar: (row.tecnicoAuxiliar || row.idTecnicoAuxiliar || '').trim().toUpperCase(),
+      idTipoSupervision: normalizeId(row.idTipoSupervision),
+      idTipoTrabajo: normalizeId(row.idTipoTrabajo),
+      idTipoPenalizacion: normalizeId(row.idTipoPenalizacion),
+      supervisionPor: row.supervisionPor || '',
+      tecnologia: row.tecnologia || '',
+      codigo: row.codigo || '',
+      ordenTrabajo: row.ordenTrabajo || '',
+      tipoRevision: row.tipoRevision || '',
+      ubicacion: row.ubicacion || '',
+      observacion: row.observacion || '',
+      descripcionAdicionalObservacion: row.descripcionAdicionalObservacion || '',
+      fotoBoletaSupervision: row.fotoBoletaSupervision || '',
+      fotoCanalesPilos: row.fotoCanalesPilos || '',
+      fotoNivelesDocsis: row.fotoNivelesDocsis || '',
+      fotoMedicionRuido: row.fotoMedicionRuido || '',
+      fotoBarridoCanales: row.fotoBarridoCanales || '',
+      fotoObservacion1: row.fotoObservacion1 || '',
+      fotoObservacion2: row.fotoObservacion2 || '',
+      fotoObservacion3: row.fotoObservacion3 || '',
+      fotoObservacion4: row.fotoObservacion4 || '',
     })
-
-    return filtered.length ? filtered : tecnicos.filter((item) => normalizeId(item.idTecnico) !== idPrincipal)
-  }, [form.idTecnicoPrincipal, tecnicoMap, tecnicos])
+    setRealizandoPendienteId(row.idSupervision)
+    setTecnicoFilter('')
+    setErrorForm(null)
+    setSuccessForm(null)
+    setRegistroModalOpen(true)
+  }
 
   const filterTecnicos = (items: typeof tecnicos) => {
     const query = tecnicoFilter.trim().toLowerCase()
@@ -513,7 +599,6 @@ const SupervisorSupervisionPage = () => {
   }
 
   const tecnicosPrincipalFiltrados = useMemo(() => filterTecnicos(tecnicos), [tecnicoFilter, tecnicos])
-  const tecnicosAuxiliarFiltrados = useMemo(() => filterTecnicos(tecnicosAuxiliar), [tecnicoFilter, tecnicosAuxiliar])
 
   const columns = useMemo<Column<SupervisionRegistro>[]>(() => {
     const tipoSupervisionMap = new Map<string, string>(
@@ -590,21 +675,29 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'acciones',
         header: 'Acciones',
-        render: (row) => (
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => {
-              setDetalleId(row.idSupervision)
-              setDetalleModalOpen(true)
-            }}
-          >
-            Ver detalle
-          </Button>
-        ),
+        render: (row) => {
+          const estado = String(row.estadoSup || '').trim().toLowerCase()
+          const esPendiente = estado === 'pendiente' || estado === 'pendientes' || idsSupervisionesPendientes.has(row.idSupervision)
+          return esPendiente ? (
+            <Button type="button" onClick={() => abrirRealizarPendiente(row)}>
+              Realizar supervision
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setDetalleId(row.idSupervision)
+                setDetalleModalOpen(true)
+              }}
+            >
+              Ver detalle
+            </Button>
+          )
+        },
       },
     ]
-  }, [tecnicoMap, tiposSupervisionQuery.data, tiposTrabajoQuery.data])
+  }, [idsSupervisionesPendientes, tecnicoMap, tiposSupervisionQuery.data, tiposTrabajoQuery.data])
 
   const tipoSupervisionMap = useMemo(
     () => new Map<string, string>((tiposSupervisionQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])),
@@ -628,14 +721,6 @@ const SupervisorSupervisionPage = () => {
     if (row.tipoTrabajo?.trim() && row.tipoTrabajo.trim() !== id) return row.tipoTrabajo.trim()
     return id || '-'
   }
-
-  useEffect(() => {
-    if (!form.idTecnicoAuxiliar) return
-    const exists = tecnicosAuxiliar.some((item) => normalizeId(item.idTecnico) === normalizeId(form.idTecnicoAuxiliar))
-    if (!exists) {
-      setForm((prev) => ({ ...prev, idTecnicoAuxiliar: '' }))
-    }
-  }, [form.idTecnicoAuxiliar, tecnicosAuxiliar])
 
   useEffect(() => {
     if (!registroModalOpen) return
@@ -706,7 +791,7 @@ const SupervisorSupervisionPage = () => {
 
     const payload: SupervisionCreatePayload = {
       idTecnicoPrincipal: form.idTecnicoPrincipal,
-      idTecnicoAuxiliar: form.idTecnicoAuxiliar,
+      idTecnicoAuxiliar: form.idTecnicoAuxiliar.trim().toUpperCase(),
       idTipoSupervision: form.idTipoSupervision,
       idTipoTrabajo: form.idTipoTrabajo,
       idTipoPenalizacion: form.idTipoPenalizacion,
@@ -731,7 +816,19 @@ const SupervisorSupervisionPage = () => {
 
     setErrorForm(null)
     setSuccessForm(null)
-    createMutation.mutate(payload)
+    if (realizandoPendienteId) {
+      realizarPendienteMutation.mutate({ idSupervision: realizandoPendienteId, payload })
+    } else {
+      createMutation.mutate(payload)
+    }
+  }
+
+  const closeRegistroModal = () => {
+    setRegistroModalOpen(false)
+    setRealizandoPendienteId('')
+    setForm(emptyForm())
+    setErrorForm(null)
+    setTecnicoFilter('')
   }
 
   const detalle = detalleQuery.data
@@ -762,7 +859,7 @@ const SupervisorSupervisionPage = () => {
         <>
           <FormCard
             title="Confirmadas hoy"
-            description={`Total confirmadas hoy: ${iniciosConfirmadosHoy.length}`}
+            description={`Total confirmadas abiertas hoy: ${iniciosConfirmadosAbiertosHoy.length}`}
             actions={
               <Button
                 type="button"
@@ -778,11 +875,38 @@ const SupervisorSupervisionPage = () => {
           >
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
               <Table
-                columns={pendientesColumns}
-                data={iniciosConfirmadosHoy}
+                columns={confirmadasColumns}
+                data={iniciosConfirmadosAbiertosHoy}
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
-                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'Sin confirmadas hoy.'}
+                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'Sin confirmadas abiertas hoy.'}
+              />
+            </div>
+          </FormCard>
+
+          <FormCard
+            title="Cierres de jornada"
+            description={`Total cerradas hoy: ${cierresJornadaHoy.length}`}
+            actions={
+              <Button
+                type="button"
+                variant="secondary"
+                className="px-5"
+                onClick={() => iniciosConfirmadosHoyQuery.refetch()}
+                disabled={iniciosConfirmadosHoyQuery.isFetching}
+              >
+                <FontAwesomeIcon icon={faRotateRight} />
+                Recargar cierres
+              </Button>
+            }
+          >
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3">
+              <Table
+                columns={confirmadasColumns}
+                data={cierresJornadaHoy}
+                stickyHeader
+                desktopMinWidthClass="min-w-[980px]"
+                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando cierres...' : 'Sin cierres de jornada hoy.'}
               />
             </div>
           </FormCard>
@@ -884,7 +1008,17 @@ const SupervisorSupervisionPage = () => {
             description="Filtra notas por rango de fechas."
             actions={
               <>
-                <Button type="button" onClick={() => setRegistroModalOpen(true)} className="px-5">
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setRealizandoPendienteId('')
+                    setForm(emptyForm())
+                    setErrorForm(null)
+                    setTecnicoFilter('')
+                    setRegistroModalOpen(true)
+                  }}
+                  className="px-5"
+                >
                   + Nueva supervision
                 </Button>
                 <Button type="button" variant="secondary" className="px-5" onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}>
@@ -1004,16 +1138,20 @@ const SupervisorSupervisionPage = () => {
 
       <Modal
         open={registroModalOpen}
-        title="Nueva nota de supervision"
-        onClose={() => setRegistroModalOpen(false)}
+        title={realizandoPendienteId ? "Realizar supervision pendiente" : "Nueva nota de supervision"}
+        onClose={closeRegistroModal}
         maxWidthClass="max-w-5xl"
         actions={
           <>
-            <Button type="button" variant="secondary" onClick={() => setRegistroModalOpen(false)}>
+            <Button type="button" variant="secondary" onClick={closeRegistroModal}>
               Cancelar
             </Button>
-            <Button type="button" onClick={submitForm} disabled={createMutation.isPending}>
-              {createMutation.isPending ? 'Guardando...' : 'Guardar nota'}
+            <Button type="button" onClick={submitForm} disabled={createMutation.isPending || realizarPendienteMutation.isPending}>
+              {createMutation.isPending || realizarPendienteMutation.isPending
+                ? 'Guardando...'
+                : realizandoPendienteId
+                  ? 'Finalizar supervision'
+                  : 'Guardar nota'}
             </Button>
           </>
         }
@@ -1030,7 +1168,7 @@ const SupervisorSupervisionPage = () => {
                     placeholder="Buscar por nombre o ID..."
                     value={tecnicoFilter}
                     onChange={(e) => setTecnicoFilter(e.target.value)}
-                    disabled={tecnicosQuery.isLoading}
+                    disabled={tecnicosQuery.isLoading || camposBaseBloqueados}
                   />
                 </Field>
                 <div />
@@ -1038,18 +1176,12 @@ const SupervisorSupervisionPage = () => {
                   <select
                     className="input-base"
                     value={form.idTecnicoPrincipal}
-                    disabled={tecnicosQuery.isLoading}
+                    disabled={tecnicosQuery.isLoading || camposBaseBloqueados}
                     onChange={(event) => {
                       const selectedId = event.target.value
-                      const selectedTecnico = tecnicoMap.get(normalizeId(selectedId))
                       setForm((prev) => ({
                         ...prev,
                         idTecnicoPrincipal: selectedId,
-                        idTecnicoAuxiliar:
-                          prev.idTecnicoAuxiliar && prev.idTecnicoAuxiliar === selectedId
-                            ? ''
-                            : prev.idTecnicoAuxiliar,
-                        codigo: selectedTecnico?.codEmpleado?.trim() || '',
                       }))
                     }}
                   >
@@ -1061,22 +1193,17 @@ const SupervisorSupervisionPage = () => {
                     ))}
                   </select>
                 </Field>
-                <Field label="Tecnico auxiliar (Obligatorio)">
-                  <select
+                <Field label="Tecnico auxiliar">
+                  <input
                     className="input-base"
+                    type="text"
+                    placeholder="Escribe el nombre del auxiliar"
                     value={form.idTecnicoAuxiliar}
-                    disabled={tecnicosQuery.isLoading}
-                    onChange={(event) => setForm((prev) => ({ ...prev, idTecnicoAuxiliar: event.target.value }))}
-                  >
-                    <option value="">{tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Selecciona tecnico'}</option>
-                    {tecnicosAuxiliarFiltrados.map((item) => (
-                      <option key={`a-${item.idTecnico}`} value={item.idTecnico}>
-                        {item.tecnico}
-                      </option>
-                    ))}
-                  </select>
+                    maxLength={150}
+                    onChange={(event) => setForm((prev) => ({ ...prev, idTecnicoAuxiliar: normalizeUpperText(event.target.value) }))}
+                  />
                 </Field>
-                <Field label="Codigo (Obligatorio)">
+                <Field label="Codigo cliente (Obligatorio)">
                   <input
                     className="input-base"
                     value={form.codigo}
@@ -1094,6 +1221,7 @@ const SupervisorSupervisionPage = () => {
                   <select
                     className="input-base"
                     value={form.idTipoSupervision}
+                    disabled={camposBaseBloqueados}
                     onChange={(event) => setForm((prev) => ({ ...prev, idTipoSupervision: event.target.value }))}
                   >
                     <option value="">Selecciona tipo</option>
@@ -1106,6 +1234,7 @@ const SupervisorSupervisionPage = () => {
                   <select
                     className="input-base"
                     value={form.idTipoTrabajo}
+                    disabled={camposBaseBloqueados}
                     onChange={(event) => setForm((prev) => ({ ...prev, idTipoTrabajo: event.target.value }))}
                   >
                     <option value="">Selecciona tipo</option>
@@ -1118,6 +1247,7 @@ const SupervisorSupervisionPage = () => {
                   <select
                     className="input-base"
                     value={form.idTipoPenalizacion}
+                    disabled={camposBaseBloqueados}
                     onChange={(event) => setForm((prev) => ({ ...prev, idTipoPenalizacion: event.target.value }))}
                   >
                     <option value="">Selecciona tipo</option>
@@ -1127,7 +1257,7 @@ const SupervisorSupervisionPage = () => {
                   </select>
                 </Field>
                 <Field label="Supervision por (Obligatorio)">
-                  <select className="input-base" value={form.supervisionPor} onChange={(e) => setForm((p) => ({ ...p, supervisionPor: e.target.value }))}>
+                  <select className="input-base" value={form.supervisionPor} disabled={camposBaseBloqueados} onChange={(e) => setForm((p) => ({ ...p, supervisionPor: e.target.value }))}>
                     <option value="">Selecciona supervision</option>
                     {SUPERVISION_POR_OPTIONS.map((item) => (
                       <option key={item} value={item}>{item}</option>
@@ -1143,7 +1273,7 @@ const SupervisorSupervisionPage = () => {
               <h4 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wide text-slate-800"><FontAwesomeIcon icon={faScrewdriverWrench} className="text-brand-600" />Informacion de obra</h4>
               <div className="grid gap-4 md:grid-cols-3">
                 <Field label="Tecnologia (Obligatorio)">
-                  <select className="input-base" value={form.tecnologia} onChange={(e) => setForm((p) => ({ ...p, tecnologia: e.target.value }))}>
+                  <select className="input-base" value={form.tecnologia} disabled={camposBaseBloqueados} onChange={(e) => setForm((p) => ({ ...p, tecnologia: e.target.value }))}>
                     <option value="">Selecciona tecnologia</option>
                     {TECNOLOGIA_OPTIONS.map((item) => (
                       <option key={item} value={item}>{item}</option>
@@ -1151,7 +1281,7 @@ const SupervisorSupervisionPage = () => {
                   </select>
                 </Field>
                 <Field label="Tipo revision (Obligatorio)">
-                  <select className="input-base" value={form.tipoRevision} onChange={(e) => setForm((p) => ({ ...p, tipoRevision: e.target.value }))}>
+                  <select className="input-base" value={form.tipoRevision} disabled={camposBaseBloqueados} onChange={(e) => setForm((p) => ({ ...p, tipoRevision: e.target.value }))}>
                     <option value="">Selecciona tipo revision</option>
                     {TIPO_REVISION_OPTIONS.map((item) => (
                       <option key={item} value={item}>{item}</option>
@@ -1165,6 +1295,7 @@ const SupervisorSupervisionPage = () => {
                     inputMode="numeric"
                     pattern="[0-9]*"
                     maxLength={20}
+                    disabled={camposBaseBloqueados}
                     onChange={(e) => setForm((p) => ({ ...p, ordenTrabajo: normalizeOnlyDigits(e.target.value) }))}
                   />
                 </Field>
@@ -1346,7 +1477,7 @@ const SupervisorSupervisionPage = () => {
       </Modal>
       <Modal
         open={Boolean(inicioPendienteDetalle)}
-        title="Detalle de jornada"
+        title={jornadaDetalleModo === 'cierre' ? 'Formulario de cierre de jornada' : 'Formulario de inicio de jornada'}
         onClose={() => setInicioPendienteDetalle(null)}
         maxWidthClass="max-w-3xl"
         actions={
@@ -1357,137 +1488,125 @@ const SupervisorSupervisionPage = () => {
       >
         {inicioPendienteDetalle ? (
           <div className="space-y-4">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Formulario de inicio</p>
-            <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
-              <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Imagen inicio</p>
-              {resolveInicioImageSrc(inicioPendienteDetalle.imagen) ? (
-                <button
-                  type="button"
-                  className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  onClick={() => setZoomImageSrc(resolveInicioImageSrc(inicioPendienteDetalle.imagen))}
-                >
-                  <img
-                    src={resolveInicioImageSrc(inicioPendienteDetalle.imagen) ?? ''}
-                    alt="Inicio jornada"
-                    className="h-48 w-full rounded-xl border border-slate-300 object-cover"
-                  />
-                </button>
-              ) : (
-                <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
-              )}
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {[
-                { label: 'Tecnico', value: inicioPendienteDetalle.tecnicoNombre || inicioPendienteDetalle.idTecnico || '-' },
-                { label: 'Auxiliar', value: inicioPendienteDetalle.auxiliarNombre || inicioPendienteDetalle.idAuxiliar || '-' },
-                { label: 'Capacitado', value: inicioPendienteDetalle.capacitado || '-' },
-                { label: 'Charla', value: inicioPendienteDetalle.charla || '-' },
-                { label: 'Botiquin', value: inicioPendienteDetalle.botiquin || '-' },
-                { label: 'Extintor', value: inicioPendienteDetalle.extintor || '-' },
-                { label: 'Fecha vencimiento', value: inicioPendienteDetalle.fechaVencimiento || '-' },
-                { label: 'Equipo EPP', value: inicioPendienteDetalle.equipoEpp || '-' },
-                { label: 'Estado EPP', value: inicioPendienteDetalle.estadoEpp || '-' },
-                { label: 'APR', value: inicioPendienteDetalle.apr || '-' },
-                { label: 'Escalera', value: inicioPendienteDetalle.escalera || '-' },
-                { label: 'Anclaje', value: inicioPendienteDetalle.anclaje || '-' },
-              ].map((item) => {
-                const showAsStatus = isSiValue(item.value) || isNoValue(item.value)
-                return (
-                  <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
-                    <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
-                    {showAsStatus ? (
-                      <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
-                        <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
-                        <span className="text-2xl">{item.value}</span>
-                      </p>
-                    ) : (
-                      <p className="mt-2 text-4xl font-semibold leading-tight text-slate-900">{item.value}</p>
-                    )}
-                  </div>
-                )
-              })}
-              <div className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
-                <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Ubicacion georef</p>
-                <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{inicioPendienteDetalle.ubicacionGeoref || '-'}</p>
-                {(() => {
-                  const coords = parseGeoCoords(inicioPendienteDetalle.ubicacionGeoref)
-                  if (!coords) return null
-                  const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
-                  return (
-                    <Button
+            {jornadaDetalleModo === 'inicio' ? (
+              <>
+                <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
+                  <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Imagen inicio</p>
+                  {resolveInicioImageSrc(inicioPendienteDetalle.imagen) ? (
+                    <button
                       type="button"
-                      variant="secondary"
-                      className="mt-3"
-                      onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}
+                      className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(inicioPendienteDetalle.imagen))}
                     >
-                      Abrir en Google Maps
-                    </Button>
-                  )
-                })()}
-              </div>
-            </div>
-            {(() => {
-              const cierreItems = [
-                { label: 'Fecha cierre', value: formatDateTime(inicioPendienteDetalle.fechaCierre) },
-                { label: 'Codigo cliente', value: inicioPendienteDetalle.codigoClienteCierre || '-' },
-                { label: 'Dano material', value: inicioPendienteDetalle.danoMaterial || '-' },
-                { label: 'Dano a persona', value: inicioPendienteDetalle.danoPersona || '-' },
-                { label: 'Novedades de trabajo', value: inicioPendienteDetalle.novedadesTrabajo || '-' },
-                { label: 'Observacion material', value: inicioPendienteDetalle.observacionMaterial || '-' },
-                { label: 'Observacion persona', value: inicioPendienteDetalle.observacionPersona || '-' },
-                { label: 'Observacion novedades', value: inicioPendienteDetalle.observacionNovedades || '-' },
-              ]
-              const hasCierre =
-                Boolean(inicioPendienteDetalle.fechaCierre) ||
-                Boolean(inicioPendienteDetalle.codigoClienteCierre) ||
-                Boolean(inicioPendienteDetalle.danoMaterial) ||
-                Boolean(inicioPendienteDetalle.danoPersona) ||
-                Boolean(inicioPendienteDetalle.novedadesTrabajo) ||
-                Boolean(inicioPendienteDetalle.ubicacionCierreGeoref)
-              if (!hasCierre) return null
-              return (
-                <section className="space-y-4 pt-2">
-                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-slate-500">Formulario de cierre</p>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {cierreItems.map((item) => {
-                      const showAsStatus = isSiValue(item.value) || isNoValue(item.value)
+                      <img
+                        src={resolveInicioImageSrc(inicioPendienteDetalle.imagen) ?? ''}
+                        alt="Inicio jornada"
+                        className="h-48 w-full rounded-xl border border-slate-300 object-cover"
+                      />
+                    </button>
+                  ) : (
+                    <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
+                  )}
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {[
+                    { label: 'Tecnico', value: inicioPendienteDetalle.tecnicoNombre || inicioPendienteDetalle.idTecnico || '-' },
+                    { label: 'Auxiliar', value: inicioPendienteDetalle.auxiliarNombre || inicioPendienteDetalle.idAuxiliar || '-' },
+                    { label: 'Capacitado', value: inicioPendienteDetalle.capacitado || '-' },
+                    { label: 'Charla', value: inicioPendienteDetalle.charla || '-' },
+                    { label: 'Botiquin', value: inicioPendienteDetalle.botiquin || '-' },
+                    { label: 'Extintor', value: inicioPendienteDetalle.extintor || '-' },
+                    { label: 'Fecha vencimiento', value: inicioPendienteDetalle.fechaVencimiento || '-' },
+                    { label: 'Equipo EPP', value: inicioPendienteDetalle.equipoEpp || '-' },
+                    { label: 'Estado EPP', value: inicioPendienteDetalle.estadoEpp || '-' },
+                    { label: 'APR', value: inicioPendienteDetalle.apr || '-' },
+                    { label: 'Escalera', value: inicioPendienteDetalle.escalera || '-' },
+                    { label: 'Anclaje', value: inicioPendienteDetalle.anclaje || '-' },
+                  ].map((item) => {
+                    const showAsStatus = isSiValue(item.value) || isNoValue(item.value)
+                    return (
+                      <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
+                        <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
+                        {showAsStatus ? (
+                          <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
+                            <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
+                            <span className="text-2xl">{item.value}</span>
+                          </p>
+                        ) : (
+                          <p className="mt-2 text-4xl font-semibold leading-tight text-slate-900">{item.value}</p>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <div className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
+                    <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Ubicacion georef</p>
+                    <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{inicioPendienteDetalle.ubicacionGeoref || '-'}</p>
+                    {(() => {
+                      const coords = parseGeoCoords(inicioPendienteDetalle.ubicacionGeoref)
+                      if (!coords) return null
+                      const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
                       return (
-                        <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
-                          <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
-                          {showAsStatus ? (
-                            <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
-                              <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
-                              <span className="text-2xl">{item.value}</span>
-                            </p>
-                          ) : (
-                            <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{item.value}</p>
-                          )}
-                        </div>
+                        <Button type="button" variant="secondary" className="mt-3" onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}>
+                          Abrir en Google Maps
+                        </Button>
                       )
-                    })}
-                    <div className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
-                      <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Ubicacion cierre georef</p>
-                      <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{inicioPendienteDetalle.ubicacionCierreGeoref || '-'}</p>
-                      {(() => {
-                        const coords = parseGeoCoords(inicioPendienteDetalle.ubicacionCierreGeoref)
-                        if (!coords) return null
-                        const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
-                        return (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            className="mt-3"
-                            onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}
-                          >
-                            Abrir en Google Maps
-                          </Button>
-                        )
-                      })()}
-                    </div>
+                    })()}
                   </div>
-                </section>
-              )
-            })()}
+                </div>
+              </>
+            ) : (
+              <section className="space-y-4">
+                {tieneCierreJornada(inicioPendienteDetalle) ? (
+                  <>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      {[
+                        { label: 'Fecha cierre', value: formatDateTime(inicioPendienteDetalle.fechaCierre) },
+                        { label: 'Codigo cliente', value: inicioPendienteDetalle.codigoClienteCierre || '-' },
+                        { label: 'Dano material', value: inicioPendienteDetalle.danoMaterial || '-' },
+                        { label: 'Dano a persona', value: inicioPendienteDetalle.danoPersona || '-' },
+                        { label: 'Novedades de trabajo', value: inicioPendienteDetalle.novedadesTrabajo || '-' },
+                        { label: 'Observacion material', value: inicioPendienteDetalle.observacionMaterial || '-' },
+                        { label: 'Observacion persona', value: inicioPendienteDetalle.observacionPersona || '-' },
+                        { label: 'Observacion novedades', value: inicioPendienteDetalle.observacionNovedades || '-' },
+                      ].map((item) => {
+                        const showAsStatus = isSiValue(item.value) || isNoValue(item.value)
+                        return (
+                          <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
+                            <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
+                            {showAsStatus ? (
+                              <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
+                                <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
+                                <span className="text-2xl">{item.value}</span>
+                              </p>
+                            ) : (
+                              <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{item.value}</p>
+                            )}
+                          </div>
+                        )
+                      })}
+                      <div className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
+                        <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Ubicacion cierre georef</p>
+                        <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{inicioPendienteDetalle.ubicacionCierreGeoref || '-'}</p>
+                        {(() => {
+                          const coords = parseGeoCoords(inicioPendienteDetalle.ubicacionCierreGeoref)
+                          if (!coords) return null
+                          const mapsUrl = `https://www.google.com/maps?q=${coords.lat},${coords.lng}`
+                          return (
+                            <Button type="button" variant="secondary" className="mt-3" onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}>
+                              Abrir en Google Maps
+                            </Button>
+                          )
+                        })()}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+                    Sin formulario de cierre registrado.
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         ) : null}
       </Modal>
@@ -1497,6 +1616,3 @@ const SupervisorSupervisionPage = () => {
 }
 
 export default SupervisorSupervisionPage
-
-
-

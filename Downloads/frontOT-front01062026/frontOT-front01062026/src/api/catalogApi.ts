@@ -470,11 +470,16 @@ export type SerieSuggestion = {
   idProducto?: number
 }
 
-export const fetchSeriesSuggestions = async (q: string, limite = 10): Promise<SerieSuggestion[]> => {
+export const fetchSeriesSuggestions = async (q: string, limite = 10, idProducto?: number | string): Promise<SerieSuggestion[]> => {
   const term = q.trim()
   if (term.length < 1) return []
+  const producto = Number(idProducto)
   const { data } = await api.get('/catalogos/series/sugerencias', {
-    params: { q: term, limite },
+    params: {
+      q: term,
+      limite,
+      ...(Number.isFinite(producto) && producto > 0 ? { idProducto: producto } : {}),
+    },
   })
   const rows = normalizeArrayResponse<CatalogItem>(data)
   return rows
