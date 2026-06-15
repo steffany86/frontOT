@@ -27,6 +27,7 @@ import ForbiddenPage from '../pages/ForbiddenPage'
 import TecnicoInicioJornadaPage from '../pages/TecnicoInicioJornadaPage'
 import ChangePasswordPage from '../pages/ChangePasswordPage'
 import NpsDashboardPage from '../pages/NpsDashboardPage'
+import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -78,6 +79,7 @@ const AppRoutes = () => {
           <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />
+          <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>

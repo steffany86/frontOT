@@ -141,10 +141,17 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Georeferencias',
+    to: '/digitador/georef',
+    routePatterns: ['/digitador/georef'],
+    allowedRoles: ['digitador', 'sistemas', 'admin', 'central'],
+    showInSidebar: true,
+  },
+  {
     label: 'Grupos',
     to: '/central/grupos',
     routePatterns: ['/central/grupos'],
-    allowedRoles: ['central', 'back office', 'backoffice', 'backoffice_v', 'backup'],
+    allowedRoles: ['central', 'back office', 'backoffice', 'backoffice_v', 'backup', 'sistemas', 'admin'],
     sidebarLabelFromMenu: true,
     showInSidebar: true,
   },
