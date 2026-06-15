@@ -36,10 +36,10 @@ type AgendaNavState = {
 type UnknownRecord = Record<string, unknown>
 type GeoSample = { latitude: number; longitude: number; accuracy: number }
 
-const GEO_TARGET_ACCURACY_METERS = 5
-const GEO_MAX_CAPTURE_MS = 6000
-const GEO_MIN_SAMPLES = 3
-const GEO_MAX_SAMPLES = 8
+const GEO_TARGET_ACCURACY_METERS = 10
+const GEO_MAX_CAPTURE_MS = 3500
+const GEO_MIN_SAMPLES = 2
+const GEO_MAX_SAMPLES = 5
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = 10 * 1024 * 1024
@@ -1258,6 +1258,11 @@ const RegistrarOTAgendaPage = () => {
       setSuccessModalOpen(true)
       setDuplicateOrdenModalOpen(false)
       queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'], refetchType: 'all' })
     },
     onError: (error) => {
       setSuccess(null)

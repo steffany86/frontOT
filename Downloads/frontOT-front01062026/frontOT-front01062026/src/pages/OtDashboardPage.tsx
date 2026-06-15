@@ -286,6 +286,14 @@ const getTieneDetalleEnCodigoVentaFromRow = (row: OtSummary): boolean => {
   return Number.isFinite(cantidadDetalles) && cantidadDetalles > 0
 }
 
+const hasVentaValidationFromRow = (row: OtSummary): boolean => {
+  return (
+    readValue(row, ['existeVenta', 'ExisteVenta', 'ventaExiste', 'VentaExiste', 'registrado', 'Registrado']) !== undefined &&
+    readValue(row, ['tieneDetalleEnCodigoVenta', 'TieneDetalleEnCodigoVenta', 'existeDetalle', 'ExisteDetalle']) !== undefined &&
+    readValue(row, ['TieneDetalle', 'tieneDetalle', 'tiene_detalle', 'Tiene_Detalle']) !== undefined
+  )
+}
+
 const getRutaIdFromCatalogItem = (row: Record<string, unknown>): string => {
   const directKeys = ['idRuta', 'id_ruta', 'Id_Ruta', 'IdRuta', 'idGrupo', 'id_grupo', 'Id_Grupo', 'IdGrupo', 'id', 'Id']
   for (const key of directKeys) {
@@ -705,17 +713,18 @@ const OtDashboardPage = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'] }),
+        queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'] }),
       ])
-      if (isFinalizadasTab) {
-        await finalizadasQuery.refetch()
-      } else {
-        await query.refetch()
-      }
+      await Promise.all([
+        query.refetch(),
+        finalizadasQuery.refetch(),
+        manualPendientesQuery.refetch(),
+      ])
     })()
-  }, [finalizadasQuery.refetch, isFinalizadasTab, query.refetch, queryClient, refreshToken])
+  }, [finalizadasQuery.refetch, manualPendientesQuery.refetch, query.refetch, queryClient, refreshToken])
 
   useEffect(() => {
     if (!isPendientesTab) return
@@ -782,6 +791,7 @@ const OtDashboardPage = () => {
   const validationTargets = useMemo(() => {
     const unique = new Map<string, { key: string; fecha: string; ot: string; clienteNro: string; desdeAgenda: boolean }>()
     for (const row of allRows) {
+      if (hasVentaValidationFromRow(row)) continue
       const ot = getOtCodigo(row).trim()
       const clienteNro = getClienteNro(row).trim()
       if (!ot || !clienteNro) continue
@@ -1526,7 +1536,7 @@ const OtDashboardPage = () => {
                   setNavError(null)
                   setManualClickLoading(true)
                   try {
-                    const cierreAgenda = await validateExisteCierreAlmacen({ fecha })
+                    const cierreAgenda = cierreAgendaQuery.data ?? await validateExisteCierreAlmacen({ fecha })
                     if (cierreAgenda.bloqueado) {
                       setNavError(cierreAgenda.mensaje || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.')
                       return
@@ -1547,7 +1557,10 @@ const OtDashboardPage = () => {
                     }
 
                     if (rutasParaValidar.length === 1) {
-                      const hasCuadreRuta = await validateCuadreRuta({ idRuta: rutasParaValidar[0], fecha })
+                      const hasCuadreRuta =
+                        manualBloqueoState && !manualBloqueoState.isError
+                          ? manualBloqueoState.hasCuadre
+                          : await validateCuadreRuta({ idRuta: rutasParaValidar[0], fecha })
                       if (hasCuadreRuta) {
                         setNavError('No se puede continuar porque la ruta ya realizo cuadre.')
                         return
