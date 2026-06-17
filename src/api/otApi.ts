@@ -400,6 +400,11 @@ export const fetchSupervisorUltimoEstadoDia = async (params: {
     }
     return mergeOtSummaries(listaOtRows, otWebRows)
   } catch (listaOtError) {
+    const listaOtStatus = (listaOtError as { response?: { status?: number } })?.response?.status
+    if (listaOtStatus === 500 || listaOtStatus === 401 || listaOtStatus === 403) {
+      throw listaOtError
+    }
+
     // Fallback legado por compatibilidad con entornos antiguos.
     const queryParams: Record<string, string | number> = { fecha: params.fecha }
     if (typeof params.idUsuario === 'number' && Number.isFinite(params.idUsuario) && params.idUsuario > 0) {

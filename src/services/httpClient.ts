@@ -45,6 +45,28 @@ const sanitizeHeaders = (headers: unknown): Record<string, unknown> => {
   )
 }
 
+const sanitizePayload = (payload: unknown): unknown => {
+  if (payload === undefined || payload === null) return null
+  let parsed = payload
+  if (typeof payload === 'string') {
+    try {
+      parsed = JSON.parse(payload)
+    } catch {
+      return payload
+    }
+  }
+  if (!isRecord(parsed)) return parsed
+  return Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => {
+      const normalized = key.toLowerCase()
+      if (normalized.includes('password') || normalized.includes('token') || normalized.includes('contrasena')) {
+        return [key, typeof value === 'string' && value ? '***' : value]
+      }
+      return [key, value]
+    })
+  )
+}
+
 const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null
 }
@@ -263,6 +285,15 @@ httpClient.interceptors.request.use((config) => {
       }
       config.params = currentParams
     }
+  }
+  if (apiVerboseEnabled) {
+    const method = (config.method ?? 'get').toUpperCase()
+    const url = `${config.baseURL ?? ''}${config.url ?? ''}`
+    console.info('[API ->]', method, url, {
+      params: config.params ?? null,
+      body: sanitizePayload(config.data),
+      headers: sanitizeHeaders(config.headers),
+    })
   }
   if (isDetalleMaterialesRequest(config.url)) {
     console.warn('[OT][DETALLE][HTTP-REQUEST]', {

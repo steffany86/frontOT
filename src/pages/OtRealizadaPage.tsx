@@ -72,6 +72,11 @@ type MaterialRow = {
   requiresChip: boolean
 }
 
+type SerieSuggestionOption = {
+  serial: string
+  chipId?: string
+}
+
 type CargoUsuarioRow = {
   id: string
   idProducto: number
@@ -187,6 +192,11 @@ const toIsoDateParam = (value?: string): string => {
   return `${year}-${month}-${day}`
 }
 
+const splitSerialLastFour = (value: string): { prefix: string; suffix: string } => {
+  const text = String(value ?? '')
+  if (text.length <= 4) return { prefix: '', suffix: text }
+  return { prefix: text.slice(0, -4), suffix: text.slice(-4) }
+}
 const isRetiredMaterialRow = (row: Pick<MaterialRow, 'idTipoMaterial' | 'tipoMaterialLabel'>): boolean => {
   if (RETIRED_MATERIAL_IDS.has(row.idTipoMaterial)) return true
   const normalizedLabel = String(row.tipoMaterialLabel ?? '')
@@ -261,10 +271,16 @@ const countMaskTokens = (mask: string): number => Array.from(mask).filter((char)
 const countFilledMaskChars = (value: string): number => value.replace(/[^a-z0-9]/gi, '').length
 
 const isMaskComplete = (value: string, mask: string): boolean => {
-  const trimmedValue = value.replace(/\s+/g, '').toUpperCase()
+  const normalizedValue = value.trim().toUpperCase()
   if (!mask) return false
-  const formatted = applyMask(trimmedValue, mask)
-  return formatted === trimmedValue && formatted.length === mask.length
+  const formatted = applyMask(normalizedValue, mask)
+  return formatted === normalizedValue && formatted.length === mask.length
+}
+
+const isNumericMask = (mask: string): boolean => {
+  if (!mask) return false
+  const chars = Array.from(mask)
+  return chars.some((char) => isMaskToken(char)) && chars.every((char) => !isMaskToken(char) || ['0', '9', '#'].includes(char))
 }
 
 const parseSaldoValue = (row: UnknownRecord): number | null => {
@@ -614,7 +630,9 @@ const OtRealizadaPage = () => {
   const [tipoMaterialEditEnabled, setTipoMaterialEditEnabled] = useState(false)
   const [productoId, setProductoId] = useState('')
   const [serie, setSerie] = useState('')
-  const [serieSuggestions, setSerieSuggestions] = useState<string[]>([])
+  const [serieSuggestions, setSerieSuggestions] = useState<SerieSuggestionOption[]>([])
+  const [serieSelectorOpen, setSerieSelectorOpen] = useState(false)
+  const [serieSelectorLoading, setSerieSelectorLoading] = useState(false)
   const [chipId, setChipId] = useState('')
   const [cantidad, setCantidad] = useState('1')
   const [entregado, setEntregado] = useState(true)
@@ -637,6 +655,7 @@ const OtRealizadaPage = () => {
   const [cantidadBlurConfirmada, setCantidadBlurConfirmada] = useState(false)
   const [isPrevalidating, setIsPrevalidating] = useState(false)
   const [isAddingMaterial, setIsAddingMaterial] = useState(false)
+  const [isAddingCargoUsuario, setIsAddingCargoUsuario] = useState(false)
   const [detalleGuardado, setDetalleGuardado] = useState(false)
   const [cargoUsuarioRows, setCargoUsuarioRows] = useState<CargoUsuarioRow[]>([])
   const [cargoUsuarioProductoId, setCargoUsuarioProductoId] = useState('')
@@ -671,6 +690,7 @@ const OtRealizadaPage = () => {
   const cargoUsuarioChipRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioCantidadRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioChipAutoRef = useRef(false)
+  const cargoUsuarioAddingRef = useRef(false)
   const skipMaterialBlurValidationRef = useRef(false)
   const retiredRowsWithoutSaldoPairRef = useRef<Set<string>>(new Set())
   const lastValidatedSerieRef = useRef<{ key: string; sePuede: boolean } | null>(null)
@@ -1465,6 +1485,8 @@ const OtRealizadaPage = () => {
   const cargoUsuarioNeedsChip = (cargoUsuarioSelectedMeta?.digitosChipId ?? 0) > 0
   const cargoUsuarioSerieMask = cargoUsuarioSelectedMeta?.mascaraSerie ?? ''
   const cargoUsuarioChipMask = cargoUsuarioSelectedMeta?.mascaraChipId ?? ''
+  const cargoUsuarioSerieInputMode = isNumericMask(cargoUsuarioSerieMask) ? 'numeric' : undefined
+  const cargoUsuarioChipInputMode = isNumericMask(cargoUsuarioChipMask) ? 'numeric' : undefined
   const cargoUsuarioSerieDigitsNeeded =
     (cargoUsuarioSelectedMeta?.digitosImei ?? 0) > 0
       ? (cargoUsuarioSelectedMeta?.digitosImei ?? 0)
@@ -1545,6 +1567,9 @@ const OtRealizadaPage = () => {
 
   const handleSerieFocus = () => {
     lockProducto()
+    if (isInstalledType && needsSerie && productoId && !serieCamposBloqueados) {
+      setSerieSelectorOpen(true)
+    }
   }
 
   const handleCantidadFocus = () => {
@@ -1608,6 +1633,8 @@ const OtRealizadaPage = () => {
   }
   const serieMask = selectedProductMeta?.mascaraSerie ?? ''
   const chipIdMask = selectedProductMeta?.mascaraChipId ?? ''
+  const serieInputMode = isNumericMask(serieMask) ? 'numeric' : undefined
+  const chipInputMode = isNumericMask(chipIdMask) ? 'numeric' : undefined
   const serieDigitsRequired = selectedProductMeta?.digitosImei ?? 0
   const chipDigitsRequired = selectedProductMeta?.digitosChipId ?? 0
   const isNonSerializedProduct = serieDigitsRequired === 0 && chipDigitsRequired === 0
@@ -1656,37 +1683,81 @@ const OtRealizadaPage = () => {
 
   useEffect(() => {
     const serieTerm = serie.trim()
-    if (!needsSerie || serieCamposBloqueados || serieTerm.length < 1) {
+    if (isInstalledType || !needsSerie || serieCamposBloqueados || !productoId || serieTerm.length < 1) {
       setSerieSuggestions([])
       return
     }
     const timeoutId = window.setTimeout(async () => {
       try {
-        const rows = await fetchSeriesSuggestions(serieTerm, 8)
-        setSerieSuggestions(Array.from(new Set(rows.map((item) => item.serial))))
+        const rows = await fetchSeriesSuggestions(serieTerm, 8, {
+          idProducto: productoId,
+          idRuta: idRutaValidacion ?? undefined,
+          tipoMaterial: tipoMaterialId,
+          tipoMaterialNombre: selectedTipoMaterialLabel || undefined,
+        })
+        const unique = new Map<string, SerieSuggestionOption>()
+        rows.forEach((item) => {
+          if (item.serial && !unique.has(item.serial)) {
+            unique.set(item.serial, { serial: item.serial, chipId: item.chipId })
+          }
+        })
+        setSerieSuggestions(Array.from(unique.values()))
       } catch {
         setSerieSuggestions([])
       }
     }, 300)
     return () => window.clearTimeout(timeoutId)
-  }, [needsSerie, serie, serieCamposBloqueados])
+  }, [idRutaValidacion, needsSerie, productoId, selectedTipoMaterialLabel, serie, serieCamposBloqueados, tipoMaterialId])
+
+  useEffect(() => {
+    if (!serieSelectorOpen || !isInstalledType || !needsSerie || !productoId) {
+      return
+    }
+    let cancelled = false
+    setSerieSelectorLoading(true)
+    fetchSeriesSuggestions('', 50, {
+      idProducto: productoId,
+      idRuta: idRutaValidacion ?? undefined,
+      tipoMaterial: tipoMaterialId,
+      tipoMaterialNombre: selectedTipoMaterialLabel || undefined,
+    })
+      .then((rows) => {
+        if (cancelled) return
+        const unique = new Map<string, SerieSuggestionOption>()
+        rows.forEach((item) => {
+          if (item.serial && !unique.has(item.serial)) {
+            unique.set(item.serial, { serial: item.serial, chipId: item.chipId })
+          }
+        })
+        setSerieSuggestions(Array.from(unique.values()))
+      })
+      .catch(() => {
+        if (!cancelled) setSerieSuggestions([])
+      })
+      .finally(() => {
+        if (!cancelled) setSerieSelectorLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [idRutaValidacion, isInstalledType, needsSerie, productoId, selectedTipoMaterialLabel, serieSelectorOpen, tipoMaterialId])
 
   useEffect(() => {
     const serieTerm = cargoUsuarioSerie.trim()
-    if (!cargoUsuarioNeedsSerie || cargoUsuarioSerieBloqueada || serieTerm.length < 1) {
+    if (!cargoUsuarioNeedsSerie || cargoUsuarioSerieBloqueada || !cargoUsuarioProductoId || serieTerm.length < 1) {
       setCargoUsuarioSerieSuggestions([])
       return
     }
     const timeoutId = window.setTimeout(async () => {
       try {
-        const rows = await fetchSeriesSuggestions(serieTerm, 8)
+        const rows = await fetchSeriesSuggestions(serieTerm, 8, cargoUsuarioProductoId)
         setCargoUsuarioSerieSuggestions(Array.from(new Set(rows.map((item) => item.serial))))
       } catch {
         setCargoUsuarioSerieSuggestions([])
       }
     }, 300)
     return () => window.clearTimeout(timeoutId)
-  }, [cargoUsuarioNeedsSerie, cargoUsuarioSerie, cargoUsuarioSerieBloqueada])
+  }, [cargoUsuarioNeedsSerie, cargoUsuarioProductoId, cargoUsuarioSerie, cargoUsuarioSerieBloqueada])
 
   const focusSerieField = () => {
     requestAnimationFrame(() => {
@@ -2386,9 +2457,9 @@ const OtRealizadaPage = () => {
   const cargoUsuarioColumns = useMemo<Column<CargoUsuarioRow>[]>(
     () => [
       { key: 'producto', header: 'Producto', render: (row) => row.producto },
+      { key: 'cantidad', header: 'Cantidad', render: (row) => row.cantidad.toFixed(2) },
       { key: 'serie', header: 'Serie', render: (row) => row.serie || '-' },
       { key: 'chipId', header: 'ChipID', render: (row) => row.chipId || '-' },
-      { key: 'cantidad', header: 'Cantidad', render: (row) => row.cantidad.toFixed(2) },
       {
         key: 'acciones',
         header: 'Accion',
@@ -3296,7 +3367,11 @@ const OtRealizadaPage = () => {
   }
 
   const addCargoUsuario = async () => {
-    setCargoUsuarioError(null)
+    if (cargoUsuarioAddingRef.current) return
+    cargoUsuarioAddingRef.current = true
+    setIsAddingCargoUsuario(true)
+    try {
+      setCargoUsuarioError(null)
     setCargoUsuarioSuccess(null)
 
     const parsedProducto = Number(cargoUsuarioProductoId)
@@ -3411,19 +3486,34 @@ const OtRealizadaPage = () => {
     }
 
     setCargoUsuarioGuardado(false)
-    setCargoUsuarioRows((prev) => [
-      ...prev,
-      {
-        id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
-        idProducto: parsedProducto,
-        producto: productoLabel,
-        serie: seriePayload,
-        chipId: chipPayload,
-        cantidad: cantidadNum,
-        existe: existeTrim,
-      },
-    ])
-    resetCargoUsuarioForm()
+    setCargoUsuarioRows((prev) => {
+      const duplicateInCurrentRows = [...prev, ...materialRows].some(
+        (row) =>
+          (seriePayload && row.serie.toLowerCase() === seriePayload.toLowerCase()) ||
+          (chipPayload && row.chipId.toLowerCase() === chipPayload.toLowerCase())
+      )
+      if (duplicateInCurrentRows) {
+        setCargoUsuarioError('La Serie o el ChipID ya fueron agregados.')
+        return prev
+      }
+      return [
+        ...prev,
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+          idProducto: parsedProducto,
+          producto: productoLabel,
+          serie: seriePayload,
+          chipId: chipPayload,
+          cantidad: cantidadNum,
+          existe: existeTrim,
+        },
+      ]
+    })
+      resetCargoUsuarioForm()
+    } finally {
+      cargoUsuarioAddingRef.current = false
+      setIsAddingCargoUsuario(false)
+    }
   }
 
   const showSaldoPopup = useCallback(
@@ -4044,7 +4134,29 @@ const OtRealizadaPage = () => {
                       type="checkbox"
                       className="h-3.5 w-3.5 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
                       checked={tipoMaterialEditEnabled}
-                      onChange={(event) => setTipoMaterialEditEnabled(event.target.checked)}
+                      onChange={(event) => {
+                        const checked = event.target.checked
+                        setTipoMaterialEditEnabled(checked)
+                        if (checked) {
+                          setProductoId('')
+                          setProductoBloqueado(false)
+                          setSerie('')
+                          setChipId('')
+                          setSerieSuggestions([])
+                          setSerieSelectorOpen(false)
+                          setSerieValidationError(null)
+                          setChipValidationError(null)
+                          setSerieCamposBloqueados(false)
+                          setChipCamposBloqueados(true)
+                          setAllowManualChipId(false)
+                          setChipFromDatabase(false)
+                          setChipLockedAfterManualRetired(false)
+                          setChipUniquenessState('idle')
+                          setCantidad('1')
+                          setCantidadBlurConfirmada(false)
+                          lastValidatedSerieRef.current = null
+                        }
+                      }}
                       disabled={!tipoMaterialEditAvailable}
                     />
                     Editar
@@ -4056,6 +4168,23 @@ const OtRealizadaPage = () => {
                   value={tipoMaterialId}
                   onChange={(event) => {
                     setTipoMaterialId(event.target.value)
+                    setProductoId('')
+                    setProductoBloqueado(false)
+                    setSerie('')
+                    setChipId('')
+                    setSerieSuggestions([])
+                    setSerieSelectorOpen(false)
+                    setSerieValidationError(null)
+                    setChipValidationError(null)
+                    setSerieCamposBloqueados(false)
+                    setChipCamposBloqueados(true)
+                    setAllowManualChipId(false)
+                    setChipFromDatabase(false)
+                    setChipLockedAfterManualRetired(false)
+                    setChipUniquenessState('idle')
+                    setCantidad('1')
+                    setCantidadBlurConfirmada(false)
+                    lastValidatedSerieRef.current = null
                     setTipoMaterialEditEnabled(false)
                   }}
                   disabled={tipoMaterialQuery.isLoading || !tipoMaterialEditAvailable || !tipoMaterialEditEnabled}
@@ -4076,8 +4205,10 @@ const OtRealizadaPage = () => {
                     className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
                     value={productoId}
                     onChange={(event) => setProductoId(event.target.value)}
-                    onBlur={lockProducto}
-                    disabled={productosQuery.isLoading || productoBloqueado || !tipoMaterialId}
+                    onBlur={() => {
+                      if (!tipoMaterialEditEnabled) lockProducto()
+                    }}
+                    disabled={productosQuery.isLoading || tipoMaterialEditEnabled || productoBloqueado || !tipoMaterialId}
                   >
                     <option value="">{productosQuery.isLoading ? 'Cargando productos...' : 'Selecciona producto'}</option>
                     {productoOptions.map((option) => (
@@ -4092,9 +4223,12 @@ const OtRealizadaPage = () => {
                 <Field label="Serie" error={serieValidationError ?? undefined} compact>
                   <input
                     ref={serieInputRef}
+                    inputMode={serieInputMode}
+                    pattern={serieInputMode === 'numeric' ? '[0-9]*' : undefined}
                     className={`input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm ${serieDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                     value={serie}
                     onFocus={handleSerieFocus}
+                    onClick={handleSerieFocus}
                     onKeyDown={handleSerieKeyDown}
                     onBlur={handleSerieBlur}
                     onChange={(event) => {
@@ -4108,38 +4242,44 @@ const OtRealizadaPage = () => {
                         autoAdvanceToChipRef.current = false
                       }
                     }}
-                    placeholder={needsSerie && serieMask ? serieMask : undefined}
+                    placeholder={isInstalledType ? 'Selecciona serie' : needsSerie && serieMask ? serieMask : undefined}
+                    readOnly={isInstalledType}
                     disabled={materialFormCleared || serieDisabled}
                   />
                 </Field>
                 {serie.trim().length > 0 && serieSuggestions.length > 0 ? (
-                  <select
-                    className="input-base mt-1"
-                    defaultValue=""
-                    onChange={(event) => {
-                      const selected = event.target.value
-                      if (!selected) return
-                      setSerie(selected)
-                      setSerieSuggestions([])
-                      setCantidadBlurConfirmada(false)
-                      setChipUniquenessState('idle')
-                    }}
-                  >
-                    <option value="" disabled>
-                      Selecciona una serie sugerida
-                    </option>
+                  <div className="mt-1 max-h-36 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
                     {serieSuggestions.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
+                      <button
+                        key={item.serial}
+                        type="button"
+                        className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setSerie(item.serial)
+                          if (item.chipId) {
+                            setChipId(chipIdMask ? applyMask(item.chipId, chipIdMask) : item.chipId)
+                          }
+                          lastValidatedSerieRef.current = { key: `${productoId}::${item.serial}`, sePuede: true }
+                          setSerieCamposBloqueados(true)
+                          setSerieSuggestions([])
+                          setSerieSelectorOpen(false)
+                          setCantidadBlurConfirmada(true)
+                          setChipUniquenessState('valid')
+                        }}
+                      >
+                        {item.serial}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 ) : null}
               </div>
               <div className="min-w-0 md:col-span-1 xl:col-span-1">
                 <Field label="ChipID" error={chipValidationError ?? undefined} compact>
                   <input
                     ref={chipIdInputRef}
+                    inputMode={chipInputMode}
+                    pattern={chipInputMode === 'numeric' ? '[0-9]*' : undefined}
                     className={`input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm ${chipDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                     value={chipId}
                     onFocus={handleChipFocus}
@@ -4181,8 +4321,8 @@ const OtRealizadaPage = () => {
                 </Field>
               </div>
               <div className="flex w-full flex-col gap-2 md:col-span-2 md:flex-row md:justify-end xl:col-span-6">
-                <Button className="w-full md:w-auto" type="button" onClick={addMaterial} disabled={formInteractionLocked || !canAddMaterial}>
-                  Agregar
+                <Button className="w-full md:w-auto" type="button" onClick={addMaterial} disabled={formInteractionLocked || isAddingMaterial || !canAddMaterial}>
+                  {isAddingMaterial ? 'Agregando...' : 'Agregar'}
                 </Button>
                 <Button
                   className="w-full md:w-auto"
@@ -4203,6 +4343,7 @@ const OtRealizadaPage = () => {
                 columns={columns}
                 data={materialRows}
                 emptyLabel="Sin materiales agregados."
+                rowClassName={(row) => (isRetiredMaterialRow(row) ? 'bg-slate-200' : '')}
                 mobileRenderMode="table"
                 mobileTableMinWidthClass="min-w-[620px]"
                 density="compact"
@@ -4255,6 +4396,8 @@ const OtRealizadaPage = () => {
                     <div className="flex flex-col gap-2 text-sm text-slate-700">
                         <input
                           ref={cargoUsuarioSerieRef}
+                          inputMode={cargoUsuarioSerieInputMode}
+                          pattern={cargoUsuarioSerieInputMode === 'numeric' ? '[0-9]*' : undefined}
                           className={`input-base ${cargoUsuarioSerieBloqueada ? 'bg-slate-200 text-slate-700 border-slate-300 cursor-not-allowed' : ''}`}
                           value={cargoUsuarioSerie}
                           onChange={(event) => handleCargoUsuarioSerieChange(event.target.value)}
@@ -4267,11 +4410,24 @@ const OtRealizadaPage = () => {
                       {cargoUsuarioSerieError ? (
                         <span className="text-xs font-semibold text-rose-600">{cargoUsuarioSerieError}</span>
                       ) : null}
-                      <datalist id="cargo-serie-suggestions">
-                        {cargoUsuarioSerieSuggestions.map((item) => (
-                          <option key={item} value={item} />
-                        ))}
-                      </datalist>
+                      {cargoUsuarioSerie.trim().length > 0 && cargoUsuarioSerieSuggestions.length > 0 ? (
+                        <div className="mt-1 max-h-36 overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+                          {cargoUsuarioSerieSuggestions.map((item) => (
+                            <button
+                              key={item}
+                              type="button"
+                              className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => {
+                                handleCargoUsuarioSerieChange(item)
+                                setCargoUsuarioSerieSuggestions([])
+                              }}
+                            >
+                              {item}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                   {cargoUsuarioNeedsChip ? (
@@ -4290,6 +4446,8 @@ const OtRealizadaPage = () => {
                       <div className="flex flex-col gap-2 text-sm text-slate-700">
                         <input
                           ref={cargoUsuarioChipRef}
+                          inputMode={cargoUsuarioChipInputMode}
+                          pattern={cargoUsuarioChipInputMode === 'numeric' ? '[0-9]*' : undefined}
                           className={`input-base ${cargoUsuarioChipBloqueado ? 'bg-slate-200 text-slate-700 border-slate-300 cursor-not-allowed' : ''}`}
                           value={cargoUsuarioChipId}
                           onChange={(event) => handleCargoUsuarioChipChange(event.target.value)}
@@ -4348,8 +4506,8 @@ const OtRealizadaPage = () => {
                 </div>
               )}
               <div className="flex w-full flex-col gap-2 md:col-span-2 md:flex-row md:justify-end xl:col-span-6">
-                <Button className="w-full md:w-auto" type="button" onClick={addCargoUsuario} disabled={formInteractionLocked || !cargoUsuarioCanAdd}>
-                  Agregar
+                <Button className="w-full md:w-auto" type="button" onClick={addCargoUsuario} disabled={formInteractionLocked || isAddingCargoUsuario || !cargoUsuarioCanAdd}>
+                  {isAddingCargoUsuario ? 'Agregando...' : 'Agregar'}
                 </Button>
                 <Button className="w-full md:w-auto" type="button" variant="secondary" onClick={resetCargoUsuarioForm} disabled={formInteractionLocked}>
                   Limpiar
@@ -4422,6 +4580,56 @@ const OtRealizadaPage = () => {
       </form>
 
       <Modal
+        open={serieSelectorOpen}
+        title="Selecciona serie"
+        onClose={() => setSerieSelectorOpen(false)}
+        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        contentClassName="p-0"
+        actions={
+          <Button type="button" variant="secondary" onClick={() => setSerieSelectorOpen(false)}>
+            Cerrar
+          </Button>
+        }
+      >
+        <div className="max-h-[70dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
+          {serieSelectorLoading ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando series...</div>
+          ) : serieSuggestions.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin series disponibles.</div>
+          ) : (
+            serieSuggestions.map((item) => {
+              const selected = item.serial === serie
+              const serialParts = splitSerialLastFour(item.serial)
+              return (
+                <button
+                  key={item.serial}
+                  type="button"
+                  className="flex w-full items-center justify-between border-b border-slate-200 bg-white px-4 py-4 text-left text-xl font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  onClick={() => {
+                    setSerie(item.serial)
+                    if (item.chipId) {
+                      setChipId(chipIdMask ? applyMask(item.chipId, chipIdMask) : item.chipId)
+                    }
+                    lastValidatedSerieRef.current = { key: `${productoId}::${item.serial}`, sePuede: true }
+                    setSerieCamposBloqueados(true)
+                    setSerieSuggestions([])
+                    setSerieSelectorOpen(false)
+                    setCantidadBlurConfirmada(true)
+                    setChipUniquenessState('valid')
+                  }}
+                >
+                  <span>
+                    <span>{serialParts.prefix}</span>
+                    <span className="font-bold text-rose-600">{serialParts.suffix}</span>
+                  </span>
+                  <span className={`h-8 w-8 rounded-full border-4 ${selected ? 'border-cyan-700 bg-cyan-700 shadow-[inset_0_0_0_5px_white]' : 'border-slate-500 bg-white'}`} />
+                </button>
+              )
+            })
+          )}
+        </div>
+      </Modal>
+      <Modal
         open={successModalOpen}
         title="Registro exitoso"
         onClose={handleSuccessModalAccept}
@@ -4455,6 +4663,23 @@ const OtRealizadaPage = () => {
 }
 
 export default OtRealizadaPage
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

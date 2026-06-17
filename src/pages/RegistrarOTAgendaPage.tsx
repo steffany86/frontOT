@@ -36,10 +36,10 @@ type AgendaNavState = {
 type UnknownRecord = Record<string, unknown>
 type GeoSample = { latitude: number; longitude: number; accuracy: number }
 
-const GEO_TARGET_ACCURACY_METERS = 5
-const GEO_MAX_CAPTURE_MS = 6000
-const GEO_MIN_SAMPLES = 3
-const GEO_MAX_SAMPLES = 8
+const GEO_TARGET_ACCURACY_METERS = 10
+const GEO_MAX_CAPTURE_MS = 3500
+const GEO_MIN_SAMPLES = 2
+const GEO_MAX_SAMPLES = 5
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = 10 * 1024 * 1024
@@ -293,6 +293,14 @@ const buildDetailedApiError = (error: unknown, fallback: string): string => {
   return lines.join('\n')
 }
 
+const isDuplicateOrdenError = (message: string): boolean => {
+  const normalized = message
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+  return normalized.includes('ya existe una ot registrada con el mismo numero de orden')
+}
+
 const RegistrarOTAgendaPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
@@ -322,6 +330,7 @@ const RegistrarOTAgendaPage = () => {
   const [registroGuardado, setRegistroGuardado] = useState(false)
   const [successModalOpen, setSuccessModalOpen] = useState(false)
   const [successModalMessage, setSuccessModalMessage] = useState('')
+  const [duplicateOrdenModalOpen, setDuplicateOrdenModalOpen] = useState(false)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [nodo, setNodo] = useState('')
   const [ramal, setRamal] = useState('')
@@ -784,7 +793,7 @@ const RegistrarOTAgendaPage = () => {
   const parsedOrdenTrabajo = parseNumber(otInputValue)
   const parsedCodigoCliente = parseNumber(clienteInputValue)
   const nodoUpper = nodo.trim().toUpperCase()
-  const nodoValid = /^[A-Z]{3}\d{4}$/.test(nodoUpper)
+  const nodoValid = /^[A-Z]{3}\d{3,4}$/.test(nodoUpper)
   const ramalUpper = ramal.trim().toUpperCase()
   const ramalValid = ramalUpper.length > 0
   const parsedTap = parseNumber(tap)
@@ -816,7 +825,7 @@ const RegistrarOTAgendaPage = () => {
     if (parsedEstadoId === null) missing.push('estado')
     if (!hasValidOrdenTrabajo) missing.push('nro orden')
     if (!hasValidCodigoCliente) missing.push('cod cliente')
-    if (!nodoValid) missing.push('nodo (3 letras y 4 numeros)')
+    if (!nodoValid) missing.push('nodo (3 letras y 3 o 4 numeros)')
     if (!ramalValid) missing.push('ramal')
     if (!tapValid) missing.push('tap (3 digitos)')
     if (!bocaValid) missing.push('boca')
@@ -1247,7 +1256,13 @@ const RegistrarOTAgendaPage = () => {
       setSuccess(messageFinal)
       setSuccessModalMessage(messageFinal)
       setSuccessModalOpen(true)
+      setDuplicateOrdenModalOpen(false)
       queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'], refetchType: 'all' })
+      queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'], refetchType: 'all' })
     },
     onError: (error) => {
       setSuccess(null)
@@ -1258,6 +1273,7 @@ const RegistrarOTAgendaPage = () => {
         ? buildDetailedApiError(error, 'Error 502 al registrar OT. El servidor no respondio a tiempo (proxy/backend).')
         : buildDetailedApiError(error, 'No se pudo guardar la OT. Revisa los datos de cabecera y estado.')
       setSubmitError(backendMessage)
+      setDuplicateOrdenModalOpen(isDuplicateOrdenError(backendMessage))
     },
   })
 
@@ -1345,6 +1361,7 @@ const RegistrarOTAgendaPage = () => {
 
     setSubmitError(null)
     setSuccess(null)
+    setDuplicateOrdenModalOpen(false)
     setConfirmModalOpen(false)
     setCalibrationModalOpen(true)
     setCalibrationBusy(true)
@@ -1588,7 +1605,7 @@ const RegistrarOTAgendaPage = () => {
                 aria-invalid={nodoTouched && !nodoValid}
               />
               {nodoTouched && !nodoValid ? (
-                <p className="mt-1 text-xs text-rose-600">Nodo debe tener 3 letras y 4 numeros (ej: SCZ1234).</p>
+                <p className="mt-1 text-xs text-rose-600">Nodo debe tener 3 letras y 3 o 4 numeros (ej: SCZ123 o SCZ1234).</p>
               ) : null}
             </div>
 
@@ -1634,7 +1651,7 @@ const RegistrarOTAgendaPage = () => {
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nodo_Ramal_Tap</label>
               <input
                 className="input-base rounded-md bg-slate-50 py-2 text-sm"
-                value={`NODO ${nodoUpper || '-'} RAMAL ${ramalUpper || '-'} TAP ${tapDisplay} BOCA ${boca || '-'}`}
+                value={`NODO ${nodoUpper || '-'} RAMAL ${ramalUpper || '-'} ${tapDisplay} BOCA ${boca || '-'}`}
                 disabled
               />
             </div>
@@ -1827,6 +1844,19 @@ const RegistrarOTAgendaPage = () => {
           <p className="font-medium text-slate-700">{calibrationMessage}</p>
         </div>
         <p className="mt-3 text-xs text-slate-500">Este proceso puede tardar para obtener la mejor precision posible.</p>
+      </Modal>
+
+      <Modal
+        open={duplicateOrdenModalOpen}
+        title="Orden ya registrada"
+        onClose={() => setDuplicateOrdenModalOpen(false)}
+        actions={
+          <Button type="button" onClick={() => setDuplicateOrdenModalOpen(false)}>
+            OK
+          </Button>
+        }
+      >
+        <p>No se puede escribir esta orden, ya existe.</p>
       </Modal>
 
       <Modal

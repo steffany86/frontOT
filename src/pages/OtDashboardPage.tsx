@@ -286,6 +286,14 @@ const getTieneDetalleEnCodigoVentaFromRow = (row: OtSummary): boolean => {
   return Number.isFinite(cantidadDetalles) && cantidadDetalles > 0
 }
 
+const hasVentaValidationFromRow = (row: OtSummary): boolean => {
+  return (
+    readValue(row, ['existeVenta', 'ExisteVenta', 'ventaExiste', 'VentaExiste', 'registrado', 'Registrado']) !== undefined &&
+    readValue(row, ['tieneDetalleEnCodigoVenta', 'TieneDetalleEnCodigoVenta', 'existeDetalle', 'ExisteDetalle']) !== undefined &&
+    readValue(row, ['TieneDetalle', 'tieneDetalle', 'tiene_detalle', 'Tiene_Detalle']) !== undefined
+  )
+}
+
 const getRutaIdFromCatalogItem = (row: Record<string, unknown>): string => {
   const directKeys = ['idRuta', 'id_ruta', 'Id_Ruta', 'IdRuta', 'idGrupo', 'id_grupo', 'Id_Grupo', 'IdGrupo', 'id', 'Id']
   for (const key of directKeys) {
@@ -705,17 +713,18 @@ const OtDashboardPage = () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'] }),
+        queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'] }),
       ])
-      if (isFinalizadasTab) {
-        await finalizadasQuery.refetch()
-      } else {
-        await query.refetch()
-      }
+      await Promise.all([
+        query.refetch(),
+        finalizadasQuery.refetch(),
+        manualPendientesQuery.refetch(),
+      ])
     })()
-  }, [finalizadasQuery.refetch, isFinalizadasTab, query.refetch, queryClient, refreshToken])
+  }, [finalizadasQuery.refetch, manualPendientesQuery.refetch, query.refetch, queryClient, refreshToken])
 
   useEffect(() => {
     if (!isPendientesTab) return
@@ -782,6 +791,7 @@ const OtDashboardPage = () => {
   const validationTargets = useMemo(() => {
     const unique = new Map<string, { key: string; fecha: string; ot: string; clienteNro: string; desdeAgenda: boolean }>()
     for (const row of allRows) {
+      if (hasVentaValidationFromRow(row)) continue
       const ot = getOtCodigo(row).trim()
       const clienteNro = getClienteNro(row).trim()
       if (!ot || !clienteNro) continue
@@ -1526,7 +1536,7 @@ const OtDashboardPage = () => {
                   setNavError(null)
                   setManualClickLoading(true)
                   try {
-                    const cierreAgenda = await validateExisteCierreAlmacen({ fecha })
+                    const cierreAgenda = cierreAgendaQuery.data ?? await validateExisteCierreAlmacen({ fecha })
                     if (cierreAgenda.bloqueado) {
                       setNavError(cierreAgenda.mensaje || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.')
                       return
@@ -1547,7 +1557,10 @@ const OtDashboardPage = () => {
                     }
 
                     if (rutasParaValidar.length === 1) {
-                      const hasCuadreRuta = await validateCuadreRuta({ idRuta: rutasParaValidar[0], fecha })
+                      const hasCuadreRuta =
+                        manualBloqueoState && !manualBloqueoState.isError
+                          ? manualBloqueoState.hasCuadre
+                          : await validateCuadreRuta({ idRuta: rutasParaValidar[0], fecha })
                       if (hasCuadreRuta) {
                         setNavError('No se puede continuar porque la ruta ya realizo cuadre.')
                         return
@@ -1755,9 +1768,11 @@ const OtDashboardPage = () => {
                             <p>
                               <span className="font-semibold">NroTrans.:</span> {card.idVenta || 'Sin NroTrans.'}
                             </p>
-                            <p>
-                              <span className="font-semibold">Origen:</span> {card.origen || 'Sin origen'}
-                            </p>
+                            {String(card.origen ?? '').trim() ? (
+                              <p>
+                                <span className="font-semibold">Origen:</span> {card.origen}
+                              </p>
+                            ) : null}
                           </>
                         ) : (
                           <>
@@ -1789,111 +1804,15 @@ const OtDashboardPage = () => {
                             <span className="font-semibold">Tor:</span> {card.tor || 'Sin TOR'}
                           </p>
                         )}
-                        {isManualCard ? (
+                        {isManualCard && String(card.origen ?? '').trim() ? (
                           <p>
-                            <span className="font-semibold">Origen:</span> {card.origen || 'Manual'}
+                            <span className="font-semibold">Origen:</span> {card.origen}
                           </p>
                         ) : null}
                       </div>
 
                       {estadoTab === 'finalizadas' ? (
                         <div className="mt-5 grid grid-cols-1 gap-2 [&>button]:w-full">
-                          {normalizeEstado(String(card.origen ?? '')).includes('manual') ? (
-                            <Button
-                              type="button"
-                              disabled={materialClickKey === card.key}
-                              title={
-                                materialClickKey === card.key
-                                  ? 'Validando transacciones pendientes...'
-                                  : 'Cargar material para este registro manual.'
-                              }
-                              onClick={async () => {
-                                if (materialClickKey === card.key) return
-
-                                setMaterialClickKey(card.key)
-                                setNavError(null)
-
-                                try {
-                                  if (!card.ot || !card.clienteNro) {
-                                    setNavError('No se puede cargar material: faltan OT o Codigo Cliente.')
-                                    return
-                                  }
-
-                                  const fechaValidacion = card.fechaFila || card.fechaEjecucion || fecha
-                                  const idRutaValue = Number(
-                                    card.idRuta || getNumericString(card.row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta'])
-                                  )
-                                  const idRuta = Number.isFinite(idRutaValue) && idRutaValue > 0 ? idRutaValue : null
-
-                                  const cierreAgenda = await validateExisteCierreAlmacen({ fecha: fechaValidacion })
-                                  if (cierreAgenda.bloqueado) {
-                                    setNavError(cierreAgenda.mensaje || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.')
-                                    return
-                                  }
-
-                                  if (idRuta) {
-                                    const hasCuadreRuta = await validateCuadreRuta({ idRuta, fecha: fechaValidacion })
-                                    if (hasCuadreRuta) {
-                                      setNavError('No se puede continuar porque la ruta ya realizo cuadre.')
-                                      return
-                                    }
-                                  }
-
-                                  const ventaDetalle = await validateVentaYDetalle({
-                                    fecha: fechaValidacion,
-                                    ot: card.ot,
-                                    clienteNro: card.clienteNro,
-                                    incluirManual: true,
-                                  })
-                                  if (!ventaDetalle.habilitarCargarMaterial) {
-                                    if (ventaDetalle.tieneDetalleEnCodigoVenta) {
-                                      setNavError('Esta OT ya tiene material registrado y no permite nueva carga.')
-                                    } else {
-                                      setNavError('El estado actual de la OT no permite cargar material.')
-                                    }
-                                    return
-                                  }
-
-                                  navigate('/GestionOTs/RegistrarOrdenAgenda_Detalle', {
-                                    state: {
-                                      numeroOrden: card.ot,
-                                      clienteNro: card.clienteNro,
-                                      fecha: fechaValidacion,
-                                      tor: card.tor,
-                                      grupo: card.grupo,
-                                      tecnicoNombre: card.tecnicoNombre,
-                                      idRuta:
-                                        (ventaDetalle.idRuta && ventaDetalle.idRuta > 0 ? String(ventaDetalle.idRuta) : null) ??
-                                        (idRuta ? String(idRuta) : card.idRuta),
-                                      idTipoServicio:
-                                        card.idTipoServicio ||
-                                        getNumericString(card.row, [
-                                          'id_tiposervicio',
-                                          'Id_TipoServicio',
-                                          'idTipoServicio',
-                                          'IdTipoServicio',
-                                          'id_tipo_servicio',
-                                          'Id_Tipo_Servicio',
-                                        ]),
-                                      idSucursal: card.idSucursal,
-                                      idVenta:
-                                        (ventaDetalle.idVenta && ventaDetalle.idVenta > 0 ? String(ventaDetalle.idVenta) : null) ??
-                                        card.idVenta,
-                                      rowData: card.row,
-                                    },
-                                  })
-                                } catch (error) {
-                                  const defaultMessage = 'No se pudo validar transacciones pendientes antes de abrir el registro.'
-                                  const message = error instanceof Error && error.message.trim() ? error.message.trim() : defaultMessage
-                                  setNavError(message)
-                                } finally {
-                                  setMaterialClickKey((current) => (current === card.key ? null : current))
-                                }
-                              }}
-                            >
-                              {materialClickKey === card.key ? 'Validando...' : 'Cargar Material'}
-                            </Button>
-                          ) : null}
                           <Button
                             type="button"
                             variant="secondary"

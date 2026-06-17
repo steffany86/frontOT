@@ -20,12 +20,14 @@ import CuNoRealizadoCreatePage from '../pages/CuNoRealizadoCreatePage'
 import ConformacionCuadrillaPage from '../pages/ConformacionCuadrillaPage'
 import LlamadaAtencionPage from '../pages/LlamadaAtencionPage'
 import SupervisorSupervisionPage from '../pages/SupervisorSupervisionPage'
+import BackOfficeSupervisionPage from '../pages/BackOfficeSupervisionPage'
 import CentralGruposPage from '../pages/CentralGruposPage'
 import PrivilegiosPage from '../pages/admin/PrivilegiosPage'
 import ForbiddenPage from '../pages/ForbiddenPage'
 import TecnicoInicioJornadaPage from '../pages/TecnicoInicioJornadaPage'
 import ChangePasswordPage from '../pages/ChangePasswordPage'
 import NpsDashboardPage from '../pages/NpsDashboardPage'
+import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -74,8 +76,10 @@ const AppRoutes = () => {
           <Route path="/supervisor/conformacion-cuadrilla/editar" element={<Navigate to="/supervisor/conformacion-cuadrilla" replace />} />
           <Route path="/supervisor/llamada-atencion" element={<LlamadaAtencionPage />} />
           <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
+          <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />
+          <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>

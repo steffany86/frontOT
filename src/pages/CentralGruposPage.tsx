@@ -48,12 +48,13 @@ const CentralGruposPage = () => {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const isCentral = roleName.trim().toLowerCase() === 'central'
+  const normalizedRole = roleName.trim().toLowerCase().replace(/[\s_]+/g, '')
+  const canManageGroups = ['central', 'backoffice', 'backofficev', 'backup', 'sistemas', 'admin'].includes(normalizedRole)
 
   const sucursalesQuery = useQuery({
     queryKey: ['auth-sucursales-central-grupos'],
     queryFn: fetchSucursales,
-    enabled: isCentral,
+    enabled: canManageGroups,
     staleTime: 5 * 60 * 1000,
   })
 
@@ -69,19 +70,19 @@ const CentralGruposPage = () => {
   const gruposQuery = useQuery({
     queryKey: ['central-grupos', 'listado', loginSucursal || 'auto'],
     queryFn: () => fetchCentralGrupos(loginSucursal),
-    enabled: isCentral,
+    enabled: canManageGroups,
   })
 
   const supervisoresQuery = useQuery({
     queryKey: ['central-grupos', 'supervisores', loginSucursal || 'auto'],
     queryFn: () => fetchCentralSupervisores(loginSucursal),
-    enabled: isCentral,
+    enabled: canManageGroups,
   })
 
   const tecnicosQuery = useQuery({
     queryKey: ['central-grupos', 'tecnicos', loginSucursal || 'auto'],
     queryFn: () => fetchCentralTecnicos(loginSucursal),
-    enabled: isCentral,
+    enabled: canManageGroups,
   })
 
   const createMutation = useMutation({
@@ -380,15 +381,15 @@ const CentralGruposPage = () => {
   return (
     <div className="bento-page">
       <div className="bento-page-head rounded-[28px] border border-[#dbe5fa] bg-white/95 p-6 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
-        <h2>Central - Grupos</h2>
+        <h2>Grupos</h2>
         <p>
           Sucursal activa del login: {loginSucursal ?? 'Cargando...'}.
         </p>
       </div>
 
-      {!isCentral ? (
+      {!canManageGroups ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-          Esta pantalla es solo para usuarios con rol Central.
+          No tienes permisos para gestionar grupos.
         </div>
       ) : null}
 
@@ -400,7 +401,7 @@ const CentralGruposPage = () => {
         description="Gestiona grupos existentes y sus responsables."
       >
         <div className="flex flex-wrap gap-3">
-          <Button type="button" className="h-11 rounded-2xl px-5" onClick={() => setOpenSupervisorModal(true)} disabled={!isCentral || grupos.length === 0}>
+          <Button type="button" className="h-11 rounded-2xl px-5" onClick={() => setOpenSupervisorModal(true)} disabled={!canManageGroups || grupos.length === 0}>
             Asignar grupo existente a supervisor
           </Button>
         </div>
@@ -529,7 +530,7 @@ const CentralGruposPage = () => {
             <Button type="button" variant="secondary" onClick={() => setOpenCrearModal(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={handleCrearGrupo} disabled={createMutation.isPending || !isCentral}>
+            <Button type="button" onClick={handleCrearGrupo} disabled={createMutation.isPending || !canManageGroups}>
               {createMutation.isPending ? 'Creando...' : 'Crear grupo'}
             </Button>
           </>
@@ -555,7 +556,7 @@ const CentralGruposPage = () => {
             <Button type="button" variant="secondary" onClick={() => setOpenSupervisorModal(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={handleAsignarSupervisor} disabled={asignarSupervisorMutation.isPending || !isCentral}>
+            <Button type="button" onClick={handleAsignarSupervisor} disabled={asignarSupervisorMutation.isPending || !canManageGroups}>
               {asignarSupervisorMutation.isPending ? 'Asignando...' : 'Asignar supervisor'}
             </Button>
           </>
@@ -599,7 +600,7 @@ const CentralGruposPage = () => {
             <Button type="button" variant="secondary" onClick={() => setOpenCambioSupervisorModal(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => cambiarSupervisorMasivoMutation.mutate()} disabled={cambiarSupervisorMasivoMutation.isPending || !isCentral}>
+            <Button type="button" onClick={() => cambiarSupervisorMasivoMutation.mutate()} disabled={cambiarSupervisorMasivoMutation.isPending || !canManageGroups}>
               {cambiarSupervisorMasivoMutation.isPending ? 'Cambiando...' : 'Aplicar cambio'}
             </Button>
           </>
@@ -689,7 +690,7 @@ const CentralGruposPage = () => {
             <Button
               type="button"
               onClick={handleBackupSubmit}
-              disabled={marcarAusenteMutation.isPending || cambiarColaboradorMutation.isPending || !isCentral}
+              disabled={marcarAusenteMutation.isPending || cambiarColaboradorMutation.isPending || !canManageGroups}
             >
               {marcarAusenteMutation.isPending || cambiarColaboradorMutation.isPending
                 ? 'Guardando...'
@@ -734,7 +735,7 @@ const CentralGruposPage = () => {
             <Button type="button" variant="secondary" onClick={() => setOpenTecnicoModal(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={handleAsignarTecnico} disabled={asignarTecnicoMutation.isPending || !isCentral}>
+            <Button type="button" onClick={handleAsignarTecnico} disabled={asignarTecnicoMutation.isPending || !canManageGroups}>
               {asignarTecnicoMutation.isPending ? 'Asignando...' : 'Asignar tecnico'}
             </Button>
           </>

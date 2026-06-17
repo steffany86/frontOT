@@ -85,6 +85,12 @@ const parseNpsDate = (value: unknown): Date | null => {
 const formatDayMonth = (date: Date): string => `${date.getDate()} ${MONTHS_ES[date.getMonth()] ?? ''}`
 
 const pct = (value: number): string => `${value.toFixed(1)}%`
+const normalizeSucursalLabel = (value: string): string => {
+  const raw = (value || '').trim()
+  const normalized = raw.toUpperCase().replace(/[_\s]+/g, ' ')
+  if (normalized === 'SANTA CRUZ') return 'SANTA CRUZ CAP'
+  return raw
+}
 
 const today = new Date()
 const isoDate = (d: Date) => d.toISOString().slice(0, 10)
@@ -141,7 +147,8 @@ const SemiGauge = ({
 const NpsDashboardPage = () => {
   const { usuario, roleName } = useAuth()
   const role = (roleName || usuario?.rol || '').trim().toLowerCase()
-  const isCentral = role.includes('central') || role.includes('sistema') || role.includes('admin')
+  const roleCompact = role.replace(/[\s_]+/g, '')
+  const isCentral = role.includes('central') || role.includes('sistema') || role.includes('admin') || roleCompact === 'backofficev'
   const isTecnico = role === 'tecnico'
   const isSupervisor = role === 'supervisor'
   const [modo, setModo] = useState<'nps_respuestas' | 'nps_invitado'>('nps_respuestas')
@@ -239,7 +246,7 @@ const NpsDashboardPage = () => {
       const dateKey = respDate ? `${respDate.getFullYear()}-${String(respDate.getMonth() + 1).padStart(2, '0')}-${String(respDate.getDate()).padStart(2, '0')}` : toDayLabel(read(row, ['fecha_de_respuesta']))
       add(byDay, dateKey, tipo, respDate)
       addSimple(byTech, asText(read(row, ['tecnologia'])), tipo)
-      addSimple(byCity, asText(read(row, ['ciudad'])), tipo)
+      addSimple(byCity, normalizeSucursalLabel(asText(read(row, ['ciudad']))), tipo)
 
       const t = asText(read(row, ['tecnico_nombre']))
       const historicoRaw = read(row, ['_npsHistorico', 'npsHistorico'])
@@ -369,7 +376,7 @@ const NpsDashboardPage = () => {
       tipoTransaccion: asText(read(row, ['tipo_de_transaccion', 'tipo_transaccion'])) || '-',
       telefono: asText(read(row, ['telefono_encuesta'])) || '-',
       diasEnvio: asNumber(read(row, ['dias_envio'])) ?? 0,
-      sucursal: asText(read(row, ['ciudad', 'ciudad_siga'])) || '-',
+      sucursal: normalizeSucursalLabel(asText(read(row, ['ciudad', 'ciudad_siga'])) || '-'),
       respuesta: asText(read(row, ['respuesta', 'ltr'])),
       fechaRespuesta: asText(read(row, ['fecha_respuesta', 'fecha_de_respuesta'])),
       mesRespuesta: asText(read(row, ['mes_respuesta'])),
@@ -519,7 +526,7 @@ const NpsDashboardPage = () => {
           <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faBuilding} className="text-slate-400" />Sucursal</span>
           <select value={idSucursal ?? ''} onChange={(e) => setIdSucursal(e.target.value ? Number(e.target.value) : undefined)} className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100" disabled={!isCentral}>
             <option value="">Selecciona sucursal</option>
-            {sucursales.map((s) => <option key={s.idSucursal} value={s.idSucursal}>{s.sucursal}</option>)}
+            {sucursales.map((s) => <option key={s.idSucursal} value={s.idSucursal}>{normalizeSucursalLabel(s.sucursal)}</option>)}
           </select>
         </label>
         <label className="text-sm text-slate-700">
@@ -1186,8 +1193,6 @@ const NpsDashboardPage = () => {
 }
 
 export default NpsDashboardPage
-
-
 
 
 

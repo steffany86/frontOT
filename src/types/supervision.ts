@@ -1,6 +1,7 @@
 ﻿export type SupervisionTecnico = {
   idTecnico: string
   tecnico: string
+  codigo?: string
   codEmpleado?: string
   cuentaSf?: string
   habilidad?: string
@@ -46,6 +47,7 @@ export type SupervisionRegistro = {
   fotoObservacion2?: string
   fotoObservacion3?: string
   fotoObservacion4?: string
+  estadoSup?: 'pendiente' | 'completado' | string
 }
 
 export type SupervisionListParams = {
@@ -113,5 +115,12 @@ export type SupervisionInicioPendiente = {
   escalera?: string
   anclaje?: string
   ubicacionGeoref?: string
+  codigoClienteCierre?: string
+  danoMaterial?: string
+  observacionMaterial?: string
+  danoPersona?: string
+  observacionPersona?: string
+  novedadesTrabajo?: string
+  observacionNovedades?: string
+  ubicacionCierreGeoref?: string
 }
-

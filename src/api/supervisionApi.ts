@@ -49,8 +49,34 @@ const normalizeObjectResponse = <T>(payload: unknown): T => {
 
 const mapTecnico = (row: Record<string, unknown>): SupervisionTecnico => {
   return {
-    idTecnico: normalizeString(readValue(row, ['idTecnico', 'id_tecnico', 'idtecnico', 'id_vendedor', 'idvendedor'])),
-    tecnico: normalizeString(readValue(row, ['tecnico', 'nombre', 'nombrevendedor', 'vendedor'])),
+    idTecnico: normalizeString(
+      readValue(row, [
+        'idTecnico',
+        'id_tecnico',
+        'idtecnico',
+        'id_vendedor',
+        'idvendedor',
+        'idUsuario',
+        'id_usuario',
+        'idUsuarioTecnico',
+        'id_usuario_tecnico',
+        'Id_Tecnico',
+        'Id_Usuario',
+      ])
+    ),
+    tecnico: normalizeString(
+      readValue(row, [
+        'tecnico',
+        'nombre',
+        'nombrevendedor',
+        'vendedor',
+        'Tecnico',
+        'Nombre',
+        'usuario',
+        'Usuario',
+      ])
+    ),
+    codigo: normalizeString(readValue(row, ['codigo', 'Codigo'])) || undefined,
     codEmpleado: normalizeString(readValue(row, ['codEmpleado', 'cod_empleado', 'codempleado'])) || undefined,
     cuentaSf: normalizeString(readValue(row, ['cuentaSf', 'cuenta_sf', 'cuentasf'])) || undefined,
     habilidad: normalizeString(readValue(row, ['habilidad'])) || undefined,
@@ -77,6 +103,8 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
   const tecnicoAuxiliarNombre = normalizeString(
     readValue(row, ['tecnicoAuxiliarNombre', 'auxiliarNombre', 'nombreTecnicoAuxiliar', 'tecnico_auxiliar_nombre'])
   ) || undefined
+  const idTecnicoAuxiliar = normalizeString(readValue(row, ['idTecnicoAuxiliar', 'id_tecnico_auxiliar', 'Id_TecnicoAuxiliar'])) || undefined
+  const idTecnicoAuxiliarEsNombre = idTecnicoAuxiliar ? !/^\d+$/.test(idTecnicoAuxiliar) : false
 
   return {
     idSupervision: normalizeString(readValue(row, ['idSupervision', 'id_supervision', 'idsupervision', 'Id_Supervision'])),
@@ -85,9 +113,11 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     supervisor: supervisorNombre || normalizeString(readValue(row, ['supervisor', 'nombreSupervisor'])) || undefined,
     idTecnicoPrincipal: normalizeString(readValue(row, ['idTecnicoPrincipal', 'id_tecnico_principal', 'Id_TecnicoPrincipal'])) || undefined,
     tecnicoPrincipal: tecnicoPrincipalNombre || normalizeString(readValue(row, ['tecnicoPrincipal', 'nombreTecnicoPrincipal', 'tecnico'])) || undefined,
-    idTecnicoAuxiliar: normalizeString(readValue(row, ['idTecnicoAuxiliar', 'id_tecnico_auxiliar', 'Id_TecnicoAuxiliar'])) || undefined,
+    idTecnicoAuxiliar,
     tecnicoAuxiliar:
-      tecnicoAuxiliarNombre || normalizeString(readValue(row, ['tecnicoAuxiliar', 'nombreTecnicoAuxiliar', 'auxiliar'])) || undefined,
+      tecnicoAuxiliarNombre ||
+      normalizeString(readValue(row, ['tecnicoAuxiliar', 'nombreTecnicoAuxiliar', 'auxiliar'])) ||
+      (idTecnicoAuxiliarEsNombre ? idTecnicoAuxiliar : undefined),
     idTipoSupervision,
     tipoSupervision: normalizeString(readValue(row, ['tipoSupervision', 'TipoSupervision'])) || idTipoSupervision || undefined,
     idTipoTrabajo,
@@ -112,6 +142,7 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     fotoObservacion2: normalizeString(readValue(row, ['fotoObservacion2', 'FotoObservacion2'])) || undefined,
     fotoObservacion3: normalizeString(readValue(row, ['fotoObservacion3', 'FotoObservacion3'])) || undefined,
     fotoObservacion4: normalizeString(readValue(row, ['fotoObservacion4', 'FotoObservacion4'])) || undefined,
+    estadoSup: normalizeString(readValue(row, ['estadoSup', 'estado_sup', 'estdo_sup', 'EstadoSup'])) || undefined,
   }
 }
 
@@ -173,6 +204,26 @@ export const fetchSupervisiones = async (params?: SupervisionListParams): Promis
   return rows.map(mapRegistro).filter((item) => item.idSupervision)
 }
 
+export const fetchSupervisionesPendientes = async (params?: SupervisionListParams): Promise<SupervisionRegistro[]> => {
+  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/agenda`, { params: sanitizeListParams(params) })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapRegistro).filter((item) => item.idSupervision)
+}
+
+export const fetchBackofficeSupervisionesPorEstado = async (
+  estado: 'pendiente' | 'completado',
+  params?: SupervisionListParams
+): Promise<SupervisionRegistro[]> => {
+  const { data } = await api.get('/backoffice/supervision/listado', {
+    params: {
+      ...sanitizeListParams(params),
+      estado,
+    },
+  })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapRegistro).filter((item) => item.idSupervision)
+}
+
 export const fetchSupervisionDetalle = async (idSupervision: string): Promise<SupervisionRegistro> => {
   const { data } = await api.get(`${SUPERVISION_BASE_PATH}/${idSupervision}`)
   const payload = normalizeObjectResponse<Record<string, unknown>>(data)
@@ -181,6 +232,16 @@ export const fetchSupervisionDetalle = async (idSupervision: string): Promise<Su
 
 export const createSupervision = async (payload: SupervisionCreatePayload): Promise<SupervisionCreateResult> => {
   const { data } = await api.post(SUPERVISION_BASE_PATH, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return normalizeObjectResponse<SupervisionCreateResult>(data)
+}
+
+export const realizarSupervisionPendiente = async (
+  idSupervision: string,
+  payload: SupervisionCreatePayload
+): Promise<SupervisionCreateResult> => {
+  const { data } = await api.post(`${SUPERVISION_BASE_PATH}/${idSupervision}/realizar`, payload, {
     headers: { 'Content-Type': 'application/json' },
   })
   return normalizeObjectResponse<SupervisionCreateResult>(data)
@@ -252,6 +313,27 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
   escalera: normalizeString(readValue(row, ['escalera', 'Escalera'])) || undefined,
   anclaje: normalizeString(readValue(row, ['anclaje', 'Anclaje'])) || undefined,
   ubicacionGeoref: normalizeString(readValue(row, ['ubicacionGeoref', 'ubicacion_georef', 'ubicacionGeoRef', 'ubicacion'])) || undefined,
+  codigoClienteCierre:
+    normalizeString(readValue(row, ['codigoClienteCierre', 'codigo_cliente_cierre', 'codigoCliente', 'codigo_cliente'])) || undefined,
+  danoMaterial: normalizeString(readValue(row, ['danoMaterial', 'dano_material'])) || undefined,
+  observacionMaterial:
+    normalizeString(readValue(row, ['observacionMaterial', 'observacion_material', 'observacionDanoMaterial'])) || undefined,
+  danoPersona: normalizeString(readValue(row, ['danoPersona', 'dano_persona'])) || undefined,
+  observacionPersona:
+    normalizeString(readValue(row, ['observacionPersona', 'observacion_persona', 'observacionDanoPersona'])) || undefined,
+  novedadesTrabajo: normalizeString(readValue(row, ['novedadesTrabajo', 'novedades_trabajo'])) || undefined,
+  observacionNovedades:
+    normalizeString(readValue(row, ['observacionNovedades', 'observacion_novedades', 'observacionNovedadesTrabajo'])) || undefined,
+  ubicacionCierreGeoref:
+    normalizeString(
+      readValue(row, [
+        'ubicacionCierreGeoref',
+        'ubicacion_cierre_georef',
+        'ubicacionCierreGeoRef',
+        'ubicacionGeoRefCierre',
+        'ubicacion_georef_cierre',
+      ])
+    ) || undefined,
 })
 
 export const fetchIniciosJornadaPendientesSupervision = async (): Promise<SupervisionInicioPendiente[]> => {
@@ -274,3 +356,80 @@ export const rechazarInicioJornadaPendiente = async (idInicio: string): Promise<
   await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/rechazar`)
 }
 
+export const fetchSupervisores = async (sucursal?: string): Promise<Array<{ idSupervisor: string; nombre: string }>> => {
+  const { data } = await api.get('/backoffice/supervision/supervisores', {
+    params: sucursal?.trim() ? { sucursal: sucursal.trim() } : undefined,
+  })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows
+    .map((row) => {
+      const nombre = normalizeString(
+        readValue(row, [
+          'nombre',
+          'Nombre',
+          'Encargado',
+          'supervisorACargo',
+          'supervisor_a_cargo',
+          'SupervisorACargo',
+          'supervisor',
+          'Supervisor',
+          'usuario',
+          'Usuario',
+        ])
+      )
+
+      const rawId = normalizeString(
+        readValue(row, [
+          'idSupervisor',
+          'id_supervisor',
+          'idUsuarioSupervisor',
+          'id_usuario_supervisor',
+          'Id_Usuario',
+          'idUsuario',
+          'id_usuario',
+          'id_encargado',
+          'IdEncargado',
+          'id',
+          'Id',
+        ])
+      )
+
+      const idFromName = (() => {
+        const match = nombre.match(/\((\d+)\)\s*$/)
+        return match ? match[1] : ''
+      })()
+
+      return {
+        idSupervisor: rawId || idFromName,
+        nombre,
+        sucursal: normalizeString(readValue(row, ['sucursal', 'Sucursal'])) || undefined,
+      }
+    })
+    .filter((item) => item.idSupervisor)
+    .map((item) => ({
+      ...item,
+      nombre: item.nombre || `Supervisor ${item.idSupervisor}`,
+    }))
+}
+
+export const fetchTecnicosPorSupervisor = async (idSupervisor: string, sucursal?: string, supervisorNombre?: string): Promise<SupervisionTecnico[]> => {
+  const supervisorId = idSupervisor.trim()
+  const normalizedSupervisorId = supervisorId.replace(/[^0-9]/g, '') || supervisorId
+  const params: Record<string, unknown> = {
+    idSupervisor: normalizedSupervisorId,
+    idUsuarioSupervisor: normalizedSupervisorId,
+  }
+  if (sucursal?.trim()) params.sucursal = sucursal.trim()
+  if (supervisorNombre?.trim()) params.supervisor = supervisorNombre.trim()
+  
+  const { data } = await api.get('/backoffice/supervision/tecnicos-por-supervisor', { params })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapTecnico).filter((item) => item.idTecnico && item.tecnico)
+}
+
+export const createSupervisionPendiente = async (payload: SupervisionCreatePayload & { idSupervisorAsignado: string }): Promise<SupervisionCreateResult> => {
+  const { data } = await api.post('/backoffice/supervision/pendiente', payload, {
+    headers: { 'Content-Type': 'application/json' },
+  })
+  return normalizeObjectResponse<SupervisionCreateResult>(data)
+}
