@@ -1491,7 +1491,7 @@ const OtDashboardPage = () => {
 
   return (
     <div className="bento-page">
-      <section className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4 sm:p-6">
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Ordenes de Trabajo (            
@@ -1738,7 +1738,7 @@ const OtDashboardPage = () => {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Cliente</h3>
-                          <p className="mt-1 whitespace-nowrap text-4xl font-extrabold leading-none tracking-tight text-slate-900 sm:text-[42px]">
+                          <p className="mt-1 whitespace-nowrap text-2xl font-extrabold leading-none tracking-tight text-slate-900 sm:text-3xl">
                             {getClienteLabel(card.row)}
                           </p>
                         </div>

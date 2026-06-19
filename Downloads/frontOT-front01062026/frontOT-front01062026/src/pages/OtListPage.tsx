@@ -524,7 +524,7 @@ const OtListPage = () => {
       </div>
 
       {view === 'horario' ? (
-        <div className="glass-panel p-4 sm:p-6">
+        <div className="glass-panel p-3 sm:p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="section-title">Horario</h3>
@@ -671,7 +671,7 @@ const OtListPage = () => {
       ) : null}
 
       {view === 'buscar' ? (
-        <div className="glass-panel p-4 sm:p-6">
+        <div className="glass-panel p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="section-title">Buscar</h3>
@@ -730,7 +730,7 @@ const OtListPage = () => {
       ) : null}
 
       {view === 'calendario' ? (
-        <div className="glass-panel bg-slate-50/80 p-4 sm:p-6">
+        <div className="glass-panel bg-slate-50/80 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="section-title">Calendario</h3>

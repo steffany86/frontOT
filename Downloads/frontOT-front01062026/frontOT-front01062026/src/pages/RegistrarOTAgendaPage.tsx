@@ -1651,7 +1651,7 @@ const RegistrarOTAgendaPage = () => {
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nodo_Ramal_Tap</label>
               <input
                 className="input-base rounded-md bg-slate-50 py-2 text-sm"
-                value={`NODO ${nodoUpper || '-'} RAMAL ${ramalUpper || '-'} TAP ${tapDisplay} BOCA ${boca || '-'}`}
+                value={`NODO ${nodoUpper || '-'} RAMAL ${ramalUpper || '-'} ${tapDisplay} BOCA ${boca || '-'}`}
                 disabled
               />
             </div>

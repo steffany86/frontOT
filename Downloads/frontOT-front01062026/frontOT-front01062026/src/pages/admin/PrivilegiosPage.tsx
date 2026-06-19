@@ -383,7 +383,7 @@ const PrivilegiosPage = () => {
 
   return (
     <div className="bento-page">
-      <section className="glass-panel relative overflow-hidden p-4 sm:p-6">
+      <section className="glass-panel relative overflow-hidden p-3 sm:p-4">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-10 -top-16 h-44 w-44 rounded-full bg-brand-100/60 blur-3xl" />
           <div className="absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-slate-200/70 blur-3xl" />

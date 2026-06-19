@@ -11,7 +11,7 @@ interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
   emptyLabel?: string
-  rowClassName?: string
+  rowClassName?: string | ((row: T) => string)
   variant?: 'default' | 'row-block'
   hideHeader?: boolean
   desktopMinWidthClass?: string
@@ -51,6 +51,7 @@ const Table = <T,>({
   const renderValue = (column: Column<T>, row: T) => {
     return column.render ? column.render(row) : (row as Record<string, ReactNode>)[column.key]
   }
+  const getRowClassName = (row: T): string => (typeof rowClassName === 'function' ? rowClassName(row) : rowClassName)
 
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft">
@@ -73,7 +74,7 @@ const Table = <T,>({
               ) : null}
               <tbody>
                 {data.map((row, index) => (
-                  <tr key={index} className={rowClassName}>
+                  <tr key={index} className={getRowClassName(row)}>
                     {columns.map((column) => (
                       <td key={column.key} className={`border-b border-slate-200 px-3 py-1.5 align-top text-slate-700 ${column.className ?? ''}`}>
                         {renderValue(column, row)}
@@ -89,7 +90,7 @@ const Table = <T,>({
             {data.map((row, index) => (
               <div
                 key={index}
-                className={`${isCompact ? 'p-2' : 'p-2.5'} ${isRowBlock ? 'rounded-2xl border border-brand-100/80 bg-white shadow-sm' : ''} ${rowClassName}`}
+                className={`${isCompact ? 'p-2' : 'p-2.5'} ${isRowBlock ? 'rounded-2xl border border-brand-100/80 bg-white shadow-sm' : ''} ${getRowClassName(row)}`}
               >
                 {isRowBlock ? (
                   <>
@@ -190,7 +191,7 @@ const Table = <T,>({
               </tr>
             ) : (
               data.map((row, index) => (
-                <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${rowClassName}`}>
+                <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${getRowClassName(row)}`}>
                   {columns.map((column, columnIndex) => (
                     <td
                       key={column.key}

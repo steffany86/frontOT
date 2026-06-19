@@ -68,7 +68,13 @@ const mapSessionToUser = (session: SessionData | null): UsuarioSesion | null => 
 }
 
 const normalizePageName = (value: string): string => value.trim().toLowerCase()
-const normalizeRoleName = (value: string): string => value.trim().toLowerCase()
+const normalizeRoleName = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '')
 
 const resolveRoleData = (usuario: UsuarioSesion | null, permisos: PermisosUsuario | null): { roleName: string; roleId: number } => {
   const roleName = (permisos?.rol ?? usuario?.rol ?? '').trim()
@@ -270,13 +276,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const canAccessNavigationItem = useCallback(
     (item: NavigationItem): boolean => {
-      if (!permisos) return false
       const currentRole = normalizeRoleName(roleName)
       if (
         item.allowedRoles?.length &&
         !item.allowedRoles.some((allowedRole) => normalizeRoleName(allowedRole) === currentRole)
       ) {
         return false
+      }
+      if (!permisos) {
+        return Boolean(item.allowedRoles?.length)
       }
       const hasPageRules = Boolean(item.requiredPageNames?.length || item.requiredAnyPageNames?.length)
       if (

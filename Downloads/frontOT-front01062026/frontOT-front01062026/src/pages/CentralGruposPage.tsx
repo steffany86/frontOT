@@ -49,7 +49,7 @@ const CentralGruposPage = () => {
   const [error, setError] = useState<string | null>(null)
 
   const normalizedRole = roleName.trim().toLowerCase().replace(/[\s_]+/g, '')
-  const canManageGroups = ['central', 'backoffice', 'backofficev', 'backup'].includes(normalizedRole)
+  const canManageGroups = ['central', 'backoffice', 'backofficev', 'backup', 'sistemas', 'admin'].includes(normalizedRole)
 
   const sucursalesQuery = useQuery({
     queryKey: ['auth-sucursales-central-grupos'],
@@ -380,7 +380,7 @@ const CentralGruposPage = () => {
 
   return (
     <div className="bento-page">
-      <div className="bento-page-head rounded-[28px] border border-[#dbe5fa] bg-white/95 p-6 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
+      <div className="bento-page-head rounded-2xl border border-[#dbe5fa] bg-white/95 px-4 py-3 shadow-sm sm:px-5">
         <h2>Grupos</h2>
         <p>
           Sucursal activa del login: {loginSucursal ?? 'Cargando...'}.
@@ -429,7 +429,7 @@ const CentralGruposPage = () => {
                   >
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Supervisor</p>
-                    <h3 className="text-4xl font-extrabold tracking-tight text-[#081a4b]">{bloque.supervisor}</h3>
+                    <h3 className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">{bloque.supervisor}</h3>
                     <p className="mt-1 text-sm font-medium text-[#4b628d]">Grupos asignados: {bloque.grupos.length}</p>
                   </div>
                   </button>

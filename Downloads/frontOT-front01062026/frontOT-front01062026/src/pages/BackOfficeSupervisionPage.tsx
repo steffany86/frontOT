@@ -15,6 +15,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
+import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import SupervisionPendienteModal from '../components/supervision/SupervisionPendienteModal'
 import {
@@ -94,6 +95,7 @@ const BackOfficeSupervisionPage = () => {
   const [activeTab, setActiveTab] = useState<SupervisionTab>('pendiente')
   const [fechaFiltro, setFechaFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [detalle, setDetalle] = useState<SupervisionRegistro | null>(null)
+  const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
   const listParams = {
     fechaDesde: fechaFiltro,
@@ -113,7 +115,7 @@ const BackOfficeSupervisionPage = () => {
 
   const supervisoresQuery = useQuery({
     queryKey: ['backoffice', 'supervisores'],
-    queryFn: fetchSupervisores,
+    queryFn: () => fetchSupervisores(),
     staleTime: 300_000,
   })
 
@@ -374,7 +376,7 @@ const BackOfficeSupervisionPage = () => {
             <p className="text-sm text-slate-600">{activeCopy.loading}</p>
           ) : activeItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <FontAwesomeIcon icon={activeTab === 'pendiente' ? faClipboardCheck : faCircleCheck} className={`mb-3 text-4xl ${activeCopy.iconClass}`} />
+              <FontAwesomeIcon icon={activeTab === 'pendiente' ? faClipboardCheck : faCircleCheck} className={`mb-2 text-2xl sm:text-3xl ${activeCopy.iconClass}`} />
               <p className="text-sm font-medium text-slate-700">{activeCopy.emptyTitle}</p>
               <p className="mt-1 text-xs text-slate-500">{activeCopy.emptyHelp}</p>
             </div>
@@ -505,7 +507,13 @@ const BackOfficeSupervisionPage = () => {
                   return (
                     <div key={photo.key} className="rounded-xl border border-slate-200 bg-white p-2">
                       {src ? (
-                        <img src={src} alt={photo.label} className="h-28 w-full rounded-lg border border-slate-200 object-cover" />
+                        <button
+                          type="button"
+                          className="block w-full cursor-zoom-in rounded-lg border border-slate-200 bg-white p-0"
+                          onClick={() => setZoomImageSrc(src)}
+                        >
+                          <img src={src} alt={photo.label} className="h-28 w-full rounded-lg object-cover" />
+                        </button>
                       ) : (
                         <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-500">Sin imagen</div>
                       )}
@@ -518,6 +526,7 @@ const BackOfficeSupervisionPage = () => {
           </div>
         ) : null}
       </Modal>
+      <ImageLightbox open={Boolean(zoomImageSrc)} src={zoomImageSrc ?? ''} onClose={() => setZoomImageSrc(null)} />
     </div>
   )
 }

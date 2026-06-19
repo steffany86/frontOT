@@ -356,10 +356,12 @@ export const rechazarInicioJornadaPendiente = async (idInicio: string): Promise<
   await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/rechazar`)
 }
 
-export const fetchSupervisores = async (): Promise<Array<{ idSupervisor: string; nombre: string }>> => {
-  const { data } = await api.get('/backoffice/supervision/supervisores')
+export const fetchSupervisores = async (sucursal?: string): Promise<Array<{ idSupervisor: string; nombre: string }>> => {
+  const { data } = await api.get('/backoffice/supervision/supervisores', {
+    params: sucursal?.trim() ? { sucursal: sucursal.trim() } : undefined,
+  })
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
-  return rows
+  const supervisores = rows
     .map((row) => {
       const nombre = normalizeString(
         readValue(row, [
@@ -408,6 +410,14 @@ export const fetchSupervisores = async (): Promise<Array<{ idSupervisor: string;
       ...item,
       nombre: item.nombre || `Supervisor ${item.idSupervisor}`,
     }))
+
+  const deduped = new Map<string, { idSupervisor: string; nombre: string }>()
+  for (const supervisor of supervisores) {
+    const key = supervisor.idSupervisor.trim().replace(/[^0-9]/g, '') || supervisor.idSupervisor.trim()
+    if (!key || deduped.has(key)) continue
+    deduped.set(key, supervisor)
+  }
+  return Array.from(deduped.values())
 }
 
 export const fetchTecnicosPorSupervisor = async (idSupervisor: string, sucursal?: string, supervisorNombre?: string): Promise<SupervisionTecnico[]> => {

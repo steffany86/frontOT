@@ -150,7 +150,15 @@ export const fetchCentralGrupos = async (sucursal?: string): Promise<CentralGrup
 export const fetchCentralSupervisores = async (sucursal?: string): Promise<CentralSupervisor[]> => {
   const { data } = await api.get(`${BASE_PATH}/filtros/supervisores`, { params: { sucursal: sucursal || undefined } })
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
-  return rows.map(mapSupervisor).filter((item) => item.idUsuarioSupervisor && item.supervisorACargo)
+  const deduped = new Map<string, CentralSupervisor>()
+  rows.map(mapSupervisor)
+    .filter((item) => item.idUsuarioSupervisor && item.supervisorACargo)
+    .forEach((item) => {
+      const key = item.idUsuarioSupervisor.replace(/[^0-9]/g, '') || item.idUsuarioSupervisor.trim()
+      if (!key || key === '0' || deduped.has(key)) return
+      deduped.set(key, item)
+    })
+  return Array.from(deduped.values())
 }
 
 export const fetchCentralTecnicos = async (sucursal?: string): Promise<CentralTecnico[]> => {

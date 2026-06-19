@@ -113,11 +113,11 @@ export const navigationItems: NavigationItem[] = [
     sidebarLabelFromMenu: true,
   },
   {
-    label: 'Llamada de Atencion',
+    label: 'Seguimiento y Control Operativo',
     to: '/supervisor/llamada-atencion',
     routePatterns: ['/supervisor/llamada-atencion'],
     requiredAnyPageNames: ['LlamadaAtencionPage', 'LlamadaAtencionPrincipal'],
-    sidebarLabelFromMenu: true,
+    sidebarLabelFromMenu: false,
   },
   {
     label: 'Supervision',
@@ -130,14 +130,14 @@ export const navigationItems: NavigationItem[] = [
     label: 'Crear Supervision',
     to: '/backoffice/supervision',
     routePatterns: ['/backoffice/supervision'],
-    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'sistemas', 'admin'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'digitador', 'sistemas', 'admin'],
     showInSidebar: true,
   },
   {
     label: 'NPS',
     to: '/nps',
     routePatterns: ['/nps'],
-    allowedRoles: ['tecnico', 'supervisor', 'central', 'sistemas', 'admin'],
+    allowedRoles: ['tecnico', 'supervisor', 'central', 'backoffice_v', 'sistemas', 'admin'],
     showInSidebar: true,
   },
   {

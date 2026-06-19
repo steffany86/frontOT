@@ -137,14 +137,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [tecnicoFilter, setTecnicoFilter] = useState('')
 
-  const supervisoresQuery = useQuery({
-    queryKey: ['backoffice', 'supervisores'],
-    queryFn: fetchSupervisores,
-    enabled: open,
-    staleTime: 300_000,
-  })
-
-
   const sucursalesQuery = useQuery({
     queryKey: ['auth-sucursales-backoffice-supervision'],
     queryFn: fetchSucursales,
@@ -160,6 +152,13 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     const sucursal = found?.sucursal?.trim()
     return sucursal || undefined
   })()
+
+  const supervisoresQuery = useQuery({
+    queryKey: ['backoffice', 'supervisores', loginSucursal || 'auto'],
+    queryFn: () => fetchSupervisores(loginSucursal),
+    enabled: open && (!usuario?.idSucursal || !!loginSucursal),
+    staleTime: 300_000,
+  })
 
   const supervisores = supervisoresQuery.data ?? []
   const supervisorSeleccionado = supervisores.find((sup) => normalizeId(sup.idSupervisor) === normalizeId(form.idSupervisorAsignado))

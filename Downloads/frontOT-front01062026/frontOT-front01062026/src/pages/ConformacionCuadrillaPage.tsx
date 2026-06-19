@@ -3225,10 +3225,31 @@ const findVehiculoConflictRecord = (
 
   return (
     <div className="bento-page -mt-2 gap-3 sm:gap-4">
-      <div className="rounded-2xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
-        <h2 className="text-4xl font-extrabold tracking-tight text-slate-900 md:text-5xl">Conformación de Cuadrillas</h2>
-        <p className="mt-1 text-base font-medium tracking-tight text-slate-600">Gestión de personal en {sucursalActivaLabel}</p>
-      </div>
+      <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:px-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Conformación de Cuadrillas</h2>
+            <p className="mt-0.5 text-sm font-medium tracking-tight text-slate-600">Gestión de personal en {sucursalActivaLabel}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_repeat(3,minmax(0,0.8fr))] xl:w-[680px]">
+            <div className="flex min-h-12 items-center rounded-lg border border-blue-100 bg-slate-50 px-3 text-[11px] font-semibold tracking-wide text-slate-700">
+              FECHA ACTIVA: <span className="ml-1 text-blue-700">{fechaActivaLabel}</span>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Pendientes</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-blue-700">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Confirmadas</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-400">{confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}</p>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Total</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-900">{pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading ? '...' : totalGeneral}</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {!canAsignarTecnicoGrupo ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -3240,25 +3261,6 @@ const findVehiculoConflictRecord = (
           Ver datos del tecnico bloqueado: requiere tsm_ConformacionCuadrillas.
         </div>
       ) : null}
-      <section className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-3">
-        <div className="rounded-lg border border-blue-100 bg-slate-50 px-3 py-1.5 text-[11px] font-semibold tracking-wide text-slate-700 sm:px-4 sm:py-2 sm:text-xs">
-          FECHA ACTIVA: <span className="text-blue-700">{fechaActivaLabel}</span>
-        </div>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center sm:rounded-xl sm:px-2.5 sm:py-2">
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700 sm:text-[10px]">Pendientes</p>
-            <p className="mt-0.5 text-2xl font-extrabold leading-none text-blue-700 sm:text-3xl">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
-          </div>
-          <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center sm:rounded-xl sm:px-2.5 sm:py-2">
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700 sm:text-[10px]">Confirmadas</p>
-            <p className="mt-0.5 text-2xl font-extrabold leading-none text-slate-400 sm:text-3xl">{confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}</p>
-          </div>
-          <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center sm:rounded-xl sm:px-2.5 sm:py-2">
-            <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700 sm:text-[10px]">Total</p>
-            <p className="mt-0.5 text-2xl font-extrabold leading-none text-slate-900 sm:text-3xl">{pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading ? '...' : totalGeneral}</p>
-          </div>
-        </div>
-      </section>
       {submitError && !modalOpen ? (
         <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{submitError}</div>
       ) : null}
@@ -3275,8 +3277,9 @@ const findVehiculoConflictRecord = (
         title="Listado"
         description={listDescription}
         hideHeader
+        compact
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <Tabs items={CUADRILLA_LIST_TABS} activeId={activeTab} onChange={(id) => setActiveTab(id as CuadrillaListTab)} />
           </div>
@@ -3385,7 +3388,7 @@ const findVehiculoConflictRecord = (
                             }`}>
                               {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
                             </span>
-                            <p className="mt-2 break-words text-3xl font-extrabold uppercase leading-tight text-blue-700">{tecnicoLabel}</p>
+                            <p className="mt-2 break-words text-2xl font-extrabold uppercase leading-tight text-blue-700 sm:text-3xl">{tecnicoLabel}</p>
                             <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.08em] text-slate-600">Lider de cuadrilla</p>
                           </div>
                           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
@@ -3519,8 +3522,8 @@ const findVehiculoConflictRecord = (
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
-              <div className="glass-panel p-4 sm:p-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="glass-panel p-3 sm:p-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
             Nota: la fecha se usa automaticamente con hoy y la sucursal se fija desde el login. El auxiliar no puede ser el mismo tecnico.
           </div>
@@ -4020,7 +4023,4 @@ const findVehiculoConflictRecord = (
 }
 
 export default ConformacionCuadrillaPage
-
-
-
 

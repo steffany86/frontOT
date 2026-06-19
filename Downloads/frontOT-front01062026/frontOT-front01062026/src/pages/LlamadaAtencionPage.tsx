@@ -159,7 +159,7 @@ const LlamadaAtencionPage = () => {
     mutationFn: (payload: LlamadaAtencionCreatePayload) => createLlamadaAtencion(payload),
     onSuccess: (result) => {
       setFormError(null)
-      setFormSuccess(`Llamada de atencion registrada. ID: ${result.idLlamadaAtencion}`)
+      setFormSuccess(`Seguimiento y Control Operativo registrado. ID: ${result.idLlamadaAtencion}`)
       setRegistroModalOpen(false)
       setForm((previous) => ({
         ...createEmptyForm(),
@@ -171,7 +171,7 @@ const LlamadaAtencionPage = () => {
     },
     onError: (error) => {
       setFormSuccess(null)
-      setFormError(getApiErrorMessage(error, 'No se pudo registrar la llamada de atencion.'))
+      setFormError(getApiErrorMessage(error, 'No se pudo registrar la incidencia.'))
     },
   })
 
@@ -408,10 +408,10 @@ const LlamadaAtencionPage = () => {
   return (
     <div className="bento-page">
       <div className="bento-page-head">
-        <h2 className="text-4xl font-extrabold tracking-tight text-slate-900">Llamada de Atencion</h2>
+        <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Seguimiento y Control Operativo</h2>
         <div className="mt-2">
           <Button type="button" onClick={openRegistroModal} className="h-11 px-6">
-            Nueva llamada
+            Nueva Incidencia
           </Button>
         </div>
       </div>
@@ -419,7 +419,7 @@ const LlamadaAtencionPage = () => {
       <div className="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm">
         <div className="mb-4 flex items-center gap-2">
           <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
-          <h3 className="text-3xl font-bold text-slate-900">Filtros de Busqueda</h3>
+          <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Filtros de Busqueda</h3>
         </div>
         <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} gap-4 md:grid md:grid-cols-[1.3fr_1fr] md:items-end`}>
           <Field label="Tecnico">
@@ -479,7 +479,7 @@ const LlamadaAtencionPage = () => {
       <div className="rounded-2xl border border-slate-300 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
           <div>
-            <h3 className="text-3xl font-bold text-slate-900">Historial de Registros</h3>
+            <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Historial de Registros</h3>
             <p className="text-sm text-slate-600">Registros encontrados: <span className="font-semibold">{llamadas.length}</span></p>
           </div>
           <div className="hidden items-center gap-2 md:flex">
@@ -498,11 +498,11 @@ const LlamadaAtencionPage = () => {
         <div className="space-y-3 md:hidden">
           {llamadasQuery.isLoading ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
-              Cargando llamadas...
+              Cargando incidencias...
             </div>
           ) : llamadas.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm text-slate-500">
-              Sin llamadas de atencion registradas.
+              Sin incidencias registradas.
             </div>
           ) : (
             llamadas.map((registro) => {
@@ -553,9 +553,9 @@ const LlamadaAtencionPage = () => {
 
         <div className="hidden md:block">
           {llamadasQuery.isLoading ? (
-            <div className="px-4 py-6 text-sm text-slate-500">Cargando llamadas...</div>
+            <div className="px-4 py-6 text-sm text-slate-500">Cargando incidencias...</div>
           ) : llamadas.length === 0 ? (
-            <div className="px-4 py-6 text-sm text-slate-500">Sin llamadas de atencion registradas.</div>
+            <div className="px-4 py-6 text-sm text-slate-500">Sin incidencias registradas.</div>
           ) : (
             <div className="max-h-[58vh] overflow-auto">
               <table className="min-w-full text-sm">
@@ -597,7 +597,7 @@ const LlamadaAtencionPage = () => {
 
       <Modal
         open={registroModalOpen}
-        title="Nueva llamada de atencion"
+        title="Nueva Incidencia"
         onClose={closeRegistroModal}
         maxWidthClass="max-w-4xl"
         contentClassName="pr-1"
@@ -607,7 +607,7 @@ const LlamadaAtencionPage = () => {
               Cancelar
             </Button>
             <Button type="button" onClick={handleSubmit} disabled={crearMutation.isPending}>
-              {crearMutation.isPending ? 'Guardando...' : 'Registrar llamada'}
+              {crearMutation.isPending ? 'Guardando...' : 'Registrar incidencia'}
             </Button>
           </>
         }
@@ -619,7 +619,7 @@ const LlamadaAtencionPage = () => {
             <div className="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-1">
               <div className="mb-4 flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faUserGroup} />
-                <h4 className="text-base font-semibold">Tecnico</h4>
+                <h4 className="text-base font-semibold">Tercero / Empleado</h4>
               </div>
               <Field label="Nombre del colaborador">
                 <div className="flex flex-wrap items-center gap-2">
@@ -636,10 +636,10 @@ const LlamadaAtencionPage = () => {
                       </button>
                     </span>
                   ) : (
-                    <span className="text-xs text-slate-500">Ningun tecnico seleccionado</span>
+                    <span className="text-xs text-slate-500">Ningun tercero / empleado seleccionado</span>
                   )}
                   <Button type="button" onClick={() => openTecnicoModal('form')} className="w-full sm:w-auto">
-                    {selectedTecnico ? 'Cambiar tecnico' : 'Buscar tecnico'}
+                    {selectedTecnico ? 'Cambiar' : 'Buscar'}
                   </Button>
                 </div>
               </Field>
@@ -905,7 +905,7 @@ const LlamadaAtencionPage = () => {
 
       <Modal
         open={detalleModalOpen}
-        title="Detalle de llamada de atencion"
+        title="Detalle de incidencia"
         onClose={closeDetalleModal}
         maxWidthClass="max-w-6xl"
         actions={
@@ -918,7 +918,7 @@ const LlamadaAtencionPage = () => {
           <div className="space-y-5">
             <div className="rounded-2xl border border-blue-200 bg-blue-50/70 px-5 py-4">
               <p className="text-lg font-semibold text-blue-800">Resumen del registro</p>
-              <p className="text-sm text-slate-700">Visualiza la informacion completa de la llamada de atencion para el seguimiento del colaborador.</p>
+              <p className="text-sm text-slate-700">Visualiza la informacion completa de la incidencia para el seguimiento del colaborador.</p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
@@ -955,4 +955,3 @@ const LlamadaAtencionPage = () => {
 }
 
 export default LlamadaAtencionPage
-

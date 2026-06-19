@@ -470,15 +470,36 @@ export type SerieSuggestion = {
   idProducto?: number
 }
 
-export const fetchSeriesSuggestions = async (q: string, limite = 10, idProducto?: number | string): Promise<SerieSuggestion[]> => {
+type SeriesSuggestionParams = {
+  idProducto?: number | string
+  idRuta?: number | string | null
+  tipoMaterial?: number | string | null
+  tipoMaterialNombre?: string | null
+}
+
+export const fetchSeriesSuggestions = async (
+  q: string,
+  limite = 10,
+  paramsOrIdProducto?: SeriesSuggestionParams | number | string
+): Promise<SerieSuggestion[]> => {
   const term = q.trim()
-  if (term.length < 1) return []
-  const producto = Number(idProducto)
+  const params = typeof paramsOrIdProducto === 'object' && paramsOrIdProducto !== null
+    ? paramsOrIdProducto
+    : { idProducto: paramsOrIdProducto }
+  const producto = Number(params.idProducto)
+  const ruta = Number(params.idRuta)
+  const tipoMaterial = Number(params.tipoMaterial)
+  const tipoMaterialNombre = params.tipoMaterialNombre?.trim()
+  const canFetchSaldoCompleto = Number.isFinite(producto) && producto > 0 && Number.isFinite(ruta) && ruta > 0
+  if (term.length < 1 && !canFetchSaldoCompleto) return []
   const { data } = await api.get('/catalogos/series/sugerencias', {
     params: {
       q: term,
       limite,
       ...(Number.isFinite(producto) && producto > 0 ? { idProducto: producto } : {}),
+      ...(Number.isFinite(ruta) && ruta > 0 ? { idRuta: ruta } : {}),
+      ...(Number.isFinite(tipoMaterial) && tipoMaterial > 0 ? { tipoMaterial } : {}),
+      ...(tipoMaterialNombre ? { tipoMaterialNombre } : {}),
     },
   })
   const rows = normalizeArrayResponse<CatalogItem>(data)

@@ -1528,12 +1528,12 @@ const SupervisorSupervisionPage = () => {
                       <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
                         <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
                         {showAsStatus ? (
-                          <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
+                          <p className={`mt-2 flex items-center gap-2 text-2xl font-semibold sm:text-3xl ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
                             <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
                             <span className="text-2xl">{item.value}</span>
                           </p>
                         ) : (
-                          <p className="mt-2 text-4xl font-semibold leading-tight text-slate-900">{item.value}</p>
+                          <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">{item.value}</p>
                         )}
                       </div>
                     )
@@ -1574,7 +1574,7 @@ const SupervisorSupervisionPage = () => {
                           <div key={item.label} className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4">
                             <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{item.label}</p>
                             {showAsStatus ? (
-                              <p className={`mt-3 flex items-center gap-2 text-4xl font-semibold ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
+                              <p className={`mt-2 flex items-center gap-2 text-2xl font-semibold sm:text-3xl ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
                                 <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
                                 <span className="text-2xl">{item.value}</span>
                               </p>

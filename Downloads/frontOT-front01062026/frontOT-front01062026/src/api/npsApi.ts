@@ -41,8 +41,22 @@ const unwrapObject = <T>(payload: unknown): T => {
   return payload as T
 }
 
+const sanitizeParams = (params?: Record<string, unknown>): Record<string, unknown> | undefined => {
+  if (!params) return undefined
+  const entries = Object.entries(params).filter(([, value]) => {
+    if (value === undefined || value === null || value === '') return false
+    if (typeof value === 'number') return Number.isFinite(value)
+    if (typeof value === 'string') {
+      const text = value.trim().toLowerCase()
+      return Boolean(text) && text !== 'undefined' && text !== 'null' && text !== 'todos'
+    }
+    return true
+  })
+  return entries.length ? Object.fromEntries(entries) : undefined
+}
+
 export const fetchNpsDashboard = async (params: NpsDashboardParams): Promise<NpsDashboardResponse> => {
-  const { data } = await api.get('/nps/dashboard', { params })
+  const { data } = await api.get('/nps/dashboard', { params: sanitizeParams(params) })
   const mapped = unwrapObject<NpsDashboardResponse>(data)
   return {
     scope: mapped?.scope,
@@ -55,7 +69,7 @@ export const fetchNpsDashboard = async (params: NpsDashboardParams): Promise<Nps
 }
 
 export const fetchNpsFiltros = async (params: Pick<NpsDashboardParams, 'modo' | 'idSucursal' | 'idSupervisor' | 'idTecnico' | 'supervisorNombre' | 'tecnicoNombre'>): Promise<NpsFiltrosResponse> => {
-  const { data } = await api.get('/nps/filtros', { params })
+  const { data } = await api.get('/nps/filtros', { params: sanitizeParams(params) })
   const mapped = unwrapObject<NpsFiltrosResponse>(data)
   return {
     scope: mapped?.scope,

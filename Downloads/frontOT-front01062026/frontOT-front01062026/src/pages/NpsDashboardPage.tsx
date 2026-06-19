@@ -83,6 +83,11 @@ const parseNpsDate = (value: unknown): Date | null => {
 }
 
 const formatDayMonth = (date: Date): string => `${date.getDate()} ${MONTHS_ES[date.getMonth()] ?? ''}`
+const formatDateOnly = (value: unknown): string => {
+  const date = parseNpsDate(value)
+  if (!date) return asText(value).split(' ')[0] || '-'
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
+}
 
 const pct = (value: number): string => `${value.toFixed(1)}%`
 const normalizeSucursalLabel = (value: string): string => {
@@ -137,7 +142,7 @@ const SemiGauge = ({
     <div className="relative mx-auto h-32 w-full max-w-[170px] overflow-hidden">
       <Doughnut data={{ datasets: [{ data, backgroundColor: [color, restColor], borderWidth: 0 }] }} options={options} />
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-8">
-        <p className="text-4xl font-semibold leading-none text-blue-900">{value}</p>
+        <p className="text-2xl font-semibold leading-none text-blue-900 sm:text-3xl">{value}</p>
         {subtitle ? <p className="mt-1 text-xs font-medium text-slate-400">{subtitle}</p> : null}
       </div>
     </div>
@@ -147,7 +152,8 @@ const SemiGauge = ({
 const NpsDashboardPage = () => {
   const { usuario, roleName } = useAuth()
   const role = (roleName || usuario?.rol || '').trim().toLowerCase()
-  const isCentral = role.includes('central') || role.includes('sistema') || role.includes('admin')
+  const roleCompact = role.replace(/[\s_]+/g, '')
+  const isCentral = role.includes('central') || role.includes('sistema') || role.includes('admin') || roleCompact === 'backofficev'
   const isTecnico = role === 'tecnico'
   const isSupervisor = role === 'supervisor'
   const [modo, setModo] = useState<'nps_respuestas' | 'nps_invitado'>('nps_respuestas')
@@ -181,12 +187,12 @@ const NpsDashboardPage = () => {
   const filtrosQuery = useQuery({
     queryKey: ['nps-filtros', modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre, role, usuario?.idUsuario],
     queryFn: () => fetchNpsFiltros({ modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre }),
-    enabled: Boolean(idSucursal || !isCentral),
+    enabled: Boolean(isCentral || idSucursal || !isCentral),
   })
   const dashboardQuery = useQuery({
     queryKey: ['nps-dashboard', modo, fechaInicio, fechaFin, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre, role, usuario?.idUsuario],
     queryFn: () => fetchNpsDashboard({ modo, fechaInicio, fechaFin, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre }),
-    enabled: Boolean(idSucursal || !isCentral),
+    enabled: Boolean(isCentral || idSucursal || !isCentral),
   })
 
   const sucursales = useMemo(() => sucursalesQuery.data?.data ?? [], [sucursalesQuery.data])
@@ -340,9 +346,8 @@ const NpsDashboardPage = () => {
           asText(read(row, ['observacion'])) ||
           '-'
         return {
-          fecha: asText(read(row, ['fecha_de_respuesta'])),
-          idTransaccion: asText(read(row, ['id_transaccion'])) || '-',
-          cliente: asText(read(row, ['nombre_cliente'])) || '-',
+          fecha: formatDateOnly(read(row, ['fecha_de_respuesta'])),
+          clientenro: asText(read(row, ['clientenro'])) || '-',
           tecnico: asText(read(row, ['tecnico_nombre'])) || '-',
           ciudad: asText(read(row, ['ciudad'])) || '-',
           ltr: asText(read(row, ['ltr'])) || '-',
@@ -465,7 +470,7 @@ const NpsDashboardPage = () => {
   return (
     <div className="space-y-4">
       <div className="rounded-[28px] border border-[#dbe5fa] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
-        <h1 className="text-4xl font-extrabold tracking-tight text-[#081a4b] md:text-5xl">NPS - Calificaciones</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">NPS - Calificaciones</h1>
         <p className="mt-1 text-base font-medium tracking-tight text-[#36547f]">Tigo Hogar</p>
         <div className="mt-3 hidden items-center gap-2 md:flex">
           <button
@@ -523,8 +528,21 @@ const NpsDashboardPage = () => {
         </label>
         <label className="text-sm text-slate-700">
           <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faBuilding} className="text-slate-400" />Sucursal</span>
-          <select value={idSucursal ?? ''} onChange={(e) => setIdSucursal(e.target.value ? Number(e.target.value) : undefined)} className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100" disabled={!isCentral}>
-            <option value="">Selecciona sucursal</option>
+          <select
+            value={idSucursal ?? 'todos'}
+            onChange={(e) => {
+              const rawSucursal = e.target.value
+              const nextSucursal = rawSucursal === 'todos' ? undefined : Number(rawSucursal)
+              setIdSucursal(typeof nextSucursal === 'number' && Number.isFinite(nextSucursal) ? nextSucursal : undefined)
+              setIdSupervisor(undefined)
+              setSupervisorNombre(undefined)
+              setIdTecnico(undefined)
+              setTecnicoNombre(undefined)
+            }}
+            className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+            disabled={!isCentral}
+          >
+            <option value="todos">Todos</option>
             {sucursales.map((s) => <option key={s.idSucursal} value={s.idSucursal}>{normalizeSucursalLabel(s.sucursal)}</option>)}
           </select>
         </label>
@@ -626,13 +644,13 @@ const NpsDashboardPage = () => {
           </button>
         )}
       >
-        <p className="text-3xl font-extrabold tracking-tight text-[#081a4b] md:text-4xl">
+        <p className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">
           No hay registros para los ultimos 4 dias
         </p>
       </Modal>
       {shouldHideChartsForNoStats ? (
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">
-          <p className="text-3xl font-extrabold tracking-tight text-[#081a4b] md:text-4xl">
+          <p className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">
             No hay registros para los ultimos 4 dias
           </p>
         </div>
@@ -925,14 +943,14 @@ const NpsDashboardPage = () => {
             <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faClipboardList} /></span>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Total encuestas</p>
           </div>
-          <p className="text-5xl leading-none text-slate-800">{metrics.total}</p>
+          <p className="text-3xl leading-none text-slate-800 sm:text-4xl">{metrics.total}</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="mb-3 flex items-center gap-3">
             <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faThumbsUp} /></span>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Promotores</p>
           </div>
-          <p className="text-5xl leading-none text-blue-800">{metrics.prom}</p>
+          <p className="text-3xl leading-none text-blue-800 sm:text-4xl">{metrics.prom}</p>
           <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.prom / metrics.total) * 100 : 0)} del total</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -940,7 +958,7 @@ const NpsDashboardPage = () => {
             <span className="rounded-xl bg-red-100 p-2 text-red-600"><FontAwesomeIcon icon={faThumbsDown} /></span>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Detractores</p>
           </div>
-          <p className="text-5xl leading-none text-red-700">{metrics.det}</p>
+          <p className="text-3xl leading-none text-red-700 sm:text-4xl">{metrics.det}</p>
           <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.det / metrics.total) * 100 : 0)} del total</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -948,7 +966,7 @@ const NpsDashboardPage = () => {
             <span className="rounded-xl bg-slate-100 p-2 text-slate-500"><FontAwesomeIcon icon={faUserGroup} /></span>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pasivos</p>
           </div>
-          <p className="text-5xl leading-none text-slate-600">{metrics.pas}</p>
+          <p className="text-3xl leading-none text-slate-600 sm:text-4xl">{metrics.pas}</p>
           <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.pas / metrics.total) * 100 : 0)} del total</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-5">
@@ -972,7 +990,7 @@ const NpsDashboardPage = () => {
               <p className="text-sm text-slate-400">Proporción de citas completadas sobre las programadas</p>
             </div>
           </div>
-          <p className="text-4xl font-semibold text-blue-600">{pct(metrics.agendaPct)}</p>
+          <p className="text-2xl font-semibold text-blue-600 sm:text-3xl">{pct(metrics.agendaPct)}</p>
         </div>
         <div className="h-3 rounded-full bg-slate-200">
           <div className="h-3 rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, metrics.agendaPct))}%` }} />
@@ -1152,8 +1170,7 @@ const NpsDashboardPage = () => {
             <thead className="sticky top-0 bg-white">
               <tr className="border-b text-left text-slate-600">
                 <th className="p-2">Fecha</th>
-                <th className="p-2">Id Transacción</th>
-                <th className="p-2">Cliente</th>
+                <th className="p-2">clientenro</th>
                 <th className="p-2">Técnico</th>
                 <th className="p-2">Ciudad</th>
                 <th className="p-2">LTR</th>
@@ -1164,8 +1181,7 @@ const NpsDashboardPage = () => {
               {detractoresRows.map((r, idx) => (
                 <tr key={`${r.fecha}-${r.tecnico}-${idx}`} className="border-b align-top">
                   <td className="p-2 whitespace-nowrap">{r.fecha || '-'}</td>
-                  <td className="p-2 whitespace-nowrap">{r.idTransaccion}</td>
-                  <td className="p-2 whitespace-nowrap">{r.cliente}</td>
+                  <td className="p-2 whitespace-nowrap">{r.clientenro}</td>
                   <td className="p-2 whitespace-nowrap">{r.tecnico}</td>
                   <td className="p-2 whitespace-nowrap">{r.ciudad}</td>
                   <td className="p-2 text-red-700 font-semibold whitespace-nowrap">{r.ltr}</td>
@@ -1174,7 +1190,7 @@ const NpsDashboardPage = () => {
               ))}
               {detractoresRows.length === 0 ? (
                 <tr>
-                  <td className="p-3 text-slate-500" colSpan={7}>No hay detractores para el filtro actual.</td>
+                  <td className="p-3 text-slate-500" colSpan={6}>No hay detractores para el filtro actual.</td>
                 </tr>
               ) : null}
             </tbody>
@@ -1192,6 +1208,3 @@ const NpsDashboardPage = () => {
 }
 
 export default NpsDashboardPage
-
-
-

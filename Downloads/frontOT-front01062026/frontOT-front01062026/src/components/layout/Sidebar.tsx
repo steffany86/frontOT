@@ -58,7 +58,7 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
     const key = `${item.label} ${item.to}`.toLowerCase()
     if (key.includes('gestion') || key.includes('/ot')) return faClipboardCheck
     if (key.includes('conform') || key.includes('cuadrilla')) return faUsers
-    if (key.includes('llamada')) return faBell
+    if (key.includes('llamada') || key.includes('seguimiento') || key.includes('control operativo')) return faBell
     if (key.includes('nps')) return faThumbsUp
     if (key.includes('central')) return faWrench
     if (key.includes('privileg')) return faUserShield
