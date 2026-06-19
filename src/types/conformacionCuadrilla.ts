@@ -22,8 +22,11 @@
   idUsuarioRegistra?: number | null
 }
 
-export interface ConformacionCuadrillaRecord extends ConformacionCuadrillaInput {
+export interface ConformacionCuadrillaRecord extends Omit<ConformacionCuadrillaInput, 'fecha' | 'estado' | 'actividad'> {
   [key: string]: unknown
+  fecha?: string | null
+  estado?: string | null
+  actividad?: string | null
   id?: number
   Id?: number | string | null
   idRegistro?: number | null
@@ -45,10 +48,10 @@ export interface ConformacionCuadrillaRecord extends ConformacionCuadrillaInput 
   visible?: boolean | null
   bodegaTigo?: string | null
   almacenTigo?: string | null
-  fechaRegistro?: string
-  fechaCreacion?: string
-  fechaActualizacion?: string
-  fechaModificacion?: string
+  fechaRegistro?: string | null
+  fechaCreacion?: string | null
+  fechaActualizacion?: string | null
+  fechaModificacion?: string | null
   e_eliminado?: boolean | number
   eEliminado?: boolean | number | string | null
   eliminado?: boolean | number | string | null
@@ -58,4 +61,14 @@ export interface ConformacionCuadrillaRecord extends ConformacionCuadrillaInput 
 
 export interface ConformacionCuadrillaPayload {
   filas: ConformacionCuadrillaInput[]
+}
+
+export interface ConformacionCuadrillaRelacionPayload {
+  idRuta: number
+  idTecnicoAuxiliar: number | null
+  auxiliar: string | null
+  idUsuarioDigitador: number | null
+  digitador: string | null
+  sucursal: string | null
+  activo: boolean
 }

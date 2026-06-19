@@ -17,6 +17,7 @@ import { useSessionStore } from '../store/sessionStore'
 import type { LoginRequest, SessionData } from '../types/auth'
 import type { MenuPermiso, PermisosUsuario } from '../types/permisos'
 import { getSessionStorage, setSessionStorage } from '../utils/storage'
+import { shouldForcePasswordChange } from '../config/passwordPolicy'
 
 type UsuarioSesion = {
   idUsuario: number
@@ -24,6 +25,8 @@ type UsuarioSesion = {
   rol: string
   idRol: number
   idSucursal: number
+  necesitaCambio?: boolean
+  ultimaModificacion?: string
 }
 
 type AuthContextValue = {
@@ -37,28 +40,19 @@ type AuthContextValue = {
   menuIds: number[]
   administrador: boolean
   isAuthenticated: boolean
+  mustChangePassword: boolean
   isBootstrapping: boolean
   visibleNavigationItems: NavigationItem[]
   defaultPrivatePath: string
   signIn: (credentials: LoginRequest) => Promise<SessionData>
   logout: () => void
   refreshPermisos: () => Promise<PermisosUsuario | null>
+  markPasswordChanged: () => void
   canAccessNavigationItem: (item: NavigationItem) => boolean
   canAccessPath: (pathname: string) => boolean
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined)
-const PRIVILEGIOS_ROUTE = '/admin/privilegios'
-const PRIVILEGIOS_ALLOWED_ROLE_ID = 4
-
-const toFiniteNumber = (value: unknown): number | null => {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    if (Number.isFinite(parsed)) return parsed
-  }
-  return null
-}
 
 const mapSessionToUser = (session: SessionData | null): UsuarioSesion | null => {
   if (!session?.sessionToken) return null
@@ -68,10 +62,19 @@ const mapSessionToUser = (session: SessionData | null): UsuarioSesion | null => 
     rol: session.rol,
     idRol: session.idRol,
     idSucursal: session.idSucursal,
+    necesitaCambio: session.necesitaCambio,
+    ultimaModificacion: session.ultimaModificacion,
   }
 }
 
-const normalizeMenuName = (value: string): string => value.trim().toLowerCase()
+const normalizePageName = (value: string): string => value.trim().toLowerCase()
+const normalizeRoleName = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_]+/g, '')
 
 const resolveRoleData = (usuario: UsuarioSesion | null, permisos: PermisosUsuario | null): { roleName: string; roleId: number } => {
   const roleName = (permisos?.rol ?? usuario?.rol ?? '').trim()
@@ -178,6 +181,19 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     resetAuthState()
   }, [resetAuthState])
 
+  const markPasswordChanged = useCallback(() => {
+    const currentSession = getSessionStorage()
+    if (!currentSession?.sessionToken) return
+    const updatedSession: SessionData = {
+      ...currentSession,
+      necesitaCambio: false,
+      ultimaModificacion: new Date().toISOString(),
+    }
+    setSessionStorage(updatedSession)
+    useSessionStore.getState().setSession(updatedSession)
+    setUsuario((prev) => (prev ? { ...prev, necesitaCambio: false, ultimaModificacion: updatedSession.ultimaModificacion } : prev))
+  }, [])
+
   useEffect(() => {
     setUnauthorizedHandler(() => {
       resetAuthState()
@@ -226,6 +242,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   )
 
   const administrador = permisos?.administrador ?? false
+  const mustChangePassword = useMemo(
+    () =>
+      shouldForcePasswordChange({
+        necesitaCambio: usuario?.necesitaCambio,
+        ultimaModificacion: usuario?.ultimaModificacion,
+      }),
+    [usuario?.necesitaCambio, usuario?.ultimaModificacion]
+  )
   const menuIds = permisos?.menuIds ?? []
 
   const menusAsignados = useMemo(() => {
@@ -234,41 +258,55 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     return permisos.menus.filter((menu) => menu.asignado || assignedById.has(menu.idMenu))
   }, [menuIds, permisos])
 
-  const menuNamesAsignados = useMemo(() => {
-    const names = new Set<string>()
+  const pageNamesAsignadas = useMemo(() => {
+    const pages = new Set<string>()
     for (const menu of menusAsignados) {
-      if (!menu?.nombre) continue
-      names.add(normalizeMenuName(menu.nombre))
+      if (menu?.paginaAsociada?.trim()) {
+        pages.add(normalizePageName(menu.paginaAsociada))
+      }
+      if (!menu?.paginasAsociadas?.length) continue
+      for (const pageName of menu.paginasAsociadas) {
+        const value = pageName.trim()
+        if (!value) continue
+        pages.add(normalizePageName(value))
+      }
     }
-    return names
+    return pages
   }, [menusAsignados])
 
   const canAccessNavigationItem = useCallback(
     (item: NavigationItem): boolean => {
-      const activeRoleId = toFiniteNumber(permisos?.idRol ?? usuario?.idRol ?? getSessionStorage()?.idRol)
-      if (item.to === PRIVILEGIOS_ROUTE) {
-        return activeRoleId !== null && activeRoleId === PRIVILEGIOS_ALLOWED_ROLE_ID
-      }
-
-      if (!permisos) return false
-      if (item.adminOnly && !administrador) return false
-      if (item.requiredMenuIds?.length && !item.requiredMenuIds.every((idMenu) => menuIds.includes(idMenu))) return false
-      if (item.requiredAnyMenuIds?.length && !item.requiredAnyMenuIds.some((idMenu) => menuIds.includes(idMenu))) return false
+      const currentRole = normalizeRoleName(roleName)
       if (
-        item.requiredMenuNames?.length &&
-        !item.requiredMenuNames.every((menuName) => menuNamesAsignados.has(normalizeMenuName(menuName)))
+        item.allowedRoles?.length &&
+        !item.allowedRoles.some((allowedRole) => normalizeRoleName(allowedRole) === currentRole)
+      ) {
+        return false
+      }
+      if (!permisos) {
+        return Boolean(item.allowedRoles?.length)
+      }
+      const hasPageRules = Boolean(item.requiredPageNames?.length || item.requiredAnyPageNames?.length)
+      if (
+        hasPageRules &&
+        item.requiredPageNames?.length &&
+        !item.requiredPageNames.every((pageName) => pageNamesAsignadas.has(normalizePageName(pageName)))
       ) {
         return false
       }
       if (
-        item.requiredAnyMenuNames?.length &&
-        !item.requiredAnyMenuNames.some((menuName) => menuNamesAsignados.has(normalizeMenuName(menuName)))
+        hasPageRules &&
+        item.requiredAnyPageNames?.length &&
+        !item.requiredAnyPageNames.some((pageName) => pageNamesAsignadas.has(normalizePageName(pageName)))
       ) {
         return false
+      }
+      if (hasPageRules) {
+        return true
       }
       return true
     },
-    [administrador, menuIds, menuNamesAsignados, permisos, usuario]
+    [pageNamesAsignadas, permisos, roleName]
   )
 
   const visibleNavigationItems = useMemo(
@@ -308,12 +346,14 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       menuIds,
       administrador,
       isAuthenticated: Boolean(token),
+      mustChangePassword,
       isBootstrapping,
       visibleNavigationItems,
       defaultPrivatePath,
       signIn,
       logout,
       refreshPermisos,
+      markPasswordChanged,
       canAccessNavigationItem,
       canAccessPath,
     }),
@@ -326,10 +366,12 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       isBootstrapping,
       menuIds,
       menusAsignados,
+      mustChangePassword,
       permisos,
       roleId,
       roleName,
       refreshPermisos,
+      markPasswordChanged,
       signIn,
       token,
       logout,

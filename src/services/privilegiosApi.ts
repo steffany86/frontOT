@@ -1,5 +1,5 @@
 import type { ApiResponse } from '../types/auth'
-import type { PrivilegiosRolDetalle, Rol } from '../types/permisos'
+import type { MenuPaginasRelacion, MenuSidebarNombreRelacion, PrivilegiosRolDetalle, Rol } from '../types/permisos'
 import httpClient, { unwrapApiData } from './httpClient'
 
 export const fetchRolesPrivilegios = async (): Promise<Rol[]> => {
@@ -22,6 +22,24 @@ export const updatePrivilegiosRolMenu = async (idRol: number, menuIds: number[])
 export const applySupervisorCuadrillasPreset = async (idRol: number): Promise<PrivilegiosRolDetalle> => {
   const { data } = await httpClient.put<ApiResponse<PrivilegiosRolDetalle>>(
     `/admin/privilegios/roles/${idRol}/preset/supervisor-cuadrillas`
+  )
+  return unwrapApiData(data)
+}
+
+export const updatePaginasPorMenu = async (idMenu: number, paginasAsociadas: string[]): Promise<MenuPaginasRelacion> => {
+  const { data } = await httpClient.put<ApiResponse<MenuPaginasRelacion>>(`/admin/privilegios/menus/${idMenu}/paginas`, {
+    paginasAsociadas,
+  })
+  return unwrapApiData(data)
+}
+
+export const updateNombreSidebarPorMenu = async (
+  idMenu: number,
+  nombreSidebar: string
+): Promise<MenuSidebarNombreRelacion> => {
+  const { data } = await httpClient.put<ApiResponse<MenuSidebarNombreRelacion>>(
+    `/admin/privilegios/menus/${idMenu}/sidebar-nombre`,
+    { nombreSidebar }
   )
   return unwrapApiData(data)
 }

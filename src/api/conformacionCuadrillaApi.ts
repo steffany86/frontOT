@@ -1,7 +1,12 @@
 import axios from 'axios'
 import api from './http'
 import { normalizeArrayResponse } from './apiResponse'
-import type { ConformacionCuadrillaInput, ConformacionCuadrillaPayload, ConformacionCuadrillaRecord } from '../types/conformacionCuadrilla'
+import type {
+  ConformacionCuadrillaInput,
+  ConformacionCuadrillaPayload,
+  ConformacionCuadrillaRecord,
+  ConformacionCuadrillaRelacionPayload,
+} from '../types/conformacionCuadrilla'
 import type { CatalogItem } from './catalogApi'
 
 export type ConformacionCuadrillaListParams = {
@@ -74,9 +79,33 @@ const normalizeStringParam = (value: unknown): string | undefined => {
   return trimmed ? trimmed : undefined
 }
 
-const normalizeListParams = (params?: ConformacionCuadrillaListParams): Record<string, unknown> | undefined => {
+const normalizeLimitParam = (value: unknown): number | undefined => {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return undefined
+  return Math.trunc(parsed)
+}
+
+const todayIsoString = (): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+const normalizeWebListParams = (params?: ConformacionCuadrillaListParams): Record<string, unknown> | undefined => {
   if (!params) return undefined
-  const limitValue = params.limit ?? params.limite
+  const limitValue = normalizeLimitParam(params.limite ?? params.limit)
+  return sanitizeParams({
+    fecha: normalizeStringParam(params.fecha),
+    sucursal: normalizeStringParam(params.sucursal),
+    limite: limitValue,
+  })
+}
+
+const normalizeLegacyListParams = (params?: ConformacionCuadrillaListParams): Record<string, unknown> | undefined => {
+  if (!params) return undefined
+  const limitValue = normalizeLimitParam(params.limite ?? params.limit)
   return sanitizeParams({
     fecha: normalizeStringParam(params.fecha),
     sucursal: normalizeStringParam(params.sucursal),
@@ -103,6 +132,20 @@ const requestConformacionWebGet = async <T>(suffix = '', params?: Record<string,
   const requestParams = sanitizeParams(params)
   const path = joinPath(CONFORMACION_WEB_BASE_PATH, suffix)
   const { data } = await api.get(path, requestParams ? { params: requestParams } : undefined)
+  return data as T
+}
+
+const requestConformacionWebPost = async <T>(
+  suffix: string,
+  body?: unknown,
+  params?: Record<string, unknown>
+): Promise<T> => {
+  const requestParams = sanitizeParams(params)
+  const path = joinPath(CONFORMACION_WEB_BASE_PATH, suffix)
+  const { data } = await api.post(path, body, {
+    headers: { 'Content-Type': 'application/json' },
+    ...(requestParams ? { params: requestParams } : {}),
+  })
   return data as T
 }
 
@@ -143,6 +186,13 @@ const isFallbackRouteError = (error: unknown): boolean => {
   if (!axios.isAxiosError(error)) return false
   const status = error.response?.status
   return status !== undefined && ROUTE_FALLBACK_STATUS.has(status)
+}
+
+const isRecoverableLegacyGuardarError = (error: unknown): boolean => {
+  if (isFallbackRouteError(error)) return true
+  if (!axios.isAxiosError(error)) return false
+  const status = error.response?.status
+  return status !== undefined && status >= 500
 }
 
 const requestLegacyWriteFromCandidates = async <T>(args: {
@@ -234,9 +284,105 @@ const applyLimit = <T>(rows: T[], limit?: number): T[] => {
   return rows.slice(0, limit)
 }
 
-const LEGACY_GUARDAR_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, ['', '/', '/guardar'])
-const LEGACY_CONFIRMADAS_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, ['/confirmadas', '/cuadrillas/confirmadas'])
+const normalizeOptionalText = (value?: string): string | undefined => {
+  return normalizeStringParam(value)
+}
+
+const normalizeRequiredText = (value?: string): string => {
+  return normalizeStringParam(value) ?? ''
+}
+
+const normalizeActividadForWrite = (value?: string): 'TITULAR' | 'BACKUP' => {
+  const normalized = normalizeRequiredText(value).toUpperCase()
+  return normalized === 'BACKUP' ? 'BACKUP' : 'TITULAR'
+}
+
+const normalizeOptionalNumber = (value: unknown): number | undefined => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : undefined
+}
+
+const toObjectRecord = (value: unknown): Record<string, unknown> | null => {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>
+  }
+  return null
+}
+
+const extractFilasInsertadas = (payload: unknown): number | null => {
+  const envelope = toObjectRecord(payload)
+  const data = envelope && 'data' in envelope ? envelope.data : payload
+  const dataObj = toObjectRecord(data)
+  if (!dataObj || !('filasInsertadas' in dataObj)) {
+    return null
+  }
+  const parsed = Number(dataObj.filasInsertadas)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const WEB_WRITE_REQUIRED_STRING_FIELDS = ['fecha', 'estado', 'actividad', 'sucursal'] as const
+const WEB_CREATE_EXTRA_REQUIRED_STRING_FIELDS = ['vehiculo', 'grupo'] as const
+const WEB_WRITE_REQUIRED_NUMBER_FIELDS = ['idTecnico', 'idUsuarioSupervisor', 'idUsuarioRegistra'] as const
+
+const toConformacionWebWriteRow = (row: ConformacionCuadrillaInput): ConformacionCuadrillaInput => {
+  return {
+    ...row,
+    fecha: normalizeRequiredText(row.fecha),
+    estado: normalizeRequiredText(row.estado).toUpperCase(),
+    actividad: normalizeActividadForWrite(row.actividad),
+    idTecnico: normalizeOptionalNumber(row.idTecnico),
+    cuentaSf: normalizeOptionalText(row.cuentaSf),
+    salesforce: normalizeOptionalText(row.salesforce),
+    habilidad: normalizeOptionalText(row.habilidad),
+    vehiculo: normalizeOptionalText(row.vehiculo),
+    grupo: normalizeOptionalText(row.grupo),
+    almacen: normalizeOptionalText(row.almacen),
+    grupoDigitacion: normalizeOptionalText(row.grupoDigitacion),
+    idUsuarioDigitador: normalizeOptionalNumber(row.idUsuarioDigitador),
+    digitador: normalizeOptionalText(row.digitador),
+    tecnico: normalizeOptionalText(row.tecnico),
+    idTecnicoAuxiliar: normalizeOptionalNumber(row.idTecnicoAuxiliar),
+    auxiliar: normalizeOptionalText(row.auxiliar),
+    idUsuarioSupervisor: normalizeOptionalNumber(row.idUsuarioSupervisor),
+    supervisorACargo: normalizeOptionalText(row.supervisorACargo),
+    sucursal: normalizeRequiredText(row.sucursal),
+    observacion: normalizeOptionalText(row.observacion),
+    idUsuarioRegistra: normalizeOptionalNumber(row.idUsuarioRegistra),
+  }
+}
+
+const assertConformacionWebWriteRow = (row: ConformacionCuadrillaInput, forCreate: boolean): void => {
+  const requiredStrings: Array<
+    (typeof WEB_WRITE_REQUIRED_STRING_FIELDS)[number] | (typeof WEB_CREATE_EXTRA_REQUIRED_STRING_FIELDS)[number]
+  > = forCreate
+    ? [...WEB_WRITE_REQUIRED_STRING_FIELDS, ...WEB_CREATE_EXTRA_REQUIRED_STRING_FIELDS]
+    : [...WEB_WRITE_REQUIRED_STRING_FIELDS]
+  const missing: string[] = []
+
+  for (const field of requiredStrings) {
+    if (!normalizeRequiredText(row[field]).trim()) {
+      missing.push(field)
+    }
+  }
+
+  for (const field of WEB_WRITE_REQUIRED_NUMBER_FIELDS) {
+    if (normalizeOptionalNumber(row[field]) === undefined) {
+      missing.push(field)
+    }
+  }
+
+  if (!missing.length) return
+  throw new Error(`Payload invalido para conformacion-cuadrilla-web. Faltan: ${missing.join(', ')}`)
+}
+
+const LEGACY_GUARDAR_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, ['/guardar'])
+const LEGACY_PENDIENTES_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, ['/pendientes', '/cuadrillas/pendientes'])
+const LEGACY_CONFIRMADAS_DIRECT_PATH = '/supervisor/conformacion-cuadrilla/confirmadas'
 const LEGACY_ELIMINADAS_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, ['/eliminadas', '/cuadrillas/eliminadas'])
+const LEGACY_RELACIONES_CUADRILLA_PATHS = buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, [
+  '/relaciones-cuadrilla',
+  '/cuadrillas/relaciones',
+])
 
 const buildLegacyIdPaths = (id: number): string[] => {
   return buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, [`/${id}`])
@@ -291,7 +437,7 @@ const buildConformacionKey = (row: ConformacionCuadrillaRecord): string | null =
 export const fetchConformacionCuadrillaList = async (
   params?: ConformacionCuadrillaListParams
 ): Promise<ConformacionCuadrillaRecord[]> => {
-  const sanitizedParams = normalizeListParams(params)
+  const sanitizedParams = normalizeWebListParams(params)
   const data = await requestConformacionWebGet<unknown>('', sanitizedParams)
   const rows = normalizeArrayResponse<ConformacionCuadrillaRecord>(data)
   if (apiVerboseEnabled) {
@@ -303,12 +449,31 @@ export const fetchConformacionCuadrillaList = async (
 export const fetchConformacionCuadrillaPendientes = async (
   params: ConformacionCuadrillaPendientesParams
 ): Promise<ConformacionCuadrillaRecord[]> => {
-  const sanitizedParams = normalizeListParams(params)
+  const legacyParams = normalizeLegacyListParams(params)
+  let legacyRows: ConformacionCuadrillaRecord[] = []
+  try {
+    const pendientesPayload = await requestLegacyReadFromCandidates<unknown>({
+      paths: LEGACY_PENDIENTES_PATHS,
+      params: legacyParams,
+    })
+    legacyRows = normalizeArrayResponse<ConformacionCuadrillaRecord>(pendientesPayload)
+    if (legacyRows.length > 0) {
+      return legacyRows
+        .filter((row) => !isRecordEliminada(row))
+        .map((row) => ({ ...row, confirmada: false, eEliminado: false, e_eliminado: false, eliminado: false }))
+    }
+  } catch (error) {
+    if (!isFallbackRouteError(error)) {
+      throw error
+    }
+  }
+
+  const webParams = normalizeWebListParams(params)
   const [webPayload, confirmadasPayload] = await Promise.all([
-    requestConformacionWebGet<unknown>('', sanitizedParams),
+    requestConformacionWebGet<unknown>('', webParams),
     requestLegacyReadFromCandidates<unknown>({
-      paths: LEGACY_CONFIRMADAS_PATHS,
-      params: sanitizedParams,
+      paths: [LEGACY_CONFIRMADAS_DIRECT_PATH],
+      params: legacyParams,
     }),
   ])
 
@@ -329,9 +494,13 @@ export const fetchConformacionCuadrillaPendientes = async (
 export const fetchConformacionCuadrillaConfirmadas = async (
   params: ConformacionCuadrillaConfirmadasParams
 ): Promise<ConformacionCuadrillaRecord[]> => {
+  const fechaParam = normalizeStringParam(params?.fecha) ?? todayIsoString()
   const data = await requestLegacyReadFromCandidates<unknown>({
-    paths: LEGACY_CONFIRMADAS_PATHS,
-    params: normalizeListParams(params),
+    paths: [LEGACY_CONFIRMADAS_DIRECT_PATH],
+    params: normalizeLegacyListParams({
+      ...params,
+      fecha: fechaParam,
+    }),
   })
   const rows = normalizeArrayResponse<ConformacionCuadrillaRecord>(data)
   return rows.map((row) => ({ ...row, confirmada: true }))
@@ -342,7 +511,7 @@ export const fetchConformacionCuadrillaEliminadas = async (
 ): Promise<ConformacionCuadrillaRecord[]> => {
   const data = await requestLegacyReadFromCandidates<unknown>({
     paths: LEGACY_ELIMINADAS_PATHS,
-    params: normalizeListParams(params),
+    params: normalizeLegacyListParams(params),
   })
   const eliminadas = normalizeArrayResponse<ConformacionCuadrillaRecord>(data)
   return eliminadas.map((row) => ({
@@ -413,6 +582,14 @@ export const fetchConformacionSupervisores = async (sucursal?: string): Promise<
   return normalizeArrayResponse<CatalogItem>(data)
 }
 
+export const fetchConformacionSalesforce = async (sucursal?: string): Promise<CatalogItem[]> => {
+  const data = await requestConformacionCatalogGet<unknown>(
+    '/salesforce',
+    sanitizeParams({ sucursal: normalizeStringParam(sucursal) })
+  )
+  return normalizeArrayResponse<CatalogItem>(data)
+}
+
 export const fetchConformacionActividades = async (sucursal?: string): Promise<CatalogItem[]> => {
   const data = await requestConformacionCatalogGet<unknown>(
     '/actividades',
@@ -430,7 +607,7 @@ export const fetchConformacionGrupos = async (params: ConformacionCuadrillaCatal
   const rows = await fetchConformacionCuadrillaList({
     sucursal: params.sucursal,
     q: params.q,
-    limit: params.limit,
+    limite: params.limit,
   })
   const query = params.q?.trim().toLowerCase()
   const byKey = new Map<string, CatalogItem>()
@@ -452,11 +629,38 @@ export const fetchConformacionSucursales = async (): Promise<CatalogItem[]> => {
 }
 
 export const guardarConformacionCuadrillaConfirmada = async (payload: ConformacionCuadrillaPayload): Promise<void> => {
-  await requestLegacyWriteFromCandidates<unknown>({
-    method: 'post',
-    paths: LEGACY_GUARDAR_PATHS,
-    body: payload,
-  })
+  const rows = payload.filas.map(toConformacionWebWriteRow)
+  for (const row of rows) {
+    assertConformacionWebWriteRow(row, true)
+  }
+  if (!rows.length) return
+
+  let legacyResponse: unknown = null
+  try {
+    legacyResponse = await requestLegacyWriteFromCandidates<unknown>({
+      method: 'post',
+      paths: LEGACY_GUARDAR_PATHS,
+      body: { filas: rows },
+    })
+
+    const filasInsertadas = extractFilasInsertadas(legacyResponse)
+    if (filasInsertadas !== null && filasInsertadas <= 0) {
+      throw new Error('La API no inserto filas en BDControlOrdenes (filasInsertadas=0).')
+    }
+    return
+  } catch (error) {
+    if (!isRecoverableLegacyGuardarError(error)) {
+      throw error
+    }
+  }
+
+  for (const row of rows) {
+    await requestConformacionWebPost<unknown>(
+      '',
+      row,
+      sanitizeParams({ sucursal: normalizeStringParam(row.sucursal) })
+    )
+  }
 }
 
 export const updateConformacionCuadrilla = async (
@@ -464,17 +668,25 @@ export const updateConformacionCuadrilla = async (
   payload: ConformacionCuadrillaInput,
   options?: UpdateConformacionCuadrillaOptions
 ): Promise<void> => {
+  const normalizedPayload = toConformacionWebWriteRow(payload)
+
   if (options?.target === 'dbordenres') {
     await requestLegacyWriteFromCandidates<unknown>({
       method: 'put',
       paths: buildLegacyIdPaths(id),
-      body: payload,
+      body: normalizedPayload,
     })
     return
   }
 
+  assertConformacionWebWriteRow(normalizedPayload, false)
+
   try {
-    await requestConformacionWebPut<unknown>(`/${id}`, payload, sanitizeParams({ sucursal: normalizeStringParam(payload.sucursal) }))
+    await requestConformacionWebPut<unknown>(
+      `/${id}`,
+      normalizedPayload,
+      sanitizeParams({ sucursal: normalizeStringParam(normalizedPayload.sucursal) })
+    )
     return
   } catch (error) {
     if (!isFallbackRouteError(error)) {
@@ -485,7 +697,29 @@ export const updateConformacionCuadrilla = async (
   await requestLegacyWriteFromCandidates<unknown>({
     method: 'put',
     paths: buildLegacyIdPaths(id),
-    body: payload,
+    body: normalizedPayload,
   })
 }
 
+export const guardarRelacionCuadrilla = async (payload: ConformacionCuadrillaRelacionPayload): Promise<void> => {
+  const idRuta = normalizeOptionalNumber(payload.idRuta)
+  if (idRuta === undefined || idRuta <= 0) {
+    throw new Error('idRuta invalido para guardar relacion de cuadrilla.')
+  }
+
+  const relationPayload: ConformacionCuadrillaRelacionPayload = {
+    idRuta: Math.trunc(idRuta),
+    idTecnicoAuxiliar: normalizeOptionalNumber(payload.idTecnicoAuxiliar) ?? null,
+    auxiliar: normalizeOptionalText(payload.auxiliar ?? undefined) ?? null,
+    idUsuarioDigitador: normalizeOptionalNumber(payload.idUsuarioDigitador) ?? null,
+    digitador: normalizeOptionalText(payload.digitador ?? undefined) ?? null,
+    sucursal: normalizeOptionalText(payload.sucursal ?? undefined) ?? null,
+    activo: payload.activo !== false,
+  }
+
+  await requestLegacyWriteFromCandidates<unknown>({
+    method: 'post',
+    paths: LEGACY_RELACIONES_CUADRILLA_PATHS,
+    body: relationPayload,
+  })
+}

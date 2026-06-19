@@ -5,15 +5,35 @@ Frontend React + TypeScript para gestion operativa OT y administracion de privil
 ## Requisitos
 
 - Node.js 18+
-- Backend activo en `http://localhost:8181`
+- Backend activo en `http://localhost:9060`
 
 ## Variables de entorno
 
 Usa `.env` (o `.env.example`) con:
 
 ```bash
-VITE_API_URL=http://localhost:8181
+VITE_API_URL=http://localhost:9060
 ```
+
+## Nomenclatura de bases de datos (acordada)
+
+- `tigo.makiro` (central):
+  - host: `tigo.makiro.com.bo` (IP alternativa: `181.188.148.58`)
+  - base: `BDSistemaAntenaPM`
+  - usuario: `sistemas`
+  - password: `sametsis`
+- `local` (dinamica por sucursal seleccionada en `/login`):
+  - host: `tbl_sucursal.ip`
+  - base: `tbl_sucursal.BaseDeDatos`
+  - usuario: `sistemas`
+  - password: `sametsis`
+- `BDControl`:
+  - host: `172.16.0.13`
+  - base: `BDControlOrdenes`
+  - usuario: `sistemas`
+  - password: `sametsis`
+
+Referencia en front: `src/config/dbNomenclature.ts`.
 
 ## Ejecucion
 

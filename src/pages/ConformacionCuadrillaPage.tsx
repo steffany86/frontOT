@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import Button from '../components/common/Button'
@@ -13,25 +13,30 @@ import {
   fetchConformacionAuxiliares,
   fetchConformacionCuadrillaById,
   fetchConformacionCuadrillaConfirmadas,
-  fetchConformacionCuadrillaEliminadas,
   fetchConformacionCuadrillaPendientes,
   fetchConformacionDigitadores,
   fetchConformacionGrupos,
+  fetchConformacionSalesforce,
   fetchConformacionSucursales,
   fetchConformacionSupervisores,
   fetchConformacionTecnicoDetalle,
   fetchConformacionTecnicos,
   fetchConformacionVehiculos,
   guardarConformacionCuadrillaConfirmada,
+  guardarRelacionCuadrilla,
   updateConformacionCuadrilla,
 } from '../api/conformacionCuadrillaApi'
-import type { ConformacionCuadrillaInput, ConformacionCuadrillaRecord } from '../types/conformacionCuadrilla'
+import type {
+  ConformacionCuadrillaInput,
+  ConformacionCuadrillaRecord,
+  ConformacionCuadrillaRelacionPayload,
+} from '../types/conformacionCuadrilla'
 import { formatDate, todayISO } from '../utils/dates'
 import { useSessionStore } from '../store/sessionStore'
 import { useAuth } from '../context/AuthContext'
 
 type CuadrillaModalMode = 'view' | 'edit'
-type CuadrillaListTab = 'general' | 'confirmadas' | 'eliminadas'
+type CuadrillaListTab = 'general' | 'confirmadas'
 
 type EditableRow = {
   id?: number
@@ -103,6 +108,15 @@ type PendingUpdateItem = {
   target: UpdateTarget
 }
 
+type EditAssignmentSnapshot = {
+  idRuta: number | null
+  idTecnicoAuxiliar: string
+  auxiliar: string
+  idUsuarioDigitador: string
+  digitador: string
+  sucursal: string
+}
+
 type PendingConfirmation =
   {
     mode: 'create'
@@ -115,7 +129,6 @@ type PendingConfirmation =
 const CUADRILLA_LIST_TABS: { id: CuadrillaListTab; label: string }[] = [
   { id: 'general', label: 'General (pendientes)' },
   { id: 'confirmadas', label: 'Confirmadas' },
-  { id: 'eliminadas', label: 'Eliminadas' },
 ]
 
 const MENU_NAME_CONFORMACION_CUADRILLAS = 'tsm_conformacioncuadrillas'
@@ -125,11 +138,60 @@ const ESTADO_OPTIONS = ['ACTIVO', 'AUSENTE'] as const
 const HABILIDAD_OPTIONS = ['RECLAMOS', 'INSTALACION'] as const
 const CONFIRMAR_MARCADO_MODAL_TEXT =
   '\u00BFDesea confirmar los datos del marcado de hoy? Esta acci\u00F3n no se podr\u00E1 confirmar nuevamente.'
-const cuadrillaDebugEnabled = import.meta.env.VITE_API_DEBUG === 'true'
 const detalleApiDisponible = import.meta.env.VITE_CUADRILLA_DETALLE_API_AVAILABLE !== 'false'
 
 const normalizeLookupKey = (key: string): string => key.toLowerCase().replace(/[^a-z0-9]/g, '')
 const normalizeMenuPermissionKey = (key: string): string => normalizeLookupKey(key)
+const AUXILIAR_NONE_LABEL_KEYS = new Set(['ninguno', 'sinasignar', 'noasignado', 'auxiliarseleccionado', 'seleccionaauxiliar'])
+const DIGITADOR_NONE_LABEL_KEYS = new Set(['ninguno', 'sinasignar', 'noasignado', 'digitadorseleccionado', 'seleccionadigitador'])
+
+const normalizeAuxiliarComparableId = (value: string | number | null | undefined): string => {
+  const parsed = Number(String(value ?? '').trim())
+  if (!Number.isFinite(parsed) || parsed <= 0) return ''
+  return String(Math.trunc(parsed))
+}
+
+const isAuxiliarNoneLabel = (value: string | null | undefined): boolean => {
+  const key = normalizeLookupKey(String(value ?? ''))
+  return key === '' || AUXILIAR_NONE_LABEL_KEYS.has(key)
+}
+
+const normalizeAuxiliarComparableLabel = (value: string | null | undefined): string => {
+  if (isAuxiliarNoneLabel(value)) return ''
+  return normalizeLookupKey(String(value ?? ''))
+}
+
+const sanitizeAuxiliarLabel = (value: string | null | undefined): string => {
+  if (isAuxiliarNoneLabel(value)) return ''
+  return String(value ?? '').trim()
+}
+
+const normalizeDigitadorComparableId = (value: string | number | null | undefined): string => {
+  const parsed = Number(String(value ?? '').trim())
+  if (!Number.isFinite(parsed) || parsed <= 0) return ''
+  return String(Math.trunc(parsed))
+}
+
+const isDigitadorNoneLabel = (value: string | null | undefined): boolean => {
+  const key = normalizeLookupKey(String(value ?? ''))
+  return key === '' || DIGITADOR_NONE_LABEL_KEYS.has(key)
+}
+
+const normalizeDigitadorComparableLabel = (value: string | null | undefined): string => {
+  if (isDigitadorNoneLabel(value)) return ''
+  return normalizeLookupKey(String(value ?? ''))
+}
+
+const sanitizeDigitadorLabel = (value: string | null | undefined): string => {
+  if (isDigitadorNoneLabel(value)) return ''
+  return String(value ?? '').trim()
+}
+
+const normalizeTecnicoComparableId = (value: string | number | null | undefined): string => {
+  const parsed = Number(String(value ?? '').trim())
+  if (!Number.isFinite(parsed) || parsed <= 0) return ''
+  return String(Math.trunc(parsed))
+}
 
 const normalizeBranchName = (value: string): string => {
   return value
@@ -148,7 +210,7 @@ const isSantaCruzBranch = (value: string): boolean => {
 const toSucursalActiva = (value: string): string => {
   const normalizedValue = value.trim()
   if (!normalizedValue) return ''
-  if (isSantaCruzBranch(normalizedValue)) return 'Santa_Cruz'
+  if (isSantaCruzBranch(normalizedValue)) return 'SantaCruz'
   if (isSucreBranch(normalizedValue)) return 'Sucre'
   return normalizedValue
 }
@@ -228,7 +290,7 @@ const toOptionalNumber = (value: unknown): number | undefined => {
 }
 
 const mapIdOptions = (items: CatalogItem[], idKeys: string[], labelKeys: string[]): SelectOption[] => {
-  return items
+  const mapped = items
     .map((item) => {
       const rawId = readValue(item, idKeys)
       const numericId = toNumericIdString(rawId)
@@ -237,6 +299,14 @@ const mapIdOptions = (items: CatalogItem[], idKeys: string[], labelKeys: string[
       return { value: numericId, label: label || numericId, item }
     })
     .filter((item): item is SelectOption => Boolean(item))
+
+  const uniqueByValue = new Map<string, SelectOption>()
+  for (const option of mapped) {
+    if (!uniqueByValue.has(option.value)) {
+      uniqueByValue.set(option.value, option)
+    }
+  }
+  return Array.from(uniqueByValue.values())
 }
 
 const TECNICO_ID_KEYS = [
@@ -260,6 +330,7 @@ const HABILIDAD_KEYS = ['habilidad', 'Habilidad']
 const VEHICULO_KEYS = ['vehiculo', 'Vehiculo', 'placa', 'placavehiculo', 'placaVehiculo']
 const VEHICULO_VALUE_KEYS = ['idVehiculo', 'IdVehiculo', 'vehiculo', 'Vehiculo', 'placa', 'Placa', 'codigo', 'Codigo', 'id', 'Id']
 const VEHICULO_LABEL_KEYS = ['vehiculo', 'Vehiculo', 'placa', 'Placa', 'placavehiculo', 'placaVehiculo', 'descripcion', 'Descripcion', 'nombre', 'Nombre']
+const VEHICULO_TECNICO_ID_KEYS = ['idTecnico', 'IdTecnico', 'id_tecnico', 'Id_Tecnico', 'idVendedor', 'IdVendedor', 'id_vendedor', 'Id_Vendedor']
 const GRUPO_KEYS = ['grupo', 'Grupo', 'cuadrilla', 'Cuadrilla', 'ruta', 'Ruta', 'Nombre', 'nombre', 'tipo', 'Tipo']
 const GRUPO_VALUE_KEYS = ['id_ruta', 'Id_Ruta', 'idruta', 'idRuta', 'IdRuta', 'idGrupo', 'IdGrupo', 'grupo', 'Grupo', 'codigo', 'Codigo', 'id', 'Id']
 const GRUPO_LABEL_KEYS = ['cuadrilla', 'Cuadrilla', 'ruta', 'Ruta', 'Nombre', 'nombre', 'grupo', 'Grupo', 'descripcion', 'Descripcion', 'codigo', 'Codigo']
@@ -480,22 +551,6 @@ const toISODate = (value?: string): string => {
   return toLocalISODate(date)
 }
 
-const formatDateTime = (value?: string): string => {
-  if (!value) return ''
-  const trimmed = value.trim()
-  if (!trimmed) return ''
-  const normalizedValue = /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? `${trimmed}T00:00:00` : trimmed
-  const date = new Date(normalizedValue)
-  if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('es-ES', {
-    year: 'numeric',
-    month: 'short',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date)
-}
-
 type ApiErrorPayload = {
   code?: string
   message?: string
@@ -534,6 +589,11 @@ const parseNumber = (value: string): number | null => {
   return Number.isFinite(parsed) ? parsed : null
 }
 
+const parseAuxiliarIdForSave = (value: string): number => {
+  const parsed = parseNumber(value)
+  return parsed === null ? 0 : parsed
+}
+
 const cleanString = (value: string): string => value.trim()
 
 const optionalString = (value: string): string | undefined => {
@@ -545,7 +605,7 @@ const buildPayloadRow = (row: EditableRow): ConformacionCuadrillaInput => {
   return {
     fecha: row.fecha,
     estado: mapEstadoForBackend(cleanString(row.estado)),
-    actividad: cleanString(row.actividad),
+    actividad: normalizeActividadForBackend(cleanString(row.actividad)),
     idTecnico: parseNumber(row.idTecnico) ?? undefined,
     cuentaSf: optionalString(row.cuentaSf),
     salesforce: optionalString(row.salesforce),
@@ -557,7 +617,7 @@ const buildPayloadRow = (row: EditableRow): ConformacionCuadrillaInput => {
     idUsuarioDigitador: parseNumber(row.idUsuarioDigitador) ?? undefined,
     digitador: optionalString(row.digitador),
     tecnico: optionalString(row.tecnico),
-    idTecnicoAuxiliar: parseNumber(row.idTecnicoAuxiliar) ?? undefined,
+    idTecnicoAuxiliar: parseAuxiliarIdForSave(row.idTecnicoAuxiliar),
     auxiliar: optionalString(row.auxiliar),
     idUsuarioSupervisor: parseNumber(row.idUsuarioSupervisor) ?? undefined,
     supervisorACargo: optionalString(row.supervisorACargo),
@@ -606,6 +666,11 @@ const mapEstadoForBackend = (value: string): string => {
   if (normalized === 'ACTIVO') return 'ACTIVO'
   if (normalized === 'INACTIVO' || normalized === 'AUSENTE') return 'AUSENTE'
   return 'ACTIVO'
+}
+
+const normalizeActividadForBackend = (value: string): 'TITULAR' | 'BACKUP' => {
+  const normalized = value.trim().toUpperCase()
+  return normalized === 'BACKUP' ? 'BACKUP' : 'TITULAR'
 }
 
 const normalizeHabilidadValue = (value: string): string => {
@@ -715,6 +780,8 @@ const normalizeListRecord = (row: ConformacionCuadrillaRecord): ConformacionCuad
     digitador: readRecordString(row, RECORD_DIGITADOR_LABEL_KEYS, row.digitador ?? ''),
     idUsuarioSupervisor: toOptionalNumber(idUsuarioSupervisor) ?? row.idUsuarioSupervisor,
     supervisorACargo: readRecordString(row, RECORD_SUPERVISOR_LABEL_KEYS, row.supervisorACargo ?? ''),
+    cuentaSf: readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? ''),
+    salesforce: readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? ''),
     vehiculo: readRecordString(row, VEHICULO_KEYS, row.vehiculo ?? ''),
     sucursal: readRecordString(row, RECORD_SUCURSAL_KEYS, row.sucursal ?? ''),
     observacion: readRecordString(row, RECORD_OBSERVACION_KEYS, row.observacion ?? ''),
@@ -732,6 +799,10 @@ const toEditableRow = (row: ConformacionCuadrillaRecord): EditableRow => {
   const resolvedGrupo = readRecordString(row, GRUPO_KEYS, row.grupo ?? '')
   const resolvedTecnicoRaw = readRecordString(row, RECORD_TECNICO_LABEL_KEYS, row.tecnico ?? '')
   const resolvedTecnico = normalizeLookupKey(resolvedTecnicoRaw) === normalizeLookupKey(resolvedGrupo) ? '' : resolvedTecnicoRaw
+  const resolvedAuxiliarId = normalizeAuxiliarComparableId(readRecordId(row, RECORD_ID_AUXILIAR_KEYS, row.idTecnicoAuxiliar))
+  const resolvedAuxiliar = sanitizeAuxiliarLabel(readRecordString(row, RECORD_AUXILIAR_LABEL_KEYS, row.auxiliar ?? ''))
+  const resolvedDigitadorId = normalizeDigitadorComparableId(readRecordId(row, RECORD_ID_DIGITADOR_KEYS, row.idUsuarioDigitador))
+  const resolvedDigitador = sanitizeDigitadorLabel(readRecordString(row, DIGITADOR_LABEL_KEYS, row.digitador ?? ''))
   const resolvedId = getRecordRealId(row) ?? toOptionalNumber(row.id) ?? row.id
   return {
     id: resolvedId,
@@ -746,11 +817,11 @@ const toEditableRow = (row: ConformacionCuadrillaRecord): EditableRow => {
     grupo: resolvedGrupo,
     almacen: readRecordString(row, ALMACEN_KEYS, row.almacen ?? ''),
     grupoDigitacion: readRecordString(row, GRUPO_DIGITACION_KEYS, row.grupoDigitacion ?? ''),
-    idUsuarioDigitador: readRecordId(row, RECORD_ID_DIGITADOR_KEYS, row.idUsuarioDigitador),
-    digitador: readRecordString(row, DIGITADOR_LABEL_KEYS, row.digitador ?? ''),
+    idUsuarioDigitador: resolvedDigitadorId,
+    digitador: resolvedDigitador,
     tecnico: resolvedTecnico,
-    idTecnicoAuxiliar: readRecordId(row, RECORD_ID_AUXILIAR_KEYS, row.idTecnicoAuxiliar),
-    auxiliar: readRecordString(row, RECORD_AUXILIAR_LABEL_KEYS, row.auxiliar ?? ''),
+    idTecnicoAuxiliar: resolvedAuxiliarId,
+    auxiliar: resolvedAuxiliar,
     idUsuarioSupervisor: readRecordId(row, RECORD_ID_SUPERVISOR_KEYS, row.idUsuarioSupervisor),
     supervisorACargo: readRecordString(row, RECORD_SUPERVISOR_LABEL_KEYS, row.supervisorACargo ?? ''),
     sucursal: readRecordString(row, RECORD_SUCURSAL_KEYS, row.sucursal ?? ''),
@@ -801,7 +872,7 @@ const getRowIssues = (row: EditableRow): RowIssue => {
   if (parseNumber(row.idUsuarioRegistra) === null) missingFields.push('idUsuarioRegistra')
 
   const idTecnico = (String(row.idTecnico ?? '')).trim()
-  const idAux = (String(row.idTecnicoAuxiliar ?? '')).trim()
+  const idAux = normalizeAuxiliarComparableId(row.idTecnicoAuxiliar)
   const idDigitador = (String(row.idUsuarioDigitador ?? '')).trim()
   const idConflict =
     (idTecnico !== '' && idAux !== '' && idTecnico === idAux) ||
@@ -827,7 +898,7 @@ const toVisualLabel = (value: string | undefined | null, emptyLabel: string): st
 }
 
 const buildConfirmadasVersionKey = (row: ConformacionCuadrillaRecord): string | null => {
-  const fecha = toISODate(row.fecha)
+  const fecha = toISODate(row.fecha ?? undefined)
   const sucursal = normalizeLookupKey(String(row.sucursal ?? ''))
   const tecnicoId = String(row.idTecnico ?? '').trim()
   if (tecnicoId) return `f:${fecha}|t:${tecnicoId}|s:${sucursal}`
@@ -845,11 +916,16 @@ const buildConfirmadasVersionKey = (row: ConformacionCuadrillaRecord): string | 
 const getRecordSelectionKey = (row: ConformacionCuadrillaRecord): string => {
   const idReal = getRecordRealId(row)
   if (idReal !== null) return `id:${idReal}`
-  const fecha = toISODate(row.fecha)
+  const fecha = toISODate(row.fecha ?? undefined)
   const tecnicoId = readRecordId(row, RECORD_ID_TECNICO_KEYS, row.idTecnico)
   const tecnico = (row.tecnico ?? '').trim().toLowerCase()
   const sucursal = (row.sucursal ?? '').trim().toLowerCase()
   return [fecha, tecnicoId || tecnico, sucursal].join('|')
+}
+
+const buildLocalConfirmedSignature = (row: ConformacionCuadrillaRecord): string => {
+  const normalized = normalizeListRecord(row)
+  return buildConfirmadasVersionKey(normalized) ?? getRecordSelectionKey(normalized)
 }
 
 const getRecordRealId = (row: ConformacionCuadrillaRecord): number | null => {
@@ -857,6 +933,47 @@ const getRecordRealId = (row: ConformacionCuadrillaRecord): number | null => {
   const parsed = toOptionalNumber(idRealCandidate)
   if (parsed === undefined || parsed <= 0) return null
   return parsed
+}
+
+const getRecordRutaId = (row: ConformacionCuadrillaRecord): number | null => {
+  const idRutaCandidate =
+    readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS) ??
+    row.idRuta ??
+    row.id ??
+    row.Id
+  const parsed = toOptionalNumber(idRutaCandidate)
+  if (parsed === undefined || parsed <= 0) return null
+  return parsed
+}
+
+const normalizeComparableLabel = (value: string | undefined | null): string => {
+  return String(value ?? '').trim()
+}
+
+const buildEditAssignmentSnapshotFromRecord = (record: ConformacionCuadrillaRecord): EditAssignmentSnapshot => {
+  return {
+    idRuta: getRecordRutaId(record),
+    idTecnicoAuxiliar: normalizeAuxiliarComparableId(readRecordId(record, RECORD_ID_AUXILIAR_KEYS, record.idTecnicoAuxiliar)),
+    auxiliar: normalizeAuxiliarComparableLabel(readRecordString(record, RECORD_AUXILIAR_LABEL_KEYS, record.auxiliar ?? '')),
+    idUsuarioDigitador: normalizeDigitadorComparableId(readRecordId(record, RECORD_ID_DIGITADOR_KEYS, record.idUsuarioDigitador)),
+    digitador: normalizeDigitadorComparableLabel(readRecordString(record, RECORD_DIGITADOR_LABEL_KEYS, record.digitador ?? '')),
+    sucursal: normalizeComparableLabel(readRecordString(record, RECORD_SUCURSAL_KEYS, record.sucursal ?? '')),
+  }
+}
+
+const buildEditAssignmentSnapshotFromRow = (
+  row: EditableRow,
+  fallbackIdRuta: number | null,
+  fallbackSucursal: string
+): EditAssignmentSnapshot => {
+  return {
+    idRuta: fallbackIdRuta,
+    idTecnicoAuxiliar: normalizeAuxiliarComparableId(row.idTecnicoAuxiliar),
+    auxiliar: normalizeAuxiliarComparableLabel(row.auxiliar),
+    idUsuarioDigitador: normalizeDigitadorComparableId(row.idUsuarioDigitador),
+    digitador: normalizeDigitadorComparableLabel(row.digitador),
+    sucursal: normalizeComparableLabel(row.sucursal || fallbackSucursal),
+  }
 }
 
 const ConformacionCuadrillaPage = () => {
@@ -905,6 +1022,7 @@ const ConformacionCuadrillaPage = () => {
   const [showStrictValidation, setShowStrictValidation] = useState(false)
   const [selectedConfirmKeys, setSelectedConfirmKeys] = useState<string[]>([])
   const [activeDetailConfirmKey, setActiveDetailConfirmKey] = useState<string | null>(null)
+  const [editInitialSnapshot, setEditInitialSnapshot] = useState<EditAssignmentSnapshot | null>(null)
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null)
   const [pendingReassignmentPrompt, setPendingReassignmentPrompt] = useState<PendingReassignmentPrompt | null>(null)
   const [approvedReassignments, setApprovedReassignments] = useState<AssignmentTransfer[]>([])
@@ -912,12 +1030,12 @@ const ConformacionCuadrillaPage = () => {
   const [sessionReassignmentsByKey, setSessionReassignmentsByKey] = useState<Record<string, AssignmentTransfer[]>>({})
   const [isResolvingReassignments, setIsResolvingReassignments] = useState(false)
   const [activeTab, setActiveTab] = useState<CuadrillaListTab>('general')
+  const [showAllVehiculos, setShowAllVehiculos] = useState(false)
   const [listSearchInput, setListSearchInput] = useState('')
   const [listSearch, setListSearch] = useState('')
   const [filterFecha, setFilterFecha] = useState<string>(todayValue)
   const [filterSucursal, setFilterSucursal] = useState<string>('')
   const [filterLimite] = useState<string>('200')
-  const [showOverviewPanel, setShowOverviewPanel] = useState(false)
   const [showListFilters, setShowListFilters] = useState(false)
   const catalogSucursal = toSucursalActiva(filterSucursal)
 
@@ -942,6 +1060,11 @@ const ConformacionCuadrillaPage = () => {
   const supervisoresQuery = useQuery({
     queryKey: ['catalogos-supervisores-conformacion-web', catalogSucursal],
     queryFn: () => fetchConformacionSupervisores(catalogSucursal || undefined),
+    enabled: canViewCuadrillas,
+  })
+  const salesforceCatalogQuery = useQuery({
+    queryKey: ['catalogos-salesforce-conformacion-web', catalogSucursal],
+    queryFn: () => fetchConformacionSalesforce(catalogSucursal || undefined),
     enabled: canViewCuadrillas,
   })
   const sucursalesQuery = useQuery({
@@ -972,6 +1095,7 @@ const ConformacionCuadrillaPage = () => {
   const auxiliares = useMemo(() => auxiliaresQuery.data ?? [], [auxiliaresQuery.data])
   const digitadores = useMemo(() => digitadoresQuery.data ?? [], [digitadoresQuery.data])
   const supervisores = useMemo(() => supervisoresQuery.data ?? [], [supervisoresQuery.data])
+  const salesforceCatalog = useMemo(() => salesforceCatalogQuery.data ?? [], [salesforceCatalogQuery.data])
   const sucursales = useMemo(() => sucursalesQuery.data ?? [], [sucursalesQuery.data])
   const grupos = useMemo(() => gruposQuery.data ?? [], [gruposQuery.data])
   const actividades = useMemo(() => actividadesQuery.data ?? [], [actividadesQuery.data])
@@ -1018,11 +1142,82 @@ const ConformacionCuadrillaPage = () => {
   })
   const tecnicos = useMemo(() => tecnicosQuery.data ?? [], [tecnicosQuery.data])
   const tecnicoOptions = useMemo(() => mapIdOptions(tecnicos, TECNICO_ID_KEYS, TECNICO_LABEL_KEYS), [tecnicos])
+  const salesforceOptions = useMemo(() => {
+    const byKey = new Map<string, { salesforce: string; cuentaSf: string }>()
+    for (const item of salesforceCatalog) {
+      const salesforce = readString(item, SALESFORCE_KEYS).trim()
+      const cuentaSf = readString(item, CUENTA_SF_KEYS).trim()
+      const keySource = salesforce || cuentaSf
+      const key = normalizeLookupKey(keySource)
+      if (!key) continue
+      const existing = byKey.get(key)
+      if (!existing) {
+        byKey.set(key, { salesforce: salesforce || keySource, cuentaSf })
+        continue
+      }
+      if (!existing.salesforce && salesforce) existing.salesforce = salesforce
+      if (!existing.cuentaSf && cuentaSf) existing.cuentaSf = cuentaSf
+    }
+    return Array.from(byKey.values()).sort((a, b) => a.salesforce.localeCompare(b.salesforce))
+  }, [salesforceCatalog])
+  const cuentaSfBySalesforce = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const option of salesforceOptions) {
+      const key = normalizeLookupKey(option.salesforce)
+      if (!key) continue
+      map.set(key, option.cuentaSf)
+    }
+    return map
+  }, [salesforceOptions])
+  const salesforceByCuentaSf = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const option of salesforceOptions) {
+      const cuentaKey = normalizeLookupKey(option.cuentaSf)
+      const salesforceValue = option.salesforce.trim()
+      if (!cuentaKey || !salesforceValue) continue
+      if (!map.has(cuentaKey)) {
+        map.set(cuentaKey, salesforceValue)
+      }
+    }
+    return map
+  }, [salesforceOptions])
+
+  useEffect(() => {
+    if (salesforceByCuentaSf.size === 0) return
+    setGridRows((rows) => {
+      let changed = false
+      const nextRows = rows.map((row) => {
+        const salesforceRaw = (row.salesforce || '').trim()
+        const cuentaRaw = (row.cuentaSf || '').trim()
+        if (!salesforceRaw || !cuentaRaw) return row
+        const salesforceKey = normalizeLookupKey(salesforceRaw)
+        const cuentaKey = normalizeLookupKey(cuentaRaw)
+        if (!salesforceKey || salesforceKey !== cuentaKey) return row
+        const mappedSalesforce = salesforceByCuentaSf.get(cuentaKey)
+        if (!mappedSalesforce || mappedSalesforce.trim() === salesforceRaw) return row
+        changed = true
+        return {
+          ...row,
+          salesforce: mappedSalesforce,
+        }
+      })
+      return changed ? nextRows : rows
+    })
+  }, [salesforceByCuentaSf])
   const auxiliarOptions = useMemo(
-    () => mapIdOptions(auxiliares, AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS),
+    () =>
+      mapIdOptions(auxiliares, AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS).filter(
+        (option) => normalizeAuxiliarComparableId(option.value) !== '' && !isAuxiliarNoneLabel(option.label)
+      ),
     [auxiliares]
   )
-  const digitadorOptions = useMemo(() => mapIdOptions(digitadores, DIGITADOR_ID_KEYS, DIGITADOR_LABEL_KEYS), [digitadores])
+  const digitadorOptions = useMemo(
+    () =>
+      mapIdOptions(digitadores, DIGITADOR_ID_KEYS, DIGITADOR_LABEL_KEYS).filter(
+        (option) => normalizeDigitadorComparableId(option.value) !== '' && !isDigitadorNoneLabel(option.label)
+      ),
+    [digitadores]
+  )
   const supervisorOptions = useMemo(() => mapIdOptions(supervisores, SUPERVISOR_ID_KEYS, SUPERVISOR_LABEL_KEYS), [supervisores])
   const selectedInitialSource = useMemo(
     () => (isSucreBranch(sucursalActiva) ? 'DB_SUCRE' : 'U_TECNICOS'),
@@ -1044,13 +1239,44 @@ const ConformacionCuadrillaPage = () => {
       const items = await fetchConformacionVehiculos({ sucursal: sucursalActiva || undefined })
       return items
     },
-    enabled: canViewCuadrillas && selectedTecnicoIds.length > 0,
+    enabled: canViewCuadrillas,
   })
+  const vehiculosTodosQuery = useQuery({
+    queryKey: ['catalogos-vehiculos-conformacion-web-todos', sucursalActiva, showAllVehiculos],
+    queryFn: async () => {
+      const items = await fetchConformacionVehiculos({
+        sucursal: sucursalActiva || undefined,
+        filtro: '%',
+      })
+      return items
+    },
+    enabled: canViewCuadrillas && showAllVehiculos,
+  })
+  const vehiculoOptionsGlobal = useMemo(
+    () =>
+      mapOptions(
+        (showAllVehiculos ? vehiculosTodosQuery.data : vehiculosPorTecnicoQuery.data) ?? [],
+        VEHICULO_VALUE_KEYS,
+        VEHICULO_LABEL_KEYS
+      ),
+    [showAllVehiculos, vehiculosPorTecnicoQuery.data, vehiculosTodosQuery.data]
+  )
   const vehiculosPorTecnico = useMemo(() => {
     const rows = vehiculosPorTecnicoQuery.data
     if (!rows) return {}
-    const entries = selectedTecnicoIds.map((idTecnico) => [String(idTecnico), rows] as const)
-    return Object.fromEntries(entries) as Record<string, CatalogItem[]>
+    const grouped: Record<string, CatalogItem[]> = {}
+    rows.forEach((item) => {
+      const tecnicoId = normalizeTecnicoComparableId(readValue(item, VEHICULO_TECNICO_ID_KEYS) as string | number | null | undefined)
+      if (!tecnicoId) return
+      if (!grouped[tecnicoId]) grouped[tecnicoId] = []
+      grouped[tecnicoId].push(item)
+    })
+    // Keep keys for selected tecnicos even if they do not have vehiculos vinculados.
+    selectedTecnicoIds.forEach((idTecnico) => {
+      const key = String(idTecnico)
+      if (!grouped[key]) grouped[key] = []
+    })
+    return grouped
   }, [selectedTecnicoIds, vehiculosPorTecnicoQuery.data])
   const vehiculoOptionsByTecnico = useMemo(() => {
     const entries = Object.entries(vehiculosPorTecnico).map(([tecnicoId, items]) => [
@@ -1195,65 +1421,103 @@ const ConformacionCuadrillaPage = () => {
     const direct = readRecordString(row, RECORD_TECNICO_LABEL_KEYS, row.tecnico ?? '')
     return toVisualLabel(direct, 'Sin tecnico')
   }
+  const resolveTecnicoEditableLabel = (row: EditableRow | null | undefined): string => {
+    return toVisualLabel(row?.tecnico, 'Sin tecnico')
+  }
+  const buildRowTecnicoPrefix = (rowIndex: number, tecnicoLabel: string): string => {
+    return `Fila ${rowIndex + 1} | Tecnico: ${tecnicoLabel}`
+  }
   const resolveHabilidadListLabel = (row: ConformacionCuadrillaRecord): string => {
     const direct = readRecordString(row, ['habilidad', 'Habilidad'], row.habilidad ?? '')
-    return toVisualLabel(direct, 'Sin habilidad')
+    return toVisualLabel(direct, 'Ninguno')
+  }
+  const resolveCuentaSfListLabel = (row: ConformacionCuadrillaRecord): string => {
+    const direct = readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? '')
+    return toVisualLabel(direct, 'Ninguno')
+  }
+  const resolveSalesforceListLabel = (row: ConformacionCuadrillaRecord): string => {
+    const direct = readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? '')
+    const cuenta = readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? '')
+    const directKey = normalizeLookupKey(direct)
+    const cuentaKey = normalizeLookupKey(cuenta)
+    if (directKey && cuentaKey && directKey === cuentaKey) {
+      const mappedSalesforce = salesforceByCuentaSf.get(cuentaKey)
+      if (mappedSalesforce) {
+        return toVisualLabel(mappedSalesforce, 'Ninguno')
+      }
+    }
+    return toVisualLabel(direct, 'Ninguno')
+  }
+  const resolveConfirmadaRegistroIdLabel = (row: ConformacionCuadrillaRecord): string => {
+    const idFromRecord =
+      toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_KEYS)) ??
+      toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_REGISTRO_KEYS)) ??
+      toNumericIdString(row.id) ??
+      toNumericIdString(row.idRegistro)
+    return idFromRecord ?? 'N/D'
+  }
+  const resolveConfirmadaFechaLabel = (row: ConformacionCuadrillaRecord): string => {
+    const fechaRegistroRaw = readRecordString(row, RECORD_FECHA_REGISTRO_KEYS, row.fechaRegistro ?? '')
+    const fechaRaw = readRecordString(row, RECORD_FECHA_KEYS, row.fecha ?? '')
+    const fechaRegistro = toISODate(fechaRegistroRaw)
+    const fecha = toISODate(fechaRaw)
+    if (fechaRegistro) return fechaRegistro
+    if (fecha) return fecha
+    return 'N/D'
+  }
+  const isRecordInConfirmadasDate = (row: ConformacionCuadrillaRecord, targetDate: string): boolean => {
+    const fechaTrabajo = toISODate(row.fecha ?? undefined)
+    const fechaRegistro = toISODate(row.fechaRegistro ?? undefined)
+    if (fechaTrabajo) return fechaTrabajo === targetDate
+    if (fechaRegistro) return fechaRegistro === targetDate
+    return false
   }
   const selectedFechaFiltro = toISODate(filterFecha) || todayValue
+  const generalFechaFiltro = todayValue
+  const confirmadasFechaFiltro = activeTab === 'confirmadas' ? selectedFechaFiltro : todayValue
+  const fechaFiltroForList = activeTab === 'confirmadas' ? confirmadasFechaFiltro : generalFechaFiltro
   const listQuery = useQuery({
     queryKey: [
       'conformacion-cuadrilla-tab-list',
       activeTab,
       sucursalActiva,
-      selectedFechaFiltro ?? '',
+      fechaFiltroForList ?? '',
       listSearch,
       limitNumber,
     ],
     queryFn: () => {
       const params = {
         sucursal: sucursalActiva || undefined,
-        fecha: selectedFechaFiltro,
+        fecha: fechaFiltroForList,
         q: listSearch || undefined,
-        limit: limitNumber,
+        limite: limitNumber,
       }
       if (activeTab === 'general') return fetchConformacionCuadrillaPendientes(params)
       if (activeTab === 'confirmadas') return fetchConformacionCuadrillaConfirmadas(params)
-      if (activeTab === 'eliminadas') return fetchConformacionCuadrillaEliminadas(params)
       return fetchConformacionCuadrillaPendientes(params)
     },
     enabled: canViewCuadrillas,
   })
   const pendientesTotalQuery = useQuery({
-    queryKey: ['conformacion-cuadrilla-tab-total', 'general', sucursalActiva, selectedFechaFiltro ?? '', '', limitNumber],
+    queryKey: ['conformacion-cuadrilla-tab-total', 'general', sucursalActiva, generalFechaFiltro ?? '', '', limitNumber],
     queryFn: () =>
       fetchConformacionCuadrillaPendientes({
         sucursal: sucursalActiva || undefined,
-        fecha: selectedFechaFiltro,
-        limit: limitNumber,
+        fecha: generalFechaFiltro,
+        limite: limitNumber,
       }),
     enabled: canViewCuadrillas,
   })
   const confirmadasTotalQuery = useQuery({
-    queryKey: ['conformacion-cuadrilla-tab-total', 'confirmadas', sucursalActiva, selectedFechaFiltro ?? '', '', limitNumber],
+    queryKey: ['conformacion-cuadrilla-tab-total', 'confirmadas', sucursalActiva, confirmadasFechaFiltro, '', limitNumber],
     queryFn: () =>
       fetchConformacionCuadrillaConfirmadas({
         sucursal: sucursalActiva || undefined,
-        fecha: selectedFechaFiltro,
-        limit: limitNumber,
+        fecha: confirmadasFechaFiltro,
+        limite: limitNumber,
       }),
     enabled: canViewCuadrillas,
   })
-  const eliminadasTotalQuery = useQuery({
-    queryKey: ['conformacion-cuadrilla-tab-total', 'eliminadas', sucursalActiva, selectedFechaFiltro ?? '', '', limitNumber],
-    queryFn: () =>
-      fetchConformacionCuadrillaEliminadas({
-        sucursal: sucursalActiva || undefined,
-        fecha: selectedFechaFiltro,
-        limit: limitNumber,
-      }),
-    enabled: canViewCuadrillas,
-  })
-
   const sortByRegistroDesc = (rows: ConformacionCuadrillaRecord[]): ConformacionCuadrillaRecord[] => {
     return rows.sort((a, b) => {
       const aEstado = a.confirmada ? 'Confirmada' : resolveEstadoForList(a)
@@ -1266,18 +1530,86 @@ const ConformacionCuadrillaPage = () => {
       return right.localeCompare(left)
     })
   }
+  const confirmedDbTodaySignatureSet = useMemo(() => {
+    const rows = (confirmadasTotalQuery.data ?? [])
+      .map(normalizeListRecord)
+      .filter((row) => row.confirmada === true && isRecordInConfirmadasDate(row, confirmadasFechaFiltro))
+    return new Set(rows.map((row) => buildLocalConfirmedSignature(row)))
+  }, [confirmadasFechaFiltro, confirmadasTotalQuery.data])
+
+  const isConfirmedInDbToday = (row: ConformacionCuadrillaRecord): boolean => {
+    const normalized = normalizeListRecord(row)
+    return confirmedDbTodaySignatureSet.has(buildLocalConfirmedSignature(normalized))
+  }
+  const isRecordLockedForReassignment = (row: ConformacionCuadrillaRecord): boolean => {
+    const normalized = normalizeListRecord(row)
+    return normalized.confirmada === true || isConfirmedInDbToday(normalized)
+  }
+
   const listDataForValidation = useMemo(() => {
     const normalized = (listQuery.data ?? []).map(normalizeListRecord)
     const filtered = normalized.filter((row) => {
-      if (activeTab === 'confirmadas') return row.confirmada === true
-      if (activeTab === 'eliminadas') return isRowEliminado(row)
-      return row.confirmada !== true && !isRowEliminado(row)
+      if (activeTab === 'confirmadas') {
+        return row.confirmada === true && isRecordInConfirmadasDate(row, confirmadasFechaFiltro)
+      }
+      return row.confirmada !== true && !isRowEliminado(row) && !isConfirmedInDbToday(row)
     })
     return filtered.map((row) => {
       const key = getRecordSelectionKey(row)
       return sessionDraftByKey[key] ?? row
     })
-  }, [activeTab, listQuery.data, sessionDraftByKey])
+  }, [activeTab, confirmadasFechaFiltro, confirmedDbTodaySignatureSet, listQuery.data, sessionDraftByKey])
+  const confirmedRowsForConflictValidation = useMemo(() => {
+    const rows = (confirmadasTotalQuery.data ?? [])
+      .map(normalizeListRecord)
+      .filter((row) => row.confirmada === true && isRecordInConfirmadasDate(row, confirmadasFechaFiltro) && !isRowEliminado(row))
+
+    const sorted = sortByRegistroDesc([...rows])
+    const seen = new Set<string>()
+    const deduped: ConformacionCuadrillaRecord[] = []
+    for (const row of sorted) {
+      const versionKey = buildConfirmadasVersionKey(row) ?? getRecordSelectionKey(row)
+      if (seen.has(versionKey)) continue
+      seen.add(versionKey)
+      deduped.push(row)
+    }
+    return deduped
+  }, [confirmadasFechaFiltro, confirmadasTotalQuery.data])
+  const recordsForConflictValidation = useMemo(() => {
+    const merged = [...listDataForValidation, ...confirmedRowsForConflictValidation]
+    const seen = new Set<string>()
+    const unique: ConformacionCuadrillaRecord[] = []
+    for (const row of merged) {
+      const key = getRecordSelectionKey(row)
+      if (seen.has(key)) continue
+      seen.add(key)
+      unique.push(sessionDraftByKey[key] ?? row)
+    }
+    return unique
+  }, [confirmedRowsForConflictValidation, listDataForValidation, sessionDraftByKey])
+  const vehiculoOptionsAll = useMemo(() => {
+    const byValue = new Map<string, SelectOption>()
+    for (const option of vehiculoOptionsGlobal) {
+      const key = String(option.value ?? '').trim().toUpperCase()
+      if (!key) continue
+      if (!byValue.has(key)) {
+        byValue.set(key, option)
+      }
+    }
+    return Array.from(byValue.values()).sort((a, b) => a.label.localeCompare(b.label))
+  }, [vehiculoOptionsGlobal])
+  const tecnicoActivoIdSet = useMemo(() => {
+    const ids = new Set<string>()
+    for (const record of recordsForConflictValidation) {
+      const tecnicoId = toNumericIdString(readRecordId(record, RECORD_ID_TECNICO_KEYS, record.idTecnico))
+      if (tecnicoId) ids.add(tecnicoId)
+    }
+    for (const row of gridRows) {
+      const tecnicoId = toNumericIdString(row.idTecnico)
+      if (tecnicoId) ids.add(tecnicoId)
+    }
+    return ids
+  }, [gridRows, recordsForConflictValidation])
   const listData = useMemo(() => {
     const sorted = sortByRegistroDesc([...listDataForValidation])
     if (activeTab === 'confirmadas') {
@@ -1296,35 +1628,31 @@ const ConformacionCuadrillaPage = () => {
       }
       return deduped
     }
-    // Only apply deduplication for the 'general' tab. For 'confirmadas' and 'eliminadas'
-    // we want to show all matching rows so counts match the API totals.
     if (activeTab !== 'general') return sorted
-    const seenGroups = new Set<string>()
-    const seenVehiculos = new Set<string>()
+    // En General no ocultamos filas por compartir grupo o vehiculo.
+    // Solo eliminamos duplicados exactos por clave de registro.
+    const seen = new Set<string>()
     const deduped: ConformacionCuadrillaRecord[] = []
     for (const row of sorted) {
-      const grupoKey = String(row.grupo ?? '').trim().toLowerCase()
-      const vehKey = String(row.vehiculo ?? '').trim().toLowerCase()
-      if (grupoKey && seenGroups.has(grupoKey)) continue
-      if (vehKey && seenVehiculos.has(vehKey)) continue
-      if (grupoKey) seenGroups.add(grupoKey)
-      if (vehKey) seenVehiculos.add(vehKey)
+      const key = getRecordSelectionKey(row)
+      if (seen.has(key)) continue
+      seen.add(key)
       deduped.push(row)
     }
     return deduped
   }, [activeTab, listDataForValidation])
   const totalPendientes = useMemo(() => {
-    const items = (pendientesTotalQuery.data ?? []).map(normalizeListRecord).filter((row) => !isRowEliminado(row) && row.confirmada !== true)
+    const items = (pendientesTotalQuery.data ?? [])
+      .map(normalizeListRecord)
+      .filter((row) => !isRowEliminado(row) && row.confirmada !== true && !isConfirmedInDbToday(row))
     return items.length
-  }, [pendientesTotalQuery.data])
+  }, [confirmedDbTodaySignatureSet, pendientesTotalQuery.data])
   const totalConfirmadas = useMemo(() => {
-    const items = (confirmadasTotalQuery.data ?? []).map(normalizeListRecord).filter((row) => row.confirmada === true)
+    const items = (confirmadasTotalQuery.data ?? [])
+      .map(normalizeListRecord)
+      .filter((row) => row.confirmada === true && isRecordInConfirmadasDate(row, confirmadasFechaFiltro))
     return items.length
-  }, [confirmadasTotalQuery.data])
-  const totalEliminadas = useMemo(() => {
-    const items = (eliminadasTotalQuery.data ?? []).map(normalizeListRecord).filter((row) => isRowEliminado(row))
-    return items.length
-  }, [eliminadasTotalQuery.data])
+  }, [confirmadasFechaFiltro, confirmadasTotalQuery.data])
   const visibleListData = useMemo(() => {
     const query = listSearch.trim().toLowerCase()
     if (!query) return listData
@@ -1347,7 +1675,7 @@ const ConformacionCuadrillaPage = () => {
     })
   }, [listData, listSearch])
   const [page, setPage] = useState<number>(1)
-  const pageSize = 10
+  const pageSize = 50
   const totalPages = Math.max(1, Math.ceil(visibleListData.length / pageSize))
 
   useEffect(() => {
@@ -1358,17 +1686,18 @@ const ConformacionCuadrillaPage = () => {
     const start = (page - 1) * pageSize
     return visibleListData.slice(start, start + pageSize)
   }, [visibleListData, page])
-  const totalGeneral = totalPendientes + totalConfirmadas + totalEliminadas
+  const totalGeneral = totalPendientes + totalConfirmadas
   const sucursalActivaLabel = sucursalActiva || selectedSucursalLabel || loginSucursalLabel || 'Sin sucursal'
   const fechaActivaLabel = useMemo(() => {
-    if (selectedFechaFiltro === todayValue) return `${todayValue} (hoy)`
-    return selectedFechaFiltro
-  }, [selectedFechaFiltro, todayValue])
+    const activeFecha = activeTab === 'confirmadas' ? confirmadasFechaFiltro : generalFechaFiltro
+    if (activeFecha === todayValue) return `${todayValue} (hoy)`
+    return activeFecha
+  }, [activeTab, confirmadasFechaFiltro, generalFechaFiltro, todayValue])
   const activeTabLabel = useMemo(
     () => CUADRILLA_LIST_TABS.find((tab) => tab.id === activeTab)?.label ?? 'General (pendientes)',
     [activeTab]
   )
-  const canEditInActiveTab = activeTab === 'general' || activeTab === 'confirmadas'
+  const canEditInActiveTab = activeTab === 'general'
   const canConfirmInActiveTab = activeTab !== 'confirmadas'
   const selectedRowsForConfirm = useMemo(() => {
     const selectedSet = new Set(selectedConfirmKeys)
@@ -1397,7 +1726,9 @@ const ConformacionCuadrillaPage = () => {
 
   const resetDraft = () => {
     setEditingId(null)
+    setEditInitialSnapshot(null)
     setShowStrictValidation(false)
+    setShowAllVehiculos(false)
     setGridRows([createEmptyRow(session?.nombre, session?.idUsuario, sucursalActiva || selectedSucursalLabel || loginSucursalLabel)])
   }
 
@@ -1407,19 +1738,30 @@ const ConformacionCuadrillaPage = () => {
     const sourceRow = sessionDraft ?? row
     const idRegistro = getRecordRealId(row)
     const preloadedRow = applyMandatoryRowRules(toEditableRow(sourceRow))
+    const detailDate = toISODate(preloadedRow.fecha)
+    const isPastDate = Boolean(detailDate) && detailDate < todayValue
+    const canOpenDirectEdit = canAsignarTecnicoGrupo && canEditInActiveTab && !isPastDate
 
     setSubmitError(null)
     setSuccess(null)
     setPendingConfirmation(null)
     setPendingReassignmentPrompt(null)
     setApprovedReassignments([])
-    setModalMode('view')
+    setShowAllVehiculos(false)
+    setModalMode(canOpenDirectEdit ? 'edit' : 'view')
     setModalOpen(true)
     setShowStrictValidation(false)
     setActiveDetailConfirmKey(key)
     setEditingId(idRegistro)
     setEditingLoadId(null)
+    setEditInitialSnapshot(buildEditAssignmentSnapshotFromRecord(normalizeListRecord(sourceRow)))
     setGridRows([preloadedRow])
+
+    if (!canOpenDirectEdit && isPastDate) {
+      setSubmitError(
+        `No se puede editar una cuadrilla con fecha ${formatDate(detailDate) || detailDate} porque es anterior a hoy (${formatDate(todayValue) || todayValue}).`
+      )
+    }
   }
 
   const handleRefreshDetalle = async () => {
@@ -1439,6 +1781,12 @@ const ConformacionCuadrillaPage = () => {
       const detailRow = applyMandatoryRowRules(toEditableRow(detail))
       const mergedRow = baseRow ? mergeEditableRows(baseRow, detailRow) : detailRow
       setGridRows([mergedRow])
+      const detailSnapshot = buildEditAssignmentSnapshotFromRow(
+        mergedRow,
+        getRecordRutaId(detail) ?? editInitialSnapshot?.idRuta ?? null,
+        sucursalActiva
+      )
+      setEditInitialSnapshot(detailSnapshot)
     } catch (error) {
       setSubmitError(toApiErrorText(error, 'No se pudo refrescar el detalle de la cuadrilla.'))
     } finally {
@@ -1469,6 +1817,7 @@ const ConformacionCuadrillaPage = () => {
     setPendingConfirmation(null)
     setPendingReassignmentPrompt(null)
     setApprovedReassignments([])
+    setShowAllVehiculos(false)
     setActiveDetailConfirmKey(null)
     setSubmitError(null)
     resetDraft()
@@ -1500,51 +1849,81 @@ const ConformacionCuadrillaPage = () => {
 
   const columns: Column<ConformacionCuadrillaRecord>[] = [
     {
-      key: 'preliminar',
+      key: 'cuadrilla',
       header: 'Preliminar',
       render: (row) => {
         const selectionKey = getRecordSelectionKey(row)
         const isSelected = selectedConfirmKeys.includes(selectionKey)
-        const registroLabel = formatDateTime(row.fechaRegistro) || formatDate(row.fecha) || '-'
         const tecnicoLabel = resolveTecnicoListLabel(row)
         const auxiliarLabel = toVisualLabel(row.auxiliar, 'Sin auxiliar')
         const vehiculoLabel = toVisualLabel(row.vehiculo, 'Sin vehiculo')
         const habilidadLabel = resolveHabilidadListLabel(row)
+        const cuentaSfLabel = resolveCuentaSfListLabel(row)
+        const salesforceLabel = resolveSalesforceListLabel(row)
         const canToggleActive = canConfirmInActiveTab && canAsignarTecnicoGrupo
         const activeChecked = canConfirmInActiveTab ? isSelected : resolveEstadoForList(row) === 'ACTIVO'
         const rowDetailLoading = isRowDetailLoading(row)
-        const hasRealId = getRecordRealId(row) !== null
+        const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
+        const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
         return (
-          <div className="min-w-[280px] rounded-3xl border border-sky-200 bg-white px-4 py-3 text-slate-900">
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">{registroLabel || 'Sin registro'}</p>
-              <Button
-                variant="secondary"
-                type="button"
-                onClick={() => void handleOpenDetalle(row)}
-                disabled={rowDetailLoading}
-                className="border-sky-300 text-sky-700"
-              >
-                {rowDetailLoading ? 'Cargando...' : hasRealId ? 'Ver detalle' : 'Ver local'}
-              </Button>
+          <div className="min-w-[250px] overflow-hidden rounded-2xl border border-slate-300 bg-white text-slate-900">
+            <div className="p-3 sm:p-4">
+              <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
+                <div>
+                  <span className={`inline-flex rounded-md px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${
+                    resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                  }`}>
+                    {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
+                  </span>
+                  <p className="mt-2 break-words text-xl font-extrabold uppercase leading-tight text-blue-700">{tecnicoLabel}</p>
+                  <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-slate-600">Lider de cuadrilla</p>
+                </div>
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Auxiliar</p>
+                  <p className="font-semibold text-slate-800">{auxiliarLabel}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Vehiculo</p>
+                  <p className="font-semibold text-blue-700">{vehiculoLabel}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Habilidad</p>
+                  <p className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">{habilidadLabel}</p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">CuentaSF</p>
+                  <p className="font-medium text-slate-800">{cuentaSfLabel}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</p>
+                  <p className="text-slate-700">{salesforceLabel}</p>
+                </div>
+                {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+              </div>
             </div>
-            <p className="mt-2 break-words text-xl font-extrabold leading-tight text-slate-900">{tecnicoLabel}</p>
-            <div className="mt-3 space-y-1 text-sm text-slate-700">
-              <p>Auxiliar: {auxiliarLabel}</p>
-              <p>Vehiculo: {vehiculoLabel}</p>
-              <p>Habilidad: {habilidadLabel}</p>
-            </div>
-            <div className="mt-4 flex items-center justify-end">
-              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+            <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-2.5">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                 <span>Activo</span>
                 <input
                   type="checkbox"
-                  className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
+                  className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
                   checked={activeChecked}
                   onChange={() => handleToggleConfirmRow(row)}
                   disabled={!canToggleActive}
                 />
               </label>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={() => void handleOpenDetalle(row)}
+                disabled={rowDetailLoading}
+                className="h-10 w-12 rounded-xl border-slate-300 px-0 text-lg text-slate-700"
+              >
+                {rowDetailLoading ? '...' : '✎'}
+              </Button>
             </div>
           </div>
         )
@@ -1602,13 +1981,78 @@ const ConformacionCuadrillaPage = () => {
     }
   }
 
+  const enrichRowsForConfirm = async (rows: ConformacionCuadrillaInput[]): Promise<ConformacionCuadrillaInput[]> => {
+    const hasText = (value: unknown): boolean => typeof value === 'string' && value.trim().length > 0
+    const toTecnicoId = (value: unknown): number | null => {
+      const parsed = Number(value)
+      if (!Number.isFinite(parsed) || parsed <= 0) return null
+      return Math.trunc(parsed)
+    }
+
+    const detailCache = new Map<number, Promise<CatalogItem | null>>()
+    const resolveDetail = (idTecnico: number): Promise<CatalogItem | null> => {
+      const existing = detailCache.get(idTecnico)
+      if (existing) return existing
+      const req = fetchConformacionTecnicoDetalle(idTecnico, sucursalActiva || undefined)
+        .then((detail) => detail)
+        .catch(() => null)
+      detailCache.set(idTecnico, req)
+      return req
+    }
+
+    const enrichedRows = await Promise.all(
+      rows.map(async (row) => {
+        const needsCuenta = !hasText(row.cuentaSf)
+        const needsSalesforce = !hasText(row.salesforce)
+        if (!needsCuenta && !needsSalesforce) return row
+
+        const tecnicoId = toTecnicoId(row.idTecnico)
+        if (!tecnicoId) return row
+        const detail = await resolveDetail(tecnicoId)
+        if (!detail) return row
+
+        const option = tecnicoById.get(String(tecnicoId))
+        const resolved = resolveTecnicoFields(detail, option)
+        return {
+          ...row,
+          cuentaSf: hasText(row.cuentaSf) ? row.cuentaSf : resolved.cuentaSf || row.cuentaSf,
+          salesforce: hasText(row.salesforce) ? row.salesforce : resolved.salesforce || row.salesforce,
+        }
+      })
+    )
+
+    const missingIndex = enrichedRows.findIndex((row) => !hasText(row.cuentaSf) || !hasText(row.salesforce))
+    if (missingIndex >= 0) {
+      const missingRow = enrichedRows[missingIndex]
+      const missingTecnicoId = normalizeTecnicoComparableId(missingRow?.idTecnico as string | number | null | undefined)
+      const tecnicoFromCatalog = missingTecnicoId ? tecnicoById.get(missingTecnicoId)?.label : ''
+      const tecnicoLabel = toVisualLabel(missingRow?.tecnico || tecnicoFromCatalog, 'Sin tecnico')
+      throw new Error(
+        `Fila ${missingIndex + 1} | Tecnico: ${tecnicoLabel}: no se pudo resolver cuentaSf/salesforce antes de confirmar.`
+      )
+    }
+
+    return enrichedRows
+  }
+
   const guardarConfirmadaMutation = useMutation({
-    mutationFn: ({ payload }: { payload: { filas: ConformacionCuadrillaInput[] }; confirmedKeys: string[] }) =>
-      guardarConformacionCuadrillaConfirmada(payload),
+    mutationFn: async ({
+      payload,
+    }: {
+      payload: { filas: ConformacionCuadrillaInput[] }
+      confirmedKeys: string[]
+    }) => {
+      const enrichedRows = await enrichRowsForConfirm(payload.filas)
+      await guardarConformacionCuadrillaConfirmada({ filas: enrichedRows })
+    },
     onSuccess: async (_data, variables) => {
-      await finalizeDefinitiveSave(variables.confirmedKeys ?? [], 'Cuadrilla confirmada guardada')
+      await finalizeDefinitiveSave(
+        variables.confirmedKeys ?? [],
+        'Cuadrilla confirmada guardada'
+      )
     },
     onError: (err) => {
+      setPendingConfirmation(null)
       setSuccess(null)
       setSubmitError(toApiErrorText(err, 'No se pudo guardar la conformacion. Verifica los datos.'))
     },
@@ -1625,14 +2069,14 @@ const ConformacionCuadrillaPage = () => {
       if (v) vehiculoCount.set(v, (vehiculoCount.get(v) || 0) + 1)
       const t = String(r.idTecnico ?? '').trim()
       if (t) tecnicoCount.set(t, (tecnicoCount.get(t) || 0) + 1)
-      const a = String(r.idTecnicoAuxiliar ?? '').trim()
+      const a = normalizeAuxiliarComparableId(r.idTecnicoAuxiliar)
       if (a) auxiliarCount.set(a, (auxiliarCount.get(a) || 0) + 1)
     }
     return baseIssues.map((issue, idx) => {
       const r = rows[idx]
       const vKey = String(r.vehiculo ?? '').trim().toLowerCase()
       const tKey = String(r.idTecnico ?? '').trim()
-      const aKey = String(r.idTecnicoAuxiliar ?? '').trim()
+      const aKey = normalizeAuxiliarComparableId(r.idTecnicoAuxiliar)
       return {
         ...issue,
         duplicateVehiculo: vKey ? (vehiculoCount.get(vKey) || 0) > 1 : false,
@@ -1654,7 +2098,9 @@ const ConformacionCuadrillaPage = () => {
 
   const preConfirmRequiredLabels: Record<string, string> = {
     vehiculo: 'vehiculo',
-    auxiliar: 'auxiliar',
+    digitador: 'digitador',
+    habilidad: 'habilidad',
+    grupo: 'grupo',
   }
   const formatPreConfirmMissingFields = (fields: string[]): string =>
     fields.map((field) => preConfirmRequiredLabels[field] ?? field).join(', ')
@@ -1662,10 +2108,12 @@ const ConformacionCuadrillaPage = () => {
   const getPreConfirmMissingFields = (row: EditableRow): string[] => {
     const missing: string[] = []
     if (!String(row.vehiculo ?? '').trim()) missing.push('vehiculo')
+    if (!String(row.grupo ?? '').trim()) missing.push('grupo')
+    if (!String(normalizeHabilidadValue(row.habilidad ?? '')).trim()) missing.push('habilidad')
 
-    const hasAuxiliarId = parseNumber(row.idTecnicoAuxiliar) !== null
-    const hasAuxiliarLabel = String(row.auxiliar ?? '').trim() !== ''
-    if (!hasAuxiliarId && !hasAuxiliarLabel) missing.push('auxiliar')
+    const hasDigitadorId = normalizeDigitadorComparableId(row.idUsuarioDigitador) !== ''
+    const hasDigitadorLabel = normalizeDigitadorComparableLabel(row.digitador) !== ''
+    if (!hasDigitadorId && !hasDigitadorLabel) missing.push('digitador')
     return missing
   }
 
@@ -1682,26 +2130,45 @@ const ConformacionCuadrillaPage = () => {
     return false
   }
 
-  const findVehiculoConflictRecord = (row: EditableRow): ConformacionCuadrillaRecord | null => {
-    const vehiculoKey = String(row.vehiculo ?? '').trim().toLowerCase()
-    if (!vehiculoKey) return null
-    return (
-      listDataForValidation.find((record) => {
-        const recordVehiculoKey = String(record.vehiculo ?? '').trim().toLowerCase()
-        if (!recordVehiculoKey || recordVehiculoKey !== vehiculoKey) return false
-        if (isSameRecordAsDraftRow(record, row)) return false
-        return true
-      }) ?? null
-    )
-  }
+const findVehiculoConflictRecord = (
+  row: EditableRow,
+  options?: { ignoreSelectionKey?: string }
+): ConformacionCuadrillaRecord | null => {
+  const vehiculoKey = String(row.vehiculo ?? '').trim().toLowerCase()
+  const rowTecnicoId = normalizeTecnicoComparableId(row.idTecnico)
+  if (!vehiculoKey) return null
+  return (
+    recordsForConflictValidation.find((record) => {
+      const recordKey = getRecordSelectionKey(record)
+      if (options?.ignoreSelectionKey && recordKey === options.ignoreSelectionKey) return false
+      const recordVehiculoKey = String(record.vehiculo ?? '').trim().toLowerCase()
+      if (!recordVehiculoKey || recordVehiculoKey !== vehiculoKey) return false
+      if (isSameRecordAsDraftRow(record, row)) return false
+      const recordTecnicoId = normalizeTecnicoComparableId(
+        readRecordId(record, RECORD_ID_TECNICO_KEYS, record.idTecnico) as string | number | null | undefined
+      )
+      if (rowTecnicoId && recordTecnicoId && rowTecnicoId === recordTecnicoId) return false
+      return true
+    }) ?? null
+  )
+}
 
-  const findAuxiliarConflictRecord = (row: EditableRow): ConformacionCuadrillaRecord | null => {
-    const auxiliarId = String(row.idTecnicoAuxiliar ?? '').trim()
-    if (!auxiliarId) return null
+  const findAuxiliarConflictRecord = (
+    row: EditableRow,
+    options?: { ignoreSelectionKey?: string }
+  ): ConformacionCuadrillaRecord | null => {
+    const auxiliarId = normalizeAuxiliarComparableId(row.idTecnicoAuxiliar)
+    const auxiliarLabelKey = normalizeAuxiliarComparableLabel(row.auxiliar)
+    if (!auxiliarId && !auxiliarLabelKey) return null
     return (
-      listDataForValidation.find((record) => {
-        const recordAuxiliarId = String(record.idTecnicoAuxiliar ?? '').trim()
-        if (!recordAuxiliarId || recordAuxiliarId !== auxiliarId) return false
+      recordsForConflictValidation.find((record) => {
+        const recordKey = getRecordSelectionKey(record)
+        if (options?.ignoreSelectionKey && recordKey === options.ignoreSelectionKey) return false
+        const recordAuxiliarId = normalizeAuxiliarComparableId(record.idTecnicoAuxiliar as number | string | null | undefined)
+        const recordAuxiliarLabelKey = normalizeAuxiliarComparableLabel(record.auxiliar as string | null | undefined)
+        const sameById = auxiliarId !== '' && recordAuxiliarId !== '' && recordAuxiliarId === auxiliarId
+        const sameByLabel = auxiliarLabelKey !== '' && recordAuxiliarLabelKey !== '' && recordAuxiliarLabelKey === auxiliarLabelKey
+        if (!sameById && !sameByLabel) return false
         if (isSameRecordAsDraftRow(record, row)) return false
         return true
       }) ?? null
@@ -1723,19 +2190,50 @@ const ConformacionCuadrillaPage = () => {
     })
   }
 
-  const findFirstVehiculoOccupiedIndex = (rows: EditableRow[], reassignments: AssignmentTransfer[] = []): number => {
-    return rows.findIndex((row) => {
-      const conflict = findVehiculoConflictRecord(row)
+  const findFirstVehiculoOccupiedIndex = (
+    rows: EditableRow[],
+    reassignments: AssignmentTransfer[] = [],
+    rowSelectionKeys?: string[]
+  ): number => {
+    return rows.findIndex((row, index) => {
+      const conflict = findVehiculoConflictRecord(row, {
+        ignoreSelectionKey: rowSelectionKeys?.[index],
+      })
       if (!conflict) return false
       return !isReassignmentApproved('vehiculo', String(row.vehiculo ?? ''), conflict, reassignments)
     })
   }
 
-  const findFirstAuxiliarOccupiedIndex = (rows: EditableRow[], reassignments: AssignmentTransfer[] = []): number => {
-    return rows.findIndex((row) => {
-      const conflict = findAuxiliarConflictRecord(row)
+  const findFirstAuxiliarOccupiedIndex = (
+    rows: EditableRow[],
+    reassignments: AssignmentTransfer[] = [],
+    rowSelectionKeys?: string[]
+  ): number => {
+    return rows.findIndex((row, index) => {
+      const conflict = findAuxiliarConflictRecord(row, {
+        ignoreSelectionKey: rowSelectionKeys?.[index],
+      })
       if (!conflict) return false
-      return !isReassignmentApproved('auxiliar', String(row.idTecnicoAuxiliar ?? ''), conflict, reassignments)
+      return !isReassignmentApproved('auxiliar', normalizeAuxiliarComparableId(row.idTecnicoAuxiliar), conflict, reassignments)
+    })
+  }
+
+  const findFirstAuxiliarTecnicoActivoIndex = (
+    rows: EditableRow[],
+    tecnicoActivos: Set<string>
+  ): number => {
+    const tecnicosBloqueados = new Set(tecnicoActivos)
+    rows.forEach((row) => {
+      const tecnicoId = toNumericIdString(row.idTecnico)
+      if (tecnicoId) tecnicosBloqueados.add(tecnicoId)
+    })
+
+    return rows.findIndex((row) => {
+      const auxiliarId = toNumericIdString(row.idTecnicoAuxiliar)
+      if (!auxiliarId || auxiliarId === '0') return false
+      const tecnicoId = toNumericIdString(row.idTecnico)
+      if (tecnicoId && tecnicoId === auxiliarId) return false
+      return tecnicosBloqueados.has(auxiliarId)
     })
   }
 
@@ -1863,45 +2361,20 @@ const ConformacionCuadrillaPage = () => {
 
   const buildUpdatePayloadFromRow = (row: EditableRow, currentUserId: number, currentSucursal: string): ConformacionCuadrillaInput => {
     const normalizedRow = applyMandatoryRowRules(row)
+    const supervisorId = parseNumber(normalizedRow.idUsuarioSupervisor)
+    const registraId = parseNumber(normalizedRow.idUsuarioRegistra)
     return {
       ...buildPayloadRow(normalizedRow),
-      fecha: selectedFechaFiltro || toISODate(normalizedRow.fecha) || todayISO(),
+      fecha: toISODate(normalizedRow.fecha) || selectedFechaFiltro || todayISO(),
       estado: mapEstadoForBackend(normalizedRow.estado),
-      actividad: cleanString(normalizedRow.actividad),
+      actividad: normalizeActividadForBackend(cleanString(normalizedRow.actividad)),
       idTecnico: parseNumber(normalizedRow.idTecnico) ?? undefined,
-      // El backend espera el id del usuario autenticado para el supervisor del registro.
-      idUsuarioSupervisor: Number(currentUserId),
+      idUsuarioSupervisor: supervisorId ?? Number(currentUserId),
       sucursal: currentSucursal,
-      idUsuarioRegistra: Number(currentUserId),
+      idUsuarioRegistra: registraId ?? Number(currentUserId),
       idUsuarioDigitador: parseNumber(normalizedRow.idUsuarioDigitador) ?? undefined,
-      idTecnicoAuxiliar: parseNumber(normalizedRow.idTecnicoAuxiliar) ?? undefined,
+      idTecnicoAuxiliar: parseAuxiliarIdForSave(normalizedRow.idTecnicoAuxiliar),
     }
-  }
-
-  const buildSessionPreviewRecord = (
-    baseRecord: ConformacionCuadrillaRecord,
-    row: EditableRow,
-    currentUserId: number,
-    currentSucursal: string
-  ): ConformacionCuadrillaRecord => {
-    const payload = buildUpdatePayloadFromRow(row, currentUserId, currentSucursal)
-    return normalizeListRecord({
-      ...baseRecord,
-      ...payload,
-      tecnico: row.tecnico,
-      auxiliar: row.auxiliar,
-      digitador: row.digitador,
-      supervisorACargo: row.supervisorACargo || session?.nombre || '',
-      grupo: row.grupo,
-      vehiculo: row.vehiculo,
-      almacen: row.almacen,
-      cuentaSf: row.cuentaSf,
-      salesforce: row.salesforce,
-      grupoDigitacion: row.grupoDigitacion,
-      habilidad: row.habilidad,
-      observacion: row.observacion,
-      sucursal: currentSucursal || row.sucursal || baseRecord.sucursal || '',
-    })
   }
 
   const buildReleasePayloadFromRecord = (transfer: AssignmentTransfer): ConformacionCuadrillaInput => {
@@ -1911,21 +2384,21 @@ const ConformacionCuadrillaPage = () => {
     const sourceUserId = parseNumber(sourceRow.idUsuarioRegistra) ?? parseNumber(currentUserRegistraId)
     const payload: ConformacionCuadrillaInput = {
       ...buildPayloadRow(sourceRow),
-      fecha: selectedFechaFiltro || toISODate(sourceRow.fecha) || todayISO(),
+      fecha: toISODate(sourceRow.fecha) || selectedFechaFiltro || todayISO(),
       estado: mapEstadoForBackend(sourceRow.estado),
-      actividad: cleanString(sourceRow.actividad),
+      actividad: normalizeActividadForBackend(cleanString(sourceRow.actividad)),
       idTecnico: parseNumber(sourceRow.idTecnico) ?? undefined,
       idUsuarioSupervisor: loginUserId ?? parseNumber(sourceRow.idUsuarioSupervisor) ?? undefined,
       sucursal: sourceSucursal || sucursalActiva,
       idUsuarioRegistra: sourceUserId ?? undefined,
       idUsuarioDigitador: parseNumber(sourceRow.idUsuarioDigitador) ?? undefined,
-      idTecnicoAuxiliar: parseNumber(sourceRow.idTecnicoAuxiliar) ?? undefined,
+      idTecnicoAuxiliar: parseAuxiliarIdForSave(sourceRow.idTecnicoAuxiliar),
     }
 
     if (transfer.field === 'vehiculo') {
       payload.vehiculo = ''
     } else {
-      payload.idTecnicoAuxiliar = undefined
+      payload.idTecnicoAuxiliar = 0
       payload.auxiliar = ''
     }
 
@@ -1953,7 +2426,7 @@ const ConformacionCuadrillaPage = () => {
         if (entry.field === 'vehiculo') {
           payload.vehiculo = ''
         } else {
-          payload.idTecnicoAuxiliar = undefined
+          payload.idTecnicoAuxiliar = 0
           payload.auxiliar = ''
         }
       }
@@ -1975,6 +2448,10 @@ const ConformacionCuadrillaPage = () => {
   const handleConfirmReassignmentPrompt = () => {
     if (!pendingReassignmentPrompt) return
     const prompt = pendingReassignmentPrompt
+    if (isRecordLockedForReassignment(prompt.source.sourceRecord)) {
+      setSubmitError('No se puede reasignar: la cuadrilla origen ya fue confirmada y tiene registro diario para la fecha.')
+      return
+    }
     upsertApprovedReassignment(prompt.source)
     setSubmitError(null)
 
@@ -1990,16 +2467,26 @@ const ConformacionCuadrillaPage = () => {
 
     setPendingReassignmentPrompt(null)
   }
+  const isPendingReassignmentLocked = Boolean(
+    pendingReassignmentPrompt && isRecordLockedForReassignment(pendingReassignmentPrompt.source.sourceRecord)
+  )
 
   const handleTecnicoSelect = (index: number, value: string) => {
     const numericValue = parseNumber(value)
     const normalizedValue = numericValue !== null ? String(numericValue) : ''
     const option = tecnicoById.get(normalizedValue)
+    const currentAuxiliarId = normalizeAuxiliarComparableId(gridRows[index]?.idTecnicoAuxiliar)
     // Prevent assigning the same tecnico to another cuadrilla (check grid and list)
     if (normalizedValue) {
+      if (currentAuxiliarId && currentAuxiliarId === normalizedValue) {
+        setSubmitError('El tecnico no puede ser el mismo que el auxiliar.')
+        return
+      }
       const inGrid = gridRows.some((r, i) => i !== index && String(r.idTecnico ?? '').trim() === normalizedValue)
       const currentGrupo = String(gridRows[index]?.grupo ?? '').trim().toLowerCase()
-      const inList = listData.some((r) => String(r.idTecnico ?? '').trim() === normalizedValue && String(r.grupo ?? '').trim().toLowerCase() !== currentGrupo)
+      const inList = recordsForConflictValidation.some(
+        (r) => String(r.idTecnico ?? '').trim() === normalizedValue && String(r.grupo ?? '').trim().toLowerCase() !== currentGrupo
+      )
       if (inGrid || inList) {
         setSubmitError('El tecnico ya esta asignado a otra cuadrilla.')
         return
@@ -2067,9 +2554,9 @@ const ConformacionCuadrillaPage = () => {
   }
 
   const handleAuxiliarSelect = (index: number, value: string) => {
-    const numericValue = parseNumber(value)
-    const normalizedValue = numericValue !== null ? String(numericValue) : ''
-    const option = auxiliarById.get(normalizedValue)
+    const normalizedValue = normalizeAuxiliarComparableId(value)
+    const option = normalizedValue ? auxiliarById.get(normalizedValue) : undefined
+    const currentTecnicoId = String(gridRows[index]?.idTecnico ?? '').trim()
 
     if (!normalizedValue) {
       clearApprovedReassignmentsByField('auxiliar')
@@ -2077,9 +2564,19 @@ const ConformacionCuadrillaPage = () => {
       return
     }
 
+    if (currentTecnicoId && currentTecnicoId === normalizedValue) {
+      setSubmitError('El auxiliar no puede ser el mismo que el tecnico.')
+      return
+    }
+
+    if (tecnicoActivoIdSet.has(normalizedValue)) {
+      setSubmitError('Un tecnico activo no puede asignarse como auxiliar.')
+      return
+    }
+
     // Prevent assigning the same auxiliar to another cuadrilla in the draft grid.
     if (normalizedValue) {
-      const inGrid = gridRows.some((r, i) => i !== index && String(r.idTecnicoAuxiliar ?? '').trim() === normalizedValue)
+      const inGrid = gridRows.some((r, i) => i !== index && normalizeAuxiliarComparableId(r.idTecnicoAuxiliar) === normalizedValue)
       if (inGrid) {
         setSubmitError('El auxiliar ya esta asignado a otra cuadrilla en el borrador actual.')
         return
@@ -2117,7 +2614,7 @@ const ConformacionCuadrillaPage = () => {
     }
 
     clearApprovedReassignmentsByField('auxiliar')
-    updateRow(index, (row) => ({ ...row, idTecnicoAuxiliar: normalizedValue, auxiliar: option?.label || '' }))
+    updateRow(index, (row) => ({ ...row, idTecnicoAuxiliar: normalizedValue, auxiliar: sanitizeAuxiliarLabel(option?.label || '') }))
   }
 
   const handleVehiculoSelect = (index: number, value: string) => {
@@ -2170,6 +2667,18 @@ const ConformacionCuadrillaPage = () => {
     updateRow(index, (row) => ({ ...row, vehiculo: normalizedValue }))
   }
 
+  const handleSalesforceSelect = (index: number, value: string) => {
+    const selectedSalesforce = value.trim()
+    const mappedCuentaSf = cuentaSfBySalesforce.get(normalizeLookupKey(selectedSalesforce)) ?? ''
+    updateRow(index, (row) => ({
+      ...row,
+      salesforce: selectedSalesforce,
+      cuentaSf: selectedSalesforce
+        ? mappedCuentaSf || row.cuentaSf
+        : '',
+    }))
+  }
+
   const handleGrupoSelect = (index: number, value: string) => {
     const option = grupoByValue.get(value)
     updateRow(index, (row) => ({
@@ -2180,14 +2689,13 @@ const ConformacionCuadrillaPage = () => {
   }
 
   const handleDigitadorSelect = (index: number, value: string) => {
-    const numericValue = parseNumber(value)
-    const normalizedValue = numericValue !== null ? String(numericValue) : ''
-    const option = digitadorById.get(normalizedValue)
+    const normalizedValue = normalizeDigitadorComparableId(value)
+    const option = normalizedValue ? digitadorById.get(normalizedValue) : undefined
     updateRow(index, (row) => {
       if (!normalizedValue) {
         return { ...row, idUsuarioDigitador: '', digitador: '' }
       }
-      const next: EditableRow = { ...row, idUsuarioDigitador: normalizedValue, digitador: option?.label || '' }
+      const next: EditableRow = { ...row, idUsuarioDigitador: normalizedValue, digitador: sanitizeDigitadorLabel(option?.label || '') }
       return next
     })
   }
@@ -2216,6 +2724,7 @@ const ConformacionCuadrillaPage = () => {
     setPendingConfirmation(null)
     setPendingReassignmentPrompt(null)
     setApprovedReassignments([])
+    setShowAllVehiculos(false)
     setShowStrictValidation(false)
     setModalMode('view')
   }
@@ -2276,10 +2785,13 @@ const ConformacionCuadrillaPage = () => {
       return
     }
 
-    await finalizeDefinitiveSave(pendingConfirmation.confirmedKeys, 'Cuadrilla confirmada actualizada')
+    await finalizeDefinitiveSave(
+      pendingConfirmation.confirmedKeys,
+      'Cuadrilla confirmada actualizada'
+    )
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canAsignarTecnicoGrupo) {
       setSubmitError('No tienes permiso para asignar tecnico a grupo (tsm_ConformacionCuadrillas).')
       return
@@ -2291,156 +2803,259 @@ const ConformacionCuadrillaPage = () => {
     if (hasIssues) {
       const firstIssueIndex = rowIssues.findIndex((issue) => issue.hasIssue)
       const firstIssue = firstIssueIndex >= 0 ? rowIssues[firstIssueIndex] : null
+      const firstIssueTecnicoLabel = resolveTecnicoEditableLabel(gridRows[firstIssueIndex])
+      const firstIssuePrefix = buildRowTecnicoPrefix(firstIssueIndex, firstIssueTecnicoLabel)
       if (firstIssue && firstIssue.missingFields.length > 0) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: faltan campos requeridos (${formatMissingFields(firstIssue.missingFields)}).`)
+        setSubmitError(`${firstIssuePrefix}: faltan campos requeridos (${formatMissingFields(firstIssue.missingFields)}).`)
       } else if (firstIssue?.duplicateVehiculo) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: el vehiculo ya esta asignado a otra cuadrilla.`)
+        setSubmitError(`${firstIssuePrefix}: el vehiculo ya esta asignado a otra cuadrilla.`)
       } else if (firstIssue?.duplicateTecnico) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: el tecnico ya esta asignado a otra cuadrilla.`)
+        setSubmitError(`${firstIssuePrefix}: el tecnico ya esta asignado a otra cuadrilla.`)
       } else if (firstIssue?.duplicateAuxiliar) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: el auxiliar ya esta asignado a otra cuadrilla.`)
+        setSubmitError(`${firstIssuePrefix}: el auxiliar ya esta asignado a otra cuadrilla.`)
       } else if (firstIssue?.idConflict) {
         const r = gridRows[firstIssueIndex]
         const idTec = (String(r.idTecnico ?? '')).trim()
-        const idAux = (String(r.idTecnicoAuxiliar ?? '')).trim()
+        const idAux = normalizeAuxiliarComparableId(r.idTecnicoAuxiliar)
         const idDig = (String(r.idUsuarioDigitador ?? '')).trim()
         if (idTec !== '' && idAux !== '' && idTec === idAux) {
-          setSubmitError(`Fila ${firstIssueIndex + 1}: el auxiliar no puede ser el mismo que el tecnico.`)
+          setSubmitError(`${firstIssuePrefix}: el auxiliar no puede ser el mismo que el tecnico.`)
         } else if (idTec !== '' && idDig !== '' && idTec === idDig) {
-          setSubmitError(`Fila ${firstIssueIndex + 1}: el digitador no puede ser el mismo que el tecnico.`)
+          setSubmitError(`${firstIssuePrefix}: el digitador no puede ser el mismo que el tecnico.`)
         } else {
-          setSubmitError(`Fila ${firstIssueIndex + 1}: conflicto de IDs en tecnico/auxiliar/digitador.`)
+          setSubmitError(`${firstIssuePrefix}: conflicto de IDs en tecnico/auxiliar/digitador.`)
         }
       } else if (firstIssue?.invalidEstado) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: estado invalido. Solo se permite ACTIVO o AUSENTE.`)
+        setSubmitError(`${firstIssuePrefix}: estado invalido. Solo se permite ACTIVO o AUSENTE.`)
       } else {
         setSubmitError('Hay errores en la grilla. Revisa las filas marcadas antes de guardar.')
       }
       return
     }
 
-    const currentUserId = parseNumber(currentUserRegistraId)
-    if (currentUserId === null) {
-      setSubmitError('No se pudo resolver idUsuarioRegistra del usuario actual.')
-      return
-    }
     if (!sucursalActiva) {
       setSubmitError('Selecciona una sucursal para continuar.')
       return
     }
 
     const rowsToSubmit = gridRows.map(applyMandatoryRowRules)
+    const draftRow = rowsToSubmit[0]
+    if (!draftRow) {
+      setSubmitError('No se encontro una fila para guardar cambios en la sesion.')
+      return
+    }
+    const missingPreConfirmFields = getPreConfirmMissingFields(draftRow)
+    if (missingPreConfirmFields.length > 0) {
+      setSubmitError(`Fila 1: faltan campos requeridos (${formatPreConfirmMissingFields(missingPreConfirmFields)}).`)
+      return
+    }
     const activeReassignments = approvedReassignments.filter((item) => {
-      const currentRow = rowsToSubmit[0]
+      const currentRow = draftRow
       if (!currentRow) return false
       if (editingId !== null && item.sourceId === editingId) return false
       if (item.field === 'vehiculo') {
         return String(currentRow.vehiculo ?? '').trim().toLowerCase() === item.selectedValue.trim().toLowerCase()
       }
-      return String(currentRow.idTecnicoAuxiliar ?? '').trim() === item.selectedValue.trim()
+      return normalizeAuxiliarComparableId(currentRow.idTecnicoAuxiliar) === normalizeAuxiliarComparableId(item.selectedValue)
     })
+    const draftAuxiliarSnapshot = {
+      idTecnicoAuxiliar: normalizeAuxiliarComparableId(draftRow.idTecnicoAuxiliar),
+      auxiliar: normalizeAuxiliarComparableLabel(draftRow.auxiliar),
+    }
+    const auxiliarWasChangedInEdit = editInitialSnapshot
+      ? draftAuxiliarSnapshot.idTecnicoAuxiliar !== editInitialSnapshot.idTecnicoAuxiliar ||
+        draftAuxiliarSnapshot.auxiliar !== editInitialSnapshot.auxiliar
+      : true
+    const hasAuxiliarReassignment = activeReassignments.some((item) => item.field === 'auxiliar')
+    const shouldValidateAuxiliarConflicts = auxiliarWasChangedInEdit || hasAuxiliarReassignment
 
     const firstVehiculoOccupiedIndex = findFirstVehiculoOccupiedIndex(rowsToSubmit, activeReassignments)
     if (firstVehiculoOccupiedIndex >= 0) {
-      setSubmitError(`Fila ${firstVehiculoOccupiedIndex + 1}: el vehiculo ya esta asignado a otra cuadrilla.`)
+      const tecnicoLabel = resolveTecnicoEditableLabel(rowsToSubmit[firstVehiculoOccupiedIndex])
+      const prefix = buildRowTecnicoPrefix(firstVehiculoOccupiedIndex, tecnicoLabel)
+      setSubmitError(`${prefix}: el vehiculo ya esta asignado a otra cuadrilla.`)
       return
     }
-    const isUpdateOperation = modalMode === 'edit' && Boolean(editingId)
-    if (isUpdateOperation && isActiveDetailDateBeforeToday) {
+    if (modalMode === 'edit' && isActiveDetailDateBeforeToday) {
       setSubmitError(pastDateEditError)
       return
     }
-    const firstAuxiliarOccupiedIndex = findFirstAuxiliarOccupiedIndex(rowsToSubmit, activeReassignments)
-    if (firstAuxiliarOccupiedIndex >= 0) {
-      setSubmitError(`Fila ${firstAuxiliarOccupiedIndex + 1}: el auxiliar ya esta asignado a otra cuadrilla.`)
+    if (shouldValidateAuxiliarConflicts) {
+      const firstAuxiliarOccupiedIndex = findFirstAuxiliarOccupiedIndex(rowsToSubmit, activeReassignments)
+      if (firstAuxiliarOccupiedIndex >= 0) {
+        const tecnicoLabel = resolveTecnicoEditableLabel(rowsToSubmit[firstAuxiliarOccupiedIndex])
+        const prefix = buildRowTecnicoPrefix(firstAuxiliarOccupiedIndex, tecnicoLabel)
+        setSubmitError(`${prefix}: el auxiliar ya esta asignado a otra cuadrilla.`)
+        return
+      }
+      const firstAuxiliarTecnicoActivoIndex = findFirstAuxiliarTecnicoActivoIndex(rowsToSubmit, tecnicoActivoIdSet)
+      if (firstAuxiliarTecnicoActivoIndex >= 0) {
+        const tecnicoLabel = resolveTecnicoEditableLabel(rowsToSubmit[firstAuxiliarTecnicoActivoIndex])
+        const prefix = buildRowTecnicoPrefix(firstAuxiliarTecnicoActivoIndex, tecnicoLabel)
+        setSubmitError(`${prefix}: un tecnico activo no puede asignarse como auxiliar.`)
+        return
+      }
+    }
+    const targetKey = activeDetailConfirmKey
+    if (!targetKey) {
+      setSubmitError('No se pudo resolver la cuadrilla para guardar cambios en sesion.')
       return
     }
 
-    if (!isUpdateOperation) {
-      const missingPreConfirmIndex = rowsToSubmit.findIndex((row) => getPreConfirmMissingFields(row).length > 0)
-      if (missingPreConfirmIndex >= 0) {
-        const missing = getPreConfirmMissingFields(rowsToSubmit[missingPreConfirmIndex] ?? createEmptyRow())
-        setSubmitError(
-          `Fila ${missingPreConfirmIndex + 1}: para confirmar el pre-marcado faltan (${formatPreConfirmMissingFields(missing)}).`
-        )
-        return
-      }
+    const targetBaseRecord =
+      sessionDraftByKey[targetKey] ??
+      listDataForValidation.find((record) => getRecordSelectionKey(record) === targetKey) ??
+      listData.find((record) => getRecordSelectionKey(record) === targetKey)
+    if (!targetBaseRecord) {
+      setSubmitError('No se encontro la cuadrilla en el listado para aplicar cambios.')
+      return
     }
 
-    const payloadRows = rowsToSubmit.map((row) => buildUpdatePayloadFromRow(row, currentUserId, sucursalActiva))
-    const filaPayload = payloadRows[0]
-    const guardarPayload = { filas: [filaPayload] }
+    const normalizedBaseRecord = normalizeListRecord(targetBaseRecord)
+    const normalizedDraftRecord = normalizeListRecord({
+      ...normalizedBaseRecord,
+      fecha: toISODate(draftRow.fecha) || normalizedBaseRecord.fecha || todayISO(),
+      estado: normalizeEstadoValue(draftRow.estado),
+      actividad: normalizeActividadForBackend(cleanString(draftRow.actividad)),
+      idTecnico: parseNumber(draftRow.idTecnico) ?? undefined,
+      cuentaSf: cleanString(draftRow.cuentaSf),
+      salesforce: cleanString(draftRow.salesforce),
+      habilidad: normalizeHabilidadValue(draftRow.habilidad),
+      vehiculo: cleanString(draftRow.vehiculo),
+      grupo: cleanString(draftRow.grupo),
+      almacen: cleanString(draftRow.almacen),
+      grupoDigitacion: cleanString(draftRow.grupoDigitacion),
+      idUsuarioDigitador: parseNumber(draftRow.idUsuarioDigitador) ?? undefined,
+      digitador: cleanString(draftRow.digitador),
+      tecnico: cleanString(draftRow.tecnico),
+      idTecnicoAuxiliar: parseNumber(draftRow.idTecnicoAuxiliar) ?? undefined,
+      auxiliar: cleanString(draftRow.auxiliar),
+      idUsuarioSupervisor: parseNumber(draftRow.idUsuarioSupervisor) ?? undefined,
+      supervisorACargo: cleanString(draftRow.supervisorACargo),
+      sucursal: cleanString(sucursalActiva || draftRow.sucursal || normalizedBaseRecord.sucursal || ''),
+      observacion: cleanString(draftRow.observacion),
+      idUsuarioRegistra:
+        parseNumber(draftRow.idUsuarioRegistra) ??
+        parseNumber(draftRow.idUsuarioSupervisor) ??
+        toOptionalNumber(normalizedBaseRecord.idUsuarioRegistra),
+    })
+    const idRutaRelacion = getRecordRutaId(normalizedDraftRecord) ?? getRecordRutaId(normalizedBaseRecord)
+    const idTecnicoAuxiliarRelacionRaw = parseNumber(draftRow.idTecnicoAuxiliar)
+    const idTecnicoAuxiliarRelacion = idTecnicoAuxiliarRelacionRaw ?? 0
+    const idUsuarioDigitadorRelacion = parseNumber(draftRow.idUsuarioDigitador)
+    const auxiliarRelacion = cleanString(draftRow.auxiliar)
+    const digitadorRelacion = cleanString(draftRow.digitador)
+    const hasRelacionValues =
+      idTecnicoAuxiliarRelacionRaw !== null ||
+      auxiliarRelacion !== '' ||
+      idUsuarioDigitadorRelacion !== null ||
+      digitadorRelacion !== ''
+    const recordsByKey = new Map(listDataForValidation.map((record) => [getRecordSelectionKey(record), record]))
 
-    if (cuadrillaDebugEnabled) {
-      console.info('[CUADRILLA][GUARDAR]', {
-        operation: isUpdateOperation ? 'update' : 'create',
-        filas: 1,
-      })
-    }
-
-    if (isUpdateOperation && editingId !== null) {
-      const fallbackRecordById = listDataForValidation.find((record) => getRecordRealId(record) === editingId)
-      const targetKey = activeDetailConfirmKey ?? (fallbackRecordById ? getRecordSelectionKey(fallbackRecordById) : null)
-      const draftRow = rowsToSubmit[0]
-      if (!targetKey || !draftRow) {
-        setSubmitError('No se pudo resolver la cuadrilla para guardar cambios preliminares.')
+    if (activeTab === 'confirmadas') {
+      if (editingId === null) {
+        setSubmitError('No se pudo resolver el id de la cuadrilla confirmada para actualizar.')
+        return
+      }
+      const currentUserId = parseNumber(currentUserRegistraId)
+      if (currentUserId === null) {
+        setSubmitError('No se pudo resolver idUsuarioRegistra del usuario actual para actualizar.')
         return
       }
 
-      const targetBaseRecord =
-        sessionDraftByKey[targetKey] ?? listDataForValidation.find((record) => getRecordSelectionKey(record) === targetKey)
-      if (!targetBaseRecord) {
-        setSubmitError('No se encontro la cuadrilla en el listado para aplicar cambios preliminares.')
-        return
-      }
-
-      setSessionDraftByKey((current) => {
-        const next = { ...current }
-        next[targetKey] = buildSessionPreviewRecord(targetBaseRecord, draftRow, currentUserId, sucursalActiva)
-
-        for (const reassignment of activeReassignments) {
-          const sourceKey = getRecordSelectionKey(reassignment.sourceRecord)
-          const sourceBaseRecord = next[sourceKey] ?? listDataForValidation.find((record) => getRecordSelectionKey(record) === sourceKey) ?? reassignment.sourceRecord
-          const sourceEditable = applyMandatoryRowRules(toEditableRow(sourceBaseRecord))
-          if (reassignment.field === 'vehiculo') {
-            sourceEditable.vehiculo = ''
-          } else {
-            sourceEditable.idTecnicoAuxiliar = ''
-            sourceEditable.auxiliar = ''
-          }
-          const sourceSucursal = toSucursalActiva(sourceEditable.sucursal || sucursalActiva)
-          next[sourceKey] = buildSessionPreviewRecord(sourceBaseRecord, sourceEditable, currentUserId, sourceSucursal)
-        }
-        return next
-      })
-
-      setSessionReassignmentsByKey((current) => {
-        const next = { ...current }
+      const updatePayload = buildUpdatePayloadFromRow(draftRow, currentUserId, sucursalActiva)
+      setIsResolvingReassignments(true)
+      try {
         if (activeReassignments.length) {
-          next[targetKey] = activeReassignments
-        } else {
-          delete next[targetKey]
+          await runApprovedReassignments(activeReassignments)
         }
-        return next
-      })
+        await updateConformacionCuadrilla(editingId, updatePayload, { target: 'dbordenres' })
+      } catch (error) {
+        setSubmitError(toApiErrorText(error, 'No se pudo actualizar la cuadrilla confirmada en BDControlOrdenes.'))
+        setIsResolvingReassignments(false)
+        return
+      } finally {
+        setIsResolvingReassignments(false)
+      }
 
-      setApprovedReassignments([])
-      setPendingReassignmentPrompt(null)
-      setModalOpen(false)
-      setModalMode('view')
-      setActiveDetailConfirmKey(null)
-      resetDraft()
-      setSuccess('Cambios guardados en sesion. Selecciona la cuadrilla y usa "Subir marcado de hoy" para guardar definitivo.')
+      await finalizeDefinitiveSave(
+        [targetKey],
+        'Cuadrilla confirmada actualizada'
+      )
       return
     }
 
-    const confirmKey = activeDetailConfirmKey ?? null
-    openConfirmationModal(guardarPayload, confirmKey ? [confirmKey] : [], activeReassignments)
+    if (hasRelacionValues) {
+      if (idRutaRelacion === null) {
+        setSubmitError('No se pudo resolver idRuta para guardar auxiliar/digitador en relacion_cuadrillas.')
+        return
+      }
+
+      const relationPayload: ConformacionCuadrillaRelacionPayload = {
+        idRuta: idRutaRelacion,
+        idTecnicoAuxiliar: idTecnicoAuxiliarRelacion,
+        auxiliar: auxiliarRelacion || null,
+        idUsuarioDigitador: idUsuarioDigitadorRelacion,
+        digitador: digitadorRelacion || null,
+        sucursal: cleanString(sucursalActiva || draftRow.sucursal || normalizedBaseRecord.sucursal || '') || null,
+        activo: true,
+      }
+
+      try {
+        await guardarRelacionCuadrilla(relationPayload)
+      } catch (error) {
+        setSubmitError(toApiErrorText(error, 'No se pudo guardar auxiliar/digitador en relacion_cuadrillas.'))
+        return
+      }
+    }
+
+    setSessionDraftByKey((current) => {
+      const next = { ...current, [targetKey]: normalizedDraftRecord }
+      for (const reassignment of activeReassignments) {
+        const sourceKey = getRecordSelectionKey(reassignment.sourceRecord)
+        const sourceRecord = next[sourceKey] ?? current[sourceKey] ?? recordsByKey.get(sourceKey) ?? reassignment.sourceRecord
+        const normalizedSource = normalizeListRecord(sourceRecord)
+        next[sourceKey] = normalizeListRecord(
+          reassignment.field === 'vehiculo'
+            ? { ...normalizedSource, vehiculo: '' }
+            : { ...normalizedSource, idTecnicoAuxiliar: undefined, auxiliar: '' }
+        )
+      }
+      return next
+    })
+    setSessionReassignmentsByKey((current) => {
+      const next = { ...current }
+      if (activeReassignments.length) {
+        next[targetKey] = activeReassignments
+      } else {
+        delete next[targetKey]
+      }
+      return next
+    })
+    setSelectedConfirmKeys((current) => {
+      const nextIsActivo = normalizeEstadoValue(draftRow.estado) === 'ACTIVO'
+      if (nextIsActivo) {
+        if (current.includes(targetKey)) return current
+        return [...current, targetKey]
+      }
+      return current.filter((key) => key !== targetKey)
+    })
+
+    setApprovedReassignments([])
+    setPendingReassignmentPrompt(null)
+    setPendingConfirmation(null)
+    setModalOpen(false)
+    setModalMode('view')
+    setActiveDetailConfirmKey(null)
+    setEditInitialSnapshot(null)
+    setSubmitError(null)
+    setSuccess('Cambios guardados en sesion.')
+    resetDraft()
   }
 
   const isSaving = guardarConfirmadaMutation.isPending || isResolvingReassignments
 
-  const handleGuardarTodasCuadrillas = () => {
+  const handleGuardarTodasCuadrillas = async () => {
     if (!canAsignarTecnicoGrupo) {
       setSubmitError('No tienes permiso para asignar tecnico a grupo (tsm_ConformacionCuadrillas).')
       return
@@ -2469,6 +3084,7 @@ const ConformacionCuadrillaPage = () => {
 
     const selectedRows = selectedRowsForConfirm
     const selectedReassignments = selectedRows.flatMap((row) => sessionReassignmentsByKey[getRecordSelectionKey(row)] ?? [])
+    const selectedRowKeys = selectedRows.map(getRecordSelectionKey)
 
     const tecnicoIdByLabel = new Map(
       tecnicoOptions.map((option) => [option.label.trim().toLowerCase(), option.value])
@@ -2488,33 +3104,58 @@ const ConformacionCuadrillaPage = () => {
     const firstIssueIndex = issues.findIndex((issue) => issue.hasIssue)
     if (firstIssueIndex >= 0) {
       const firstIssue = issues[firstIssueIndex]
+      const firstIssueTecnicoLabel = selectedRows[firstIssueIndex]
+        ? resolveTecnicoListLabel(selectedRows[firstIssueIndex])
+        : resolveTecnicoEditableLabel(rows[firstIssueIndex])
+      const firstIssuePrefix = buildRowTecnicoPrefix(firstIssueIndex, firstIssueTecnicoLabel)
       if (firstIssue.missingFields.length > 0) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: faltan campos requeridos (${formatMissingFields(firstIssue.missingFields)}).`)
+        setSubmitError(`${firstIssuePrefix}: faltan campos requeridos (${formatMissingFields(firstIssue.missingFields)}).`)
       } else if (firstIssue.idConflict) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: el auxiliar no puede ser el mismo tecnico.`)
+        setSubmitError(`${firstIssuePrefix}: el auxiliar no puede ser el mismo tecnico.`)
       } else if (firstIssue.invalidEstado) {
-        setSubmitError(`Fila ${firstIssueIndex + 1}: estado invalido. Solo se permite ACTIVO o AUSENTE.`)
+        setSubmitError(`${firstIssuePrefix}: estado invalido. Solo se permite ACTIVO o AUSENTE.`)
       } else {
         setSubmitError('Hay errores en el listado. Revisa las filas antes de guardar.')
       }
       return
     }
-    const firstVehiculoOccupiedIndex = findFirstVehiculoOccupiedIndex(rows, selectedReassignments)
+    const firstVehiculoOccupiedIndex = findFirstVehiculoOccupiedIndex(rows, selectedReassignments, selectedRowKeys)
     if (firstVehiculoOccupiedIndex >= 0) {
-      setSubmitError(`Fila ${firstVehiculoOccupiedIndex + 1}: el vehiculo ya esta asignado a otra cuadrilla.`)
+      const tecnicoLabel = selectedRows[firstVehiculoOccupiedIndex]
+        ? resolveTecnicoListLabel(selectedRows[firstVehiculoOccupiedIndex])
+        : resolveTecnicoEditableLabel(rows[firstVehiculoOccupiedIndex])
+      const prefix = buildRowTecnicoPrefix(firstVehiculoOccupiedIndex, tecnicoLabel)
+      setSubmitError(`${prefix}: el vehiculo ya esta asignado a otra cuadrilla.`)
       return
     }
-    const firstAuxiliarOccupiedIndex = findFirstAuxiliarOccupiedIndex(rows, selectedReassignments)
+    const firstAuxiliarOccupiedIndex = findFirstAuxiliarOccupiedIndex(rows, selectedReassignments, selectedRowKeys)
     if (firstAuxiliarOccupiedIndex >= 0) {
-      setSubmitError(`Fila ${firstAuxiliarOccupiedIndex + 1}: el auxiliar ya esta asignado a otra cuadrilla.`)
+      const tecnicoLabel = selectedRows[firstAuxiliarOccupiedIndex]
+        ? resolveTecnicoListLabel(selectedRows[firstAuxiliarOccupiedIndex])
+        : resolveTecnicoEditableLabel(rows[firstAuxiliarOccupiedIndex])
+      const prefix = buildRowTecnicoPrefix(firstAuxiliarOccupiedIndex, tecnicoLabel)
+      setSubmitError(`${prefix}: el auxiliar ya esta asignado a otra cuadrilla.`)
       return
     }
-
+    const firstAuxiliarTecnicoActivoIndex = findFirstAuxiliarTecnicoActivoIndex(rows, tecnicoActivoIdSet)
+    if (firstAuxiliarTecnicoActivoIndex >= 0) {
+      const tecnicoLabel = selectedRows[firstAuxiliarTecnicoActivoIndex]
+        ? resolveTecnicoListLabel(selectedRows[firstAuxiliarTecnicoActivoIndex])
+        : resolveTecnicoEditableLabel(rows[firstAuxiliarTecnicoActivoIndex])
+      const prefix = buildRowTecnicoPrefix(firstAuxiliarTecnicoActivoIndex, tecnicoLabel)
+      setSubmitError(`${prefix}: un tecnico activo no puede asignarse como auxiliar.`)
+      return
+    }
     const missingPreConfirmIndex = rows.findIndex((row) => getPreConfirmMissingFields(row).length > 0)
     if (missingPreConfirmIndex >= 0) {
       const missing = getPreConfirmMissingFields(rows[missingPreConfirmIndex] ?? createEmptyRow())
+      const missingRecord = selectedRows[missingPreConfirmIndex]
+      const missingRow = rows[missingPreConfirmIndex]
+      const tecnicoLabel = missingRecord
+        ? resolveTecnicoListLabel(missingRecord)
+        : toVisualLabel(missingRow?.tecnico, 'Sin tecnico')
       setSubmitError(
-        `Fila ${missingPreConfirmIndex + 1}: para confirmar el pre-marcado faltan (${formatPreConfirmMissingFields(missing)}).`
+        `Fila ${missingPreConfirmIndex + 1} | Tecnico: ${tecnicoLabel}: para confirmar el pre-marcado faltan (${formatPreConfirmMissingFields(missing)}).`
       )
       return
     }
@@ -2523,9 +3164,16 @@ const ConformacionCuadrillaPage = () => {
     const updateItems: PendingUpdateItem[] = []
     // Al confirmar marcado (boton azul), siempre se crea en BDOrdenes.
     // No se debe convertir en update web por tener un id de ruta/local.
-    const createRows: ConformacionCuadrillaInput[] = payloadRows.filter(
+    const createRowsBase: ConformacionCuadrillaInput[] = payloadRows.filter(
       (payload): payload is ConformacionCuadrillaInput => Boolean(payload)
     )
+    let createRows: ConformacionCuadrillaInput[] = createRowsBase
+    try {
+      createRows = await enrichRowsForConfirm(createRowsBase)
+    } catch (error) {
+      setSubmitError(toApiErrorText(error, 'No se pudo validar la informacion antes de confirmar el marcado.'))
+      return
+    }
 
     openConfirmationModal(
       { filas: createRows },
@@ -2540,10 +3188,29 @@ const ConformacionCuadrillaPage = () => {
     return toApiErrorText(listQuery.error, 'No se pudo cargar el listado.')
   }, [listQuery.error, listQuery.isError])
   const totalsErrorMessage = useMemo(() => {
-    const firstError = pendientesTotalQuery.error ?? confirmadasTotalQuery.error ?? eliminadasTotalQuery.error
+    const firstError = pendientesTotalQuery.error ?? confirmadasTotalQuery.error
     if (!firstError) return null
     return toApiErrorText(firstError, 'No se pudo cargar uno o mas totales del tablero.')
-  }, [confirmadasTotalQuery.error, eliminadasTotalQuery.error, pendientesTotalQuery.error])
+  }, [confirmadasTotalQuery.error, pendientesTotalQuery.error])
+  const emptyListMessage = useMemo(() => {
+    const queryText = listSearch.trim()
+    const fechaLabel = activeTab === 'confirmadas' ? confirmadasFechaFiltro : generalFechaFiltro
+
+    if (activeTab === 'confirmadas') {
+      if (!sucursalActiva) {
+        return 'Selecciona una sucursal para ver cuadrillas confirmadas de BDControlOrdenes.'
+      }
+      if (queryText) {
+        return `No hay cuadrillas confirmadas que coincidan con "${queryText}".`
+      }
+      return `No hay cuadrillas confirmadas en BDControlOrdenes para ${sucursalActivaLabel} en fecha ${fechaLabel}.`
+    }
+
+    if (queryText) {
+      return `No hay cuadrillas pendientes que coincidan con "${queryText}".`
+    }
+    return `No hay cuadrillas pendientes para ${sucursalActivaLabel} en fecha ${fechaLabel}.`
+  }, [activeTab, confirmadasFechaFiltro, generalFechaFiltro, listSearch, sucursalActiva, sucursalActivaLabel])
   const hasPendingReassignments = Boolean(pendingConfirmation?.reassignments?.length)
 
   if (!canViewCuadrillas) {
@@ -2557,12 +3224,32 @@ const ConformacionCuadrillaPage = () => {
   }
 
   return (
-    <div className="bento-page">
-      <div className="bento-page-head flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Conformacion de Cuadrillas</h2>
+    <div className="bento-page -mt-2 gap-3 sm:gap-4">
+      <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:px-5">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Conformación de Cuadrillas</h2>
+            <p className="mt-0.5 text-sm font-medium tracking-tight text-slate-600">Gestión de personal en {sucursalActivaLabel}</p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_repeat(3,minmax(0,0.8fr))] xl:w-[680px]">
+            <div className="flex min-h-12 items-center rounded-lg border border-blue-100 bg-slate-50 px-3 text-[11px] font-semibold tracking-wide text-slate-700">
+              FECHA ACTIVA: <span className="ml-1 text-blue-700">{fechaActivaLabel}</span>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Pendientes</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-blue-700">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Confirmadas</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-400">{confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}</p>
+            </div>
+            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Total</p>
+              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-900">{pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading ? '...' : totalGeneral}</p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {!canAsignarTecnicoGrupo ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
@@ -2572,48 +3259,6 @@ const ConformacionCuadrillaPage = () => {
       {!canVerDatosTecnico ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
           Ver datos del tecnico bloqueado: requiere tsm_ConformacionCuadrillas.
-        </div>
-      ) : null}
-      <div className="flex justify-end">
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => setShowOverviewPanel((current) => !current)}
-          className="w-full sm:w-auto"
-        >
-          {showOverviewPanel ? 'Ocultar tablero' : 'Mostrar tablero'}
-        </Button>
-      </div>
-      {showOverviewPanel ? (
-        <div className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-3 sm:gap-3 sm:p-4 lg:grid-cols-3 xl:grid-cols-6">
-          <div className="min-w-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <p className="text-[11px] font-semibold text-amber-700">Pendientes</p>
-            <p className="text-lg font-bold text-amber-900">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
-          </div>
-          <div className="min-w-0 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
-            <p className="text-[11px] font-semibold text-emerald-700">Confirmadas</p>
-            <p className="text-lg font-bold text-emerald-900">
-              {confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}
-            </p>
-          </div>
-          <div className="min-w-0 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
-            <p className="text-[11px] font-semibold text-rose-700">Eliminadas</p>
-            <p className="text-lg font-bold text-rose-900">{eliminadasTotalQuery.isLoading ? '...' : totalEliminadas}</p>
-          </div>
-          <div className="min-w-0 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
-            <p className="text-[11px] font-semibold text-sky-700">Total general</p>
-            <p className="text-lg font-bold text-sky-900">
-              {pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading || eliminadasTotalQuery.isLoading ? '...' : totalGeneral}
-            </p>
-          </div>
-          <div className="col-span-2 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-1 xl:col-span-1">
-            <p className="text-[11px] font-semibold text-slate-600">Fecha activa</p>
-            <p className="break-words text-sm font-semibold text-slate-900">{fechaActivaLabel}</p>
-          </div>
-          <div className="col-span-2 min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 md:col-span-1 xl:col-span-1">
-            <p className="text-[11px] font-semibold text-slate-600">Sucursal activa</p>
-            <p className="break-words text-sm font-semibold text-slate-900">{sucursalActivaLabel}</p>
-          </div>
         </div>
       ) : null}
       {submitError && !modalOpen ? (
@@ -2631,8 +3276,10 @@ const ConformacionCuadrillaPage = () => {
       <FormCard
         title="Listado"
         description={listDescription}
+        hideHeader
+        compact
       >
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
             <Tabs items={CUADRILLA_LIST_TABS} activeId={activeTab} onChange={(id) => setActiveTab(id as CuadrillaListTab)} />
           </div>
@@ -2643,9 +3290,9 @@ const ConformacionCuadrillaPage = () => {
               onClick={() => setShowListFilters((current) => !current)}
               className="w-full sm:w-auto"
             >
-              {showListFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+              {showListFilters ? 'Ocultar filtros' : 'Filtros'}
             </Button>
-            {canConfirmInActiveTab ? (
+            {canConfirmInActiveTab && (isSaving || selectedRowsForConfirm.length > 0) ? (
               <Button
                 variant="primary"
                 type="button"
@@ -2659,32 +3306,18 @@ const ConformacionCuadrillaPage = () => {
           </div>
         </div>
         {showListFilters ? (
-          <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-            <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
-              <span>Sucursal</span>
-              <select
-                className="input-base h-9 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
-                value={filterSucursal}
-                onChange={(event) => setFilterSucursal(event.target.value)}
-                disabled={sucursalesQuery.isLoading || isSaving}
-              >
-                <option value="">
-                  {sucursalesQuery.isLoading ? 'Cargando sucursales...' : 'Selecciona sucursal'}
-                </option>
-                {sucursalOptions.map((option) => (
-                  <option key={`filtro-sucursal-${option.value}`} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
               <span>Fecha</span>
               <input
                 className="input-base h-9 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
                 type="date"
-                value={filterFecha}
-                onChange={(event) => setFilterFecha(event.target.value || todayValue)}
+                value={activeTab === 'confirmadas' ? selectedFechaFiltro : generalFechaFiltro}
+                onChange={(event) => {
+                  if (activeTab === 'general') return
+                  setFilterFecha(event.target.value || todayValue)
+                }}
+                disabled={activeTab === 'general'}
               />
             </label>
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
@@ -2702,17 +3335,21 @@ const ConformacionCuadrillaPage = () => {
               type="button"
               className="h-9 xl:self-end"
               onClick={() => {
-                setFilterFecha(todayValue)
+                if (activeTab === 'confirmadas') {
+                  setFilterFecha(todayValue)
+                }
                 setListSearchInput('')
               }}
-              disabled={filterFecha === todayValue && !listSearchInput}
+              disabled={activeTab === 'confirmadas' ? filterFecha === todayValue && !listSearchInput : !listSearchInput}
             >
               Limpiar filtros
             </Button>
           </div>
         ) : null}
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
-          Origen activo por sucursal: {selectedInitialSource === 'DB_SUCRE' ? 'DB Sucre' : 'U Tecnicos'}. El listado y catalogos se cargan desde conformacion-cuadrilla-web.
+        <div className="mb-4 hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 sm:block">
+          {activeTab === 'confirmadas'
+            ? 'Origen de Confirmadas: tabla tbl_ConformacionCuadrillaDiario (endpoint /supervisor/conformacion-cuadrilla/confirmadas).'
+            : `Origen activo por sucursal: ${selectedInitialSource === 'DB_SUCRE' ? 'DB Sucre' : 'U Tecnicos'}. El listado y catalogos se cargan desde conformacion-cuadrilla-web.`}
         </div>
         {listQuery.isLoading ? (
           <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Cargando listado...</div>
@@ -2724,44 +3361,48 @@ const ConformacionCuadrillaPage = () => {
             <div className="space-y-3 md:hidden">
               {pagedVisibleData.length === 0 ? (
                 <div className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500">
-                  No hay registros disponibles.
+                  {emptyListMessage}
                 </div>
               ) : (
                 pagedVisibleData.map((row, index) => {
                   const selectionKey = getRecordSelectionKey(row)
                   const isSelected = selectedConfirmKeys.includes(selectionKey)
                   const rowDetailLoading = isRowDetailLoading(row)
-                  const hasRealId = getRecordRealId(row) !== null
-                  const registroLabel = formatDateTime(row.fechaRegistro) || formatDate(row.fecha)
                   const tecnicoLabel = resolveTecnicoListLabel(row)
                   const auxiliarLabel = toVisualLabel(row.auxiliar, 'Sin auxiliar')
                   const vehiculoLabel = toVisualLabel(row.vehiculo, 'Sin vehiculo')
                   const habilidadLabel = resolveHabilidadListLabel(row)
+                  const cuentaSfLabel = resolveCuentaSfListLabel(row)
+                  const salesforceLabel = resolveSalesforceListLabel(row)
                   const canToggleActive = canConfirmInActiveTab && canAsignarTecnicoGrupo
                   const activeChecked = canConfirmInActiveTab ? isSelected : resolveEstadoForList(row) === 'ACTIVO'
+                  const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
+                  const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
                   return (
-                    <div key={`mobile-card-${selectionKey}-${index}`} className="rounded-3xl border border-sky-200 bg-white p-4 text-slate-900 shadow-sm">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] uppercase tracking-wide text-slate-500">{registroLabel || 'Sin registro'}</p>
-                          <p className="mt-2 break-words text-xl font-extrabold leading-tight text-slate-900">{tecnicoLabel}</p>
+                    <div key={`mobile-card-${selectionKey}-${index}`} className="overflow-hidden rounded-3xl border border-slate-300 bg-white text-slate-900 shadow-sm">
+                      <div className="p-4">
+                        <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
+                          <div className="min-w-0">
+                            <span className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.08em] ${
+                              resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                            }`}>
+                              {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
+                            </span>
+                            <p className="mt-2 break-words text-2xl font-extrabold uppercase leading-tight text-blue-700 sm:text-3xl">{tecnicoLabel}</p>
+                            <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.08em] text-slate-600">Lider de cuadrilla</p>
+                          </div>
+                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
                         </div>
-                        <Button
-                          variant="secondary"
-                          type="button"
-                          onClick={() => void handleOpenDetalle(row)}
-                          disabled={rowDetailLoading}
-                          className="border-sky-300 text-sky-700"
-                        >
-                          {rowDetailLoading ? 'Cargando...' : hasRealId ? 'Ver detalle' : 'Ver local'}
-                        </Button>
+                        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-slate-700">
+                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Auxiliar</span><span className="font-semibold">{auxiliarLabel}</span></p>
+                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Vehiculo</span><span className="font-semibold text-blue-700">{vehiculoLabel}</span></p>
+                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Habilidad</span><span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold">{habilidadLabel}</span></p>
+                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">CuentaSF</span>{cuentaSfLabel}</p>
+                          <p className="col-span-2"><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</span>{salesforceLabel}</p>
+                          {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+                        </div>
                       </div>
-                      <div className="mt-4 space-y-1 text-sm text-slate-700">
-                        <p>Auxiliar: {auxiliarLabel}</p>
-                        <p>Vehiculo: {vehiculoLabel}</p>
-                        <p>Habilidad: {habilidadLabel}</p>
-                      </div>
-                      <div className="mt-4 flex items-center justify-end">
+                      <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3">
                         <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
                           <span>Activo</span>
                           <input
@@ -2772,6 +3413,15 @@ const ConformacionCuadrillaPage = () => {
                             disabled={!canToggleActive}
                           />
                         </label>
+                        <Button
+                          variant="secondary"
+                          type="button"
+                          onClick={() => void handleOpenDetalle(row)}
+                          disabled={rowDetailLoading}
+                          className="h-11 w-12 rounded-xl border-slate-300 px-0 text-lg text-slate-700"
+                        >
+                          {rowDetailLoading ? '...' : '✎'}
+                        </Button>
                       </div>
                     </div>
                   )
@@ -2782,8 +3432,9 @@ const ConformacionCuadrillaPage = () => {
               <Table
                 columns={columns}
                 data={pagedVisibleData}
-                emptyLabel="No hay registros disponibles."
+                emptyLabel={emptyListMessage}
                 variant="row-block"
+                hideHeader
                 desktopMinWidthClass="min-w-[980px]"
                 desktopScrollMode="always"
                 desktopHeightClass="h-[58vh]"
@@ -2817,15 +3468,15 @@ const ConformacionCuadrillaPage = () => {
                 <p className="mt-0.5 text-xs text-slate-500">
                   {isViewMode
                     ? activeTab === 'general'
-                      ? 'Vista desde listado. Puedes subir marcado de hoy o editar.'
+                      ? 'Vista desde listado. Puedes editar la cuadrilla.'
                       : activeTab === 'confirmadas'
-                        ? 'Vista desde listado. Puedes editar esta cuadrilla confirmada (BDControlOrdenes).'
+                        ? 'Vista desde listado. Esta cuadrilla confirmada es solo lectura.'
                         : 'Vista desde listado. En esta pestana solo esta disponible modo lectura.'
                     : 'Modo edicion habilitado.'}
                 </p>
               </div>
               <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
-                {isViewMode ? (
+                {isViewMode && activeTab !== 'confirmadas' ? (
                   <Button
                     variant="secondary"
                     type="button"
@@ -2835,12 +3486,12 @@ const ConformacionCuadrillaPage = () => {
                   >
                     Editar
                   </Button>
-                ) : (
+                ) : isViewMode ? null : (
                   <Button variant="secondary" type="button" onClick={handleReset} className="w-full sm:w-auto">
                     Cancelar edicion
                   </Button>
                 )}
-                {editingId !== null && detalleApiDisponible ? (
+                {activeTab !== 'confirmadas' && editingId !== null && detalleApiDisponible ? (
                   <Button
                     variant="secondary"
                     type="button"
@@ -2851,15 +3502,17 @@ const ConformacionCuadrillaPage = () => {
                     {editingLoadId === editingId ? 'Refrescando...' : 'Refrescar detalle'}
                   </Button>
                 ) : null}
-                <Button
-                  variant="secondary"
-                  type="button"
-                  onClick={handleReset}
-                  disabled={isViewMode || !canAsignarTecnicoGrupo}
-                  className="w-full sm:w-auto"
-                >
-                  Limpiar
-                </Button>
+                {activeTab !== 'confirmadas' ? (
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    onClick={handleReset}
+                    disabled={isViewMode || !canAsignarTecnicoGrupo}
+                    className="w-full sm:w-auto"
+                  >
+                    Limpiar
+                  </Button>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleCloseModal}
@@ -2869,8 +3522,8 @@ const ConformacionCuadrillaPage = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 sm:p-5 lg:p-6">
-              <div className="glass-panel p-4 sm:p-6">
+            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+              <div className="glass-panel p-3 sm:p-4">
           <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
             Nota: la fecha se usa automaticamente con hoy y la sucursal se fija desde el login. El auxiliar no puede ser el mismo tecnico.
           </div>
@@ -2885,10 +3538,14 @@ const ConformacionCuadrillaPage = () => {
               // Mantener el mismo set de campos en vista previa y en edicion
               // para evitar saltos visuales al presionar "Editar".
               const isCompactEditMode = true
-              const rowVehiculoOptions = row.idTecnico ? vehiculoOptionsByTecnico.get(row.idTecnico) ?? [] : []
+              const rowVehiculoOptionsByTecnico = row.idTecnico ? vehiculoOptionsByTecnico.get(row.idTecnico) ?? [] : []
+              const rowVehiculoOptions = showAllVehiculos ? vehiculoOptionsAll : rowVehiculoOptionsByTecnico
               const rowVehiculoByValue = new Set(rowVehiculoOptions.map((option) => option.value))
+              const rowSalesforceByValue = new Set(salesforceOptions.map((option) => normalizeLookupKey(option.salesforce)))
               const isVehiculosLoading =
-                Boolean(row.idTecnico) && vehiculosPorTecnicoQuery.isFetching && !vehiculosPorTecnico[row.idTecnico]
+                showAllVehiculos
+                  ? vehiculosTodosQuery.isFetching && rowVehiculoOptions.length === 0
+                  : Boolean(row.idTecnico) && vehiculosPorTecnicoQuery.isFetching && rowVehiculoOptionsByTecnico.length === 0
               const rowGrupoOption = grupoByValue.get(row.grupo) ?? grupoByLabel.get(row.grupo)
               const rowGrupoSelectValue = row.grupo ? rowGrupoOption?.value ?? row.grupo : ''
               const hasMappedGrupoOption = Boolean(row.grupo && rowGrupoOption)
@@ -2897,9 +3554,8 @@ const ConformacionCuadrillaPage = () => {
                   key={'row-' + index}
                   className={'rounded-2xl border p-3 shadow-sm sm:p-4 ' + (shouldHighlightRowIssue ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white')}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-bold text-slate-900">Fila {index + 1}</span>
+                  {issue?.idConflict || issue?.missingFields?.length ? (
+                    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
                       {issue?.idConflict ? (
                         <span className="rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
                           Tecnico y auxiliar no pueden ser iguales
@@ -2920,10 +3576,7 @@ const ConformacionCuadrillaPage = () => {
                         </span>
                       ) : null}
                     </div>
-                    <div>
-                      <span className="text-[11px] text-slate-400">{isViewMode ? 'Solo lectura' : 'En edicion'}</span>
-                    </div>
-                  </div>
+                  ) : null}
 
                   <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-12">
                     <section className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 md:col-span-1 xl:col-span-2">
@@ -3067,7 +3720,7 @@ const ConformacionCuadrillaPage = () => {
                             onChange={(event) => handleRowChange(index, 'habilidad', event.target.value)}
                             disabled={isReadOnlyMode}
                           >
-                            <option value="">Sin habilidad</option>
+                            <option value="">Ninguno</option>
                             {HABILIDAD_OPTIONS.map((option) => (
                               <option key={'habilidad-' + option} value={option}>
                                 {option}
@@ -3075,6 +3728,38 @@ const ConformacionCuadrillaPage = () => {
                             ))}
                           </select>
                         </label>
+                        <div className="sm:col-span-2 mt-1 grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
+                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                            <span>Salesforce</span>
+                            <select
+                              className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                              value={canVerDatosTecnico ? row.salesforce : ''}
+                              onChange={(event) => handleSalesforceSelect(index, event.target.value)}
+                              disabled={isReadOnlyMode || !canVerDatosTecnico || !row.idTecnico}
+                            >
+                              <option value="">
+                                {canVerDatosTecnico ? 'Selecciona salesforce' : 'Sin permiso (tsm_ConformacionCuadrillas)'}
+                              </option>
+                              {row.salesforce && !rowSalesforceByValue.has(normalizeLookupKey(row.salesforce)) ? (
+                                <option value={row.salesforce}>{row.salesforce}</option>
+                              ) : null}
+                              {salesforceOptions.map((option) => (
+                                <option key={`salesforce-${normalizeLookupKey(option.salesforce)}`} value={option.salesforce}>
+                                  {option.salesforce}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                            <span>Cuenta SF</span>
+                            <input
+                              className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
+                              value={canVerDatosTecnico ? row.cuentaSf : ''}
+                              placeholder={canVerDatosTecnico ? '' : 'Sin permiso (tsm_ConformacionCuadrillas)'}
+                              readOnly
+                            />
+                          </label>
+                        </div>
                         {!isCompactEditMode ? (
                           <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
                             <span>G. digit</span>
@@ -3105,7 +3790,7 @@ const ConformacionCuadrillaPage = () => {
                                 ? 'Selecciona tecnico primero'
                                 : isVehiculosLoading
                                   ? 'Cargando vehiculos...'
-                                  : 'Selecciona vehiculo'}
+                                  : 'Ninguno'}
                             </option>
                             {row.vehiculo && !rowVehiculoByValue.has(row.vehiculo) ? (
                                 <option value={row.vehiculo}>{row.vehiculo}</option>
@@ -3116,6 +3801,16 @@ const ConformacionCuadrillaPage = () => {
                               </option>
                             ))}
                           </select>
+                          <div className="mt-1 flex items-center gap-2 text-[11px] font-medium text-slate-600">
+                            <input
+                              type="checkbox"
+                              className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
+                              checked={showAllVehiculos}
+                              onChange={(event) => setShowAllVehiculos(event.target.checked)}
+                              disabled={isReadOnlyMode || !row.idTecnico}
+                            />
+                            <span>Ver todos los vehiculos</span>
+                          </div>
                         </label>
                         <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
                           <span>Fecha</span>
@@ -3137,10 +3832,10 @@ const ConformacionCuadrillaPage = () => {
                             disabled={digitadoresQuery.isLoading || isReadOnlyMode}
                           >
                             <option value="">
-                              {digitadoresQuery.isLoading ? 'Cargando digitadores...' : 'Selecciona digitador'}
+                              {digitadoresQuery.isLoading ? 'Cargando digitadores...' : 'Ninguno'}
                             </option>
                             {row.idUsuarioDigitador && !digitadorById.has(row.idUsuarioDigitador) ? (
-                              <option value={row.idUsuarioDigitador}>{row.digitador || 'Digitador seleccionado'}</option>
+                              <option value={row.idUsuarioDigitador}>{sanitizeDigitadorLabel(row.digitador) || 'Ninguno'}</option>
                             ) : null}
                             {digitadorOptions.map((option) => (
                               <option key={'digitador-' + option.value} value={option.value}>
@@ -3161,14 +3856,23 @@ const ConformacionCuadrillaPage = () => {
                             disabled={tecnicosQuery.isLoading || isReadOnlyMode}
                           >
                             <option value="">
-                              {tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Selecciona auxiliar'}
+                              {tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Ninguno'}
                             </option>
-                            {row.idTecnicoAuxiliar && !auxiliarById.has(row.idTecnicoAuxiliar) ? (
-                              <option value={row.idTecnicoAuxiliar}>{row.auxiliar || 'Auxiliar seleccionado'}</option>
+                            {normalizeAuxiliarComparableId(row.idTecnicoAuxiliar) !== '' && !auxiliarById.has(row.idTecnicoAuxiliar) ? (
+                              <option value={row.idTecnicoAuxiliar}>{sanitizeAuxiliarLabel(row.auxiliar) || 'Ninguno'}</option>
                             ) : null}
                             {auxiliarOptions.map((option) => (
-                              <option key={'auxiliar-' + option.value} value={option.value} disabled={option.value === row.idTecnico}>
-                                {option.label}{option.value === row.idTecnico ? ' (mismo tecnico)' : ''}
+                              <option
+                                key={'auxiliar-' + option.value}
+                                value={option.value}
+                                disabled={option.value === row.idTecnico || tecnicoActivoIdSet.has(option.value)}
+                              >
+                                {option.label}
+                                {option.value === row.idTecnico
+                                  ? ' (mismo tecnico)'
+                                  : tecnicoActivoIdSet.has(option.value)
+                                    ? ' (tecnico activo)'
+                                    : ''}
                               </option>
                             ))}
                           </select>
@@ -3232,17 +3936,17 @@ const ConformacionCuadrillaPage = () => {
             {showStrictValidation && !isLocalViewMode && hasIssues ? (
               <span className="text-xs text-rose-500 sm:mr-auto">Hay filas con errores.</span>
             ) : null}
-            <Button type="button" onClick={handleSubmit} disabled={isSaving || !canAsignarTecnicoGrupo || !sucursalActiva} className="w-full sm:w-auto">
-              {isSaving
-                ? 'Guardando...'
-                : !canAsignarTecnicoGrupo
-                  ? 'Sin permiso para asignar'
-                  : modalMode === 'edit'
-                    ? editingId
-                      ? 'Actualizar cuadrilla'
-                      : 'Subir marcado de hoy'
-                    : 'Subir marcado de hoy'}
-            </Button>
+            {activeTab === 'confirmadas' && isViewMode ? null : (
+              <Button type="button" onClick={handleSubmit} disabled={isSaving || !canAsignarTecnicoGrupo || !sucursalActiva} className="w-full sm:w-auto">
+                {isSaving
+                  ? 'Guardando...'
+                  : !canAsignarTecnicoGrupo
+                    ? 'Sin permiso para asignar'
+                    : activeTab === 'confirmadas'
+                      ? 'Guardar edicion'
+                      : 'Guardar cambios'}
+              </Button>
+            )}
           </div>
         </div>
             </div>
@@ -3262,7 +3966,7 @@ const ConformacionCuadrillaPage = () => {
             <Button variant="secondary" onClick={handleCancelReassignmentPrompt} type="button" disabled={isSaving}>
               Cancelar
             </Button>
-            <Button onClick={handleConfirmReassignmentPrompt} type="button" disabled={isSaving}>
+            <Button onClick={handleConfirmReassignmentPrompt} type="button" disabled={isSaving || isPendingReassignmentLocked}>
               Reasignar
             </Button>
           </>
@@ -3280,7 +3984,13 @@ const ConformacionCuadrillaPage = () => {
             <p>
               Valor asignado: <span className="font-semibold">{pendingReassignmentPrompt.source.sourceDisplayValue}</span>
             </p>
-            <p>Si confirmas, se desligara de esa cuadrilla y se asignara aqui al guardar.</p>
+            {isPendingReassignmentLocked ? (
+              <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                Reasignacion bloqueada: esta cuadrilla ya fue confirmada y existe registro en tbl_conformacioncuadrilladiario para la fecha.
+              </p>
+            ) : (
+              <p>Si confirmas, se desligara de esa cuadrilla y se asignara aqui al guardar.</p>
+            )}
           </div>
         ) : null}
       </Modal>
@@ -3313,3 +4023,4 @@ const ConformacionCuadrillaPage = () => {
 }
 
 export default ConformacionCuadrillaPage
+

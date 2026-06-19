@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+﻿import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
@@ -22,7 +22,7 @@ const CuNoRealizadoListPage = () => {
       header: 'Fecha',
       render: (row) => formatDate(row.fecha),
     },
-    { key: 'tecnico', header: 'TÃ©cnico' },
+    { key: 'tecnico', header: 'Técnico' },
     { key: 'motivo', header: 'Motivo' },
     {
       key: 'estado',
@@ -59,7 +59,7 @@ const CuNoRealizadoListPage = () => {
         </Button>
       </div>
 
-      <FormCard title="Listado CU" description="Se muestran los Ãºltimos registros.">
+      <FormCard title="Listado CU" description="Se muestran los últimos registros.">
         {errorMessage ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{errorMessage}</div>
         ) : (
@@ -71,3 +71,4 @@ const CuNoRealizadoListPage = () => {
 }
 
 export default CuNoRealizadoListPage
+

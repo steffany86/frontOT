@@ -11,13 +11,18 @@ interface TableProps<T> {
   columns: Column<T>[]
   data: T[]
   emptyLabel?: string
-  rowClassName?: string
+  rowClassName?: string | ((row: T) => string)
   variant?: 'default' | 'row-block'
+  hideHeader?: boolean
   desktopMinWidthClass?: string
   mobileShowHeaders?: boolean
+  mobileRowBlockMode?: 'table' | 'cards'
+  mobileRenderMode?: 'auto' | 'table'
+  mobileTableMinWidthClass?: string
   desktopScrollMode?: 'auto' | 'always'
   desktopHeightClass?: string
   stickyHeader?: boolean
+  density?: 'normal' | 'compact'
 }
 
 const Table = <T,>({
@@ -26,42 +31,126 @@ const Table = <T,>({
   emptyLabel = 'Sin registros',
   rowClassName = '',
   variant = 'default',
+  hideHeader = false,
   desktopMinWidthClass = 'min-w-full',
   mobileShowHeaders = true,
+  mobileRowBlockMode = 'table',
+  mobileRenderMode = 'auto',
+  mobileTableMinWidthClass = 'min-w-[760px]',
   desktopScrollMode = 'auto',
   desktopHeightClass = '',
   stickyHeader = false,
+  density = 'normal',
 }: TableProps<T>) => {
   const isRowBlock = variant === 'row-block'
+  const isCompact = density === 'compact'
   const desktopScrollClass =
     desktopScrollMode === 'always' ? 'overflow-x-scroll overflow-y-scroll' : 'overflow-x-auto overflow-y-auto'
+
+  const isActionColumn = (column: Column<T>): boolean => /accion|acciones/i.test(column.header)
   const renderValue = (column: Column<T>, row: T) => {
     return column.render ? column.render(row) : (row as Record<string, ReactNode>)[column.key]
   }
+  const getRowClassName = (row: T): string => (typeof rowClassName === 'function' ? rowClassName(row) : rowClassName)
 
   return (
     <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft">
       <div className="md:hidden">
         {data.length === 0 ? (
           <div className="px-4 py-6 text-center text-sm text-slate-500">{emptyLabel}</div>
+        ) : mobileRenderMode === 'table' || (isRowBlock && mobileRowBlockMode === 'table') ? (
+          <div className="overflow-x-auto">
+            <table className={`w-full ${mobileTableMinWidthClass} border-collapse text-xs`}>
+              {!hideHeader ? (
+                <thead className="bg-slate-100 text-[10px] uppercase tracking-wide text-slate-500">
+                  <tr>
+                    {columns.map((column) => (
+                      <th key={column.key} className={`border-b border-slate-200 px-3 py-1.5 text-left ${column.className ?? ''}`}>
+                        {column.header}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+              ) : null}
+              <tbody>
+                {data.map((row, index) => (
+                  <tr key={index} className={getRowClassName(row)}>
+                    {columns.map((column) => (
+                      <td key={column.key} className={`border-b border-slate-200 px-3 py-1.5 align-top text-slate-700 ${column.className ?? ''}`}>
+                        {renderValue(column, row)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <div className={isRowBlock ? 'space-y-2 p-2' : 'divide-y divide-slate-100'}>
+          <div className={isRowBlock ? `${isCompact ? 'space-y-1.5 p-1.5' : 'space-y-2 p-2'}` : 'divide-y divide-slate-100'}>
             {data.map((row, index) => (
               <div
                 key={index}
-                className={`space-y-2 p-3 ${isRowBlock ? 'rounded-2xl border border-slate-200/80 bg-white shadow-sm' : ''} ${rowClassName}`}
+                className={`${isCompact ? 'p-2' : 'p-2.5'} ${isRowBlock ? 'rounded-2xl border border-brand-100/80 bg-white shadow-sm' : ''} ${getRowClassName(row)}`}
               >
-                {columns.map((column) =>
-                  mobileShowHeaders ? (
-                    <div key={column.key} className="flex items-start justify-between gap-4">
-                      <span className="shrink-0 text-xs font-semibold uppercase text-slate-400">{column.header}</span>
-                      <div className="break-words text-right text-sm text-slate-700">{renderValue(column, row)}</div>
-                    </div>
-                  ) : (
-                    <div key={column.key} className="break-words text-sm text-slate-700">
-                      {renderValue(column, row)}
-                    </div>
-                  )
+                {isRowBlock ? (
+                  <>
+                    {(() => {
+                      const visibleColumns = columns.filter((column) => !isActionColumn(column))
+
+                      return (
+                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                          {visibleColumns.map((column) => (
+                            <div key={column.key} className={`${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'}`}>
+                              {mobileShowHeaders ? (
+                                <span className={`block font-semibold uppercase tracking-wide text-slate-500 ${isCompact ? 'text-[9px]' : 'text-[10px]'}`}>{column.header}</span>
+                              ) : null}
+                              <div className={`mt-0.5 break-words text-left text-slate-700 ${isCompact ? 'text-[13px]' : 'text-sm'}`}>{renderValue(column, row)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })()}
+
+                    {columns.some((column) => isActionColumn(column)) ? (
+                      <div className="mt-2 [&>div>button]:w-full [&>div>button]:justify-center">
+                        {columns
+                          .filter((column) => isActionColumn(column))
+                          .map((column) => (
+                            <div key={column.key}>{renderValue(column, row)}</div>
+                          ))}
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <>
+                    {columns
+                      .filter((column) => !isActionColumn(column))
+                      .map((column) =>
+                        mobileShowHeaders ? (
+                          <div
+                            key={column.key}
+                            className={`grid items-start ${isCompact ? 'grid-cols-[minmax(88px,38%)_1fr] gap-2' : 'grid-cols-[minmax(96px,40%)_1fr] gap-3'}`}
+                          >
+                            <span className={`${isCompact ? 'text-[11px]' : 'text-xs'} font-semibold text-slate-500`}>{column.header}</span>
+                            <div className={`break-words text-right font-medium text-slate-700 ${isCompact ? 'text-[13px]' : 'text-sm'}`}>{renderValue(column, row)}</div>
+                          </div>
+                        ) : (
+                          <div key={column.key} className={`break-words text-slate-700 ${isCompact ? 'text-[13px]' : 'text-sm'}`}>
+                            {renderValue(column, row)}
+                          </div>
+                        )
+                      )}
+
+                    {columns.some((column) => isActionColumn(column)) ? (
+                      <div className="space-y-2 border-t border-slate-200/80 pt-2 [&>div>button]:w-full [&>div>button]:justify-center">
+                        {columns
+                          .filter((column) => isActionColumn(column))
+                          .map((column) => (
+                            <div key={column.key}>{renderValue(column, row)}</div>
+                          ))}
+                      </div>
+                    ) : null}
+                  </>
                 )}
               </div>
             ))}
@@ -74,39 +163,45 @@ const Table = <T,>({
         style={desktopScrollMode === 'always' ? ({ scrollbarGutter: 'stable both-edges' } as CSSProperties) : undefined}
       >
         <table
-          className={`${desktopMinWidthClass} w-full text-left text-sm ${
+          className={`${desktopMinWidthClass} w-full text-left ${isCompact ? 'text-xs' : 'text-sm'} ${
             isRowBlock ? 'border-separate [border-spacing:0_8px]' : 'border-collapse'
           }`}
         >
-          <thead className={`bg-slate-100 text-xs uppercase tracking-wide text-slate-500 ${stickyHeader ? 'sticky top-0 z-20' : ''}`}>
-            <tr>
-              {columns.map((column) => (
-                <th key={column.key} className={`px-4 py-3 ${column.className ?? ''}`}>
-                  {column.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
+          {!hideHeader ? (
+            <thead
+              className={`bg-slate-100 ${isCompact ? 'text-[11px]' : 'text-xs'} uppercase tracking-wide text-slate-500 ${
+                stickyHeader ? 'sticky top-0 z-20' : ''
+              }`}
+            >
+              <tr>
+                {columns.map((column) => (
+                  <th key={column.key} className={`${isCompact ? 'px-3 py-2' : 'px-4 py-3'} ${column.className ?? ''}`}>
+                    {column.header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+          ) : null}
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={columns.length} className={`${isCompact ? 'px-3 py-4' : 'px-4 py-6'} text-center text-slate-500`}>
                   {emptyLabel}
                 </td>
               </tr>
             ) : (
               data.map((row, index) => (
-                <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${rowClassName}`}>
+                <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${getRowClassName(row)}`}>
                   {columns.map((column, columnIndex) => (
                     <td
                       key={column.key}
                       className={
                         `${column.className ?? ''} ` +
                         (isRowBlock
-                          ? `bg-slate-50 px-4 py-3 border-y border-slate-300 ${
+                          ? `bg-slate-50 ${isCompact ? 'px-3 py-2' : 'px-4 py-3'} border-y border-slate-300 ${
                               columnIndex === 0 ? 'rounded-l-2xl border-l' : ''
                             } ${columnIndex === columns.length - 1 ? 'rounded-r-2xl border-r' : ''}`
-                          : 'px-4 py-3')
+                          : `${isCompact ? 'px-3 py-2' : 'px-4 py-3'}`)
                       }
                     >
                       {renderValue(column, row)}

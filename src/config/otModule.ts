@@ -5,6 +5,7 @@ export type OtActionItem = {
   buttonLabel: string
   to: string
   routePatterns: string[]
+  requiredAnyPageNames: string[]
   requiredMenuId: number
 }
 
@@ -16,6 +17,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Ver pendientes',
     to: '/ot/lista',
     routePatterns: ['/ot/lista', '/ot/:id'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
   {
@@ -25,6 +27,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Nueva OT',
     to: '/ot/crear',
     routePatterns: ['/ot/crear'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
   {
@@ -34,6 +37,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Registrar detalle',
     to: '/ot/RegistrarOrdenAgenda_Detalle',
     routePatterns: ['/ot/RegistrarOrdenAgenda_Detalle', '/ot/realizada'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
   {
@@ -43,6 +47,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Modificar OT',
     to: '/ot/modificar',
     routePatterns: ['/ot/modificar'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
   {
@@ -52,6 +57,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Modificar fecha',
     to: '/ot/modificar-fecha',
     routePatterns: ['/ot/modificar-fecha'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
   {
@@ -61,6 +67,7 @@ export const otActionItems: OtActionItem[] = [
     buttonLabel: 'Anular OT',
     to: '/ot/anular',
     routePatterns: ['/ot/anular'],
+    requiredAnyPageNames: ['OTPrincipal'],
     requiredMenuId: 2,
   },
 ]

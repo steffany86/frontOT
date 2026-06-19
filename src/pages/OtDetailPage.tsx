@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import FormCard from '../components/common/FormCard'
@@ -51,7 +51,7 @@ const OtDetailPage = () => {
     <div className="bento-page">
       <div className="bento-page-head">
         <h2 className="text-2xl font-semibold text-slate-900">Detalle OT</h2>
-        <p className="text-sm text-slate-500">InformaciÃ³n completa de la orden de trabajo.</p>
+        <p className="text-sm text-slate-500">Información completa de la orden de trabajo.</p>
       </div>
 
       <FormCard title={`OT ${header?.codigo ?? ''}`} description="Datos principales de la OT.">
@@ -65,7 +65,7 @@ const OtDetailPage = () => {
               <p className="mt-2 text-xs text-slate-500">{header.direccion}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-400">TÃ©cnico</p>
+              <p className="text-xs uppercase text-slate-400">Técnico</p>
               <p className="mt-1 text-sm font-semibold text-slate-700">{header.tecnico}</p>
               <p className="mt-2 text-xs text-slate-500">Fecha: {formatDate(header.fecha)}</p>
             </div>
@@ -80,16 +80,16 @@ const OtDetailPage = () => {
             </div>
           </div>
         ) : (
-          <p className="text-sm text-rose-600">No se encontrÃ³ la OT.</p>
+          <p className="text-sm text-rose-600">No se encontró la OT.</p>
         )}
       </FormCard>
 
-      <FormCard title="Materiales" description="Detalle por categorÃ­a.">
+      <FormCard title="Materiales" description="Detalle por categoría.">
         <Tabs items={tabItems} activeId={activeTab} onChange={setActiveTab} />
         <div className="mt-6">
           {activeTab === 'cabecera' ? (
             <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
-              Selecciona una pestaÃ±a para ver materiales asociados.
+              Selecciona una pestaña para ver materiales asociados.
             </div>
           ) : materialsQuery.isLoading ? (
             <p className="text-sm text-slate-500">Cargando materiales...</p>
@@ -98,7 +98,7 @@ const OtDetailPage = () => {
               {materialsErrorMessage}
             </div>
           ) : (
-            <MaterialTable data={materialsQuery.data ?? []} emptyLabel="No hay materiales para esta categorÃ­a." />
+            <MaterialTable data={materialsQuery.data ?? []} emptyLabel="No hay materiales para esta categoría." />
           )}
         </div>
       </FormCard>
@@ -107,3 +107,4 @@ const OtDetailPage = () => {
 }
 
 export default OtDetailPage
+

@@ -45,6 +45,28 @@ const sanitizeHeaders = (headers: unknown): Record<string, unknown> => {
   )
 }
 
+const sanitizePayload = (payload: unknown): unknown => {
+  if (payload === undefined || payload === null) return null
+  let parsed = payload
+  if (typeof payload === 'string') {
+    try {
+      parsed = JSON.parse(payload)
+    } catch {
+      return payload
+    }
+  }
+  if (!isRecord(parsed)) return parsed
+  return Object.fromEntries(
+    Object.entries(parsed).map(([key, value]) => {
+      const normalized = key.toLowerCase()
+      if (normalized.includes('password') || normalized.includes('token') || normalized.includes('contrasena')) {
+        return [key, typeof value === 'string' && value ? '***' : value]
+      }
+      return [key, value]
+    })
+  )
+}
+
 const isRecord = (value: unknown): value is UnknownRecord => {
   return typeof value === 'object' && value !== null
 }
@@ -181,6 +203,32 @@ const detectSuccessfulResponseIssue = (payload: unknown): string | null => {
   return null
 }
 
+const isLoginRequest = (url: unknown): boolean => {
+  if (typeof url !== 'string') return false
+  const normalized = url.toLowerCase()
+  return normalized.includes('/auth/login')
+}
+
+const parsePositiveSucursal = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.trunc(value)
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim())
+    if (Number.isFinite(parsed) && parsed > 0) return Math.trunc(parsed)
+  }
+  return null
+}
+
+const shouldAutoAttachSucursal = (url: unknown): boolean => {
+  if (typeof url !== 'string') return false
+  const normalized = url.toLowerCase()
+  return normalized.startsWith('/catalogos') || normalized.startsWith('/ot')
+}
+
+const isDetalleMaterialesRequest = (url: unknown): boolean => {
+  if (typeof url !== 'string') return false
+  return url.toLowerCase().includes('/ot/detalle-materiales')
+}
+
 export const unwrapApiData = <T>(payload: ApiEnvelope<T> | T): T => {
   return isApiEnvelope<T>(payload) ? payload.data : payload
 }
@@ -223,6 +271,39 @@ httpClient.interceptors.request.use((config) => {
     config.headers = config.headers ?? {}
     config.headers['X-Session-Token'] = session.sessionToken
   }
+  if (shouldAutoAttachSucursal(config.url)) {
+    const idSucursal = parsePositiveSucursal(session?.idSucursal)
+    if (idSucursal !== null) {
+      const currentParams = isRecord(config.params) ? { ...config.params } : {}
+      const hasSucursal =
+        Object.prototype.hasOwnProperty.call(currentParams, 'idSucursal') &&
+        currentParams.idSucursal !== undefined &&
+        currentParams.idSucursal !== null &&
+        String(currentParams.idSucursal).trim() !== ''
+      if (!hasSucursal) {
+        currentParams.idSucursal = idSucursal
+      }
+      config.params = currentParams
+    }
+  }
+  if (apiVerboseEnabled) {
+    const method = (config.method ?? 'get').toUpperCase()
+    const url = `${config.baseURL ?? ''}${config.url ?? ''}`
+    console.info('[API ->]', method, url, {
+      params: config.params ?? null,
+      body: sanitizePayload(config.data),
+      headers: sanitizeHeaders(config.headers),
+    })
+  }
+  if (isDetalleMaterialesRequest(config.url)) {
+    console.warn('[OT][DETALLE][HTTP-REQUEST]', {
+      url: `${config.baseURL ?? ''}${config.url ?? ''}`,
+      method: (config.method ?? 'post').toUpperCase(),
+      params: config.params ?? {},
+      data: config.data ?? null,
+      sessionSucursal: session?.idSucursal ?? null,
+    })
+  }
   return config
 })
 
@@ -244,8 +325,8 @@ httpClient.interceptors.response.use(
   },
   (error: AxiosError) => {
     const status = error.response?.status
+    const isLogin401 = status === 401 && isLoginRequest(error.config?.url)
     const requestPath = typeof error.config?.url === 'string' ? error.config.url : ''
-    const isPermisosRequest = requestPath.includes('/auth/permisos')
     if (apiIssueLogsEnabled) {
       const method = (error.config?.method ?? 'get').toUpperCase()
       const url = `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`
@@ -257,7 +338,11 @@ httpClient.interceptors.response.use(
           fields: payloadSummary.fields,
         })
       } else {
-        console.error('[API xx]', status ?? 'NO_STATUS', method, url, { message })
+        if (isLogin401) {
+          console.warn('[API xx LOGIN]', status ?? 'NO_STATUS', method, url, { message })
+        } else {
+          console.error('[API xx]', status ?? 'NO_STATUS', method, url, { message })
+        }
       }
       if (apiVerboseEnabled) {
         console.error('[API xx DETAIL]', status ?? 'NO_STATUS', method, url, {
@@ -268,13 +353,25 @@ httpClient.interceptors.response.use(
         })
       }
     }
-    if (status === 401 || (status === 403 && !isPermisosRequest)) {
+    if (isDetalleMaterialesRequest(error.config?.url)) {
+      console.warn('[OT][DETALLE][HTTP-ERROR]', {
+        url: `${error.config?.baseURL ?? ''}${error.config?.url ?? ''}`,
+        method: (error.config?.method ?? 'post').toUpperCase(),
+        params: error.config?.params ?? {},
+        data: error.config?.data ?? null,
+        status: error.response?.status ?? null,
+        response: error.response?.data ?? null,
+      })
+    }
+    if (status === 401 && !isLogin401) {
       clearSessionStorage()
       useSessionStore.getState().clearSession()
       unauthorizedHandler?.()
       if (window.location.pathname !== '/login') {
         window.location.assign('/login')
       }
+    } else if (status === 403 && apiIssueLogsEnabled) {
+      console.warn('[API 403]', requestPath || '(ruta desconocida)', 'Se mantiene la sesion local.')
     }
     return Promise.reject(error)
   }

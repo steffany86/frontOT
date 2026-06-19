@@ -1,18 +1,12 @@
-import { otActionItems, otModuleMenuIds } from './otModule'
-
-const OT_FULL_ACCESS_MENU_ID = 2
-const otModuleAccessMenuIds = Array.from(new Set([...otModuleMenuIds, OT_FULL_ACCESS_MENU_ID]))
-
 export type NavigationItem = {
   label: string
   to: string
   routePatterns: string[]
-  requiredMenuIds?: number[]
-  requiredAnyMenuIds?: number[]
-  requiredMenuNames?: string[]
-  requiredAnyMenuNames?: string[]
-  adminOnly?: boolean
+  requiredPageNames?: string[]
+  requiredAnyPageNames?: string[]
+  allowedRoles?: string[]
   showInSidebar?: boolean
+  sidebarLabelFromMenu?: boolean
 }
 
 export const navigationItems: NavigationItem[] = [
@@ -20,20 +14,91 @@ export const navigationItems: NavigationItem[] = [
     label: 'Gestion de Ordenes de Trabajo',
     to: '/ot',
     routePatterns: ['/ot'],
-    requiredAnyMenuIds: otModuleAccessMenuIds,
+    requiredAnyPageNames: [
+      'OtDashboardPage',
+      'OtListPage',
+      'OtDetailPage',
+      'OtCreatePage',
+      'OtRealizadaPage',
+      'RegistrarOTAgendaPage',
+      'OtModificarPage',
+      'OtModificarFechaPage',
+      'OtAnularPage',
+      'CuNoRealizadoListPage',
+      'CuNoRealizadoCreatePage',
+      'CuNoRealizadoDetailPage',
+    ],
+    sidebarLabelFromMenu: true,
   },
-  ...otActionItems.map((action) => ({
-    label: action.label,
-    to: action.to,
-    routePatterns: action.routePatterns,
-    requiredAnyMenuIds: [action.requiredMenuId, OT_FULL_ACCESS_MENU_ID],
-    showInSidebar: false,
-  })),
   {
-    label: 'Cargo Usuario No Realizado',
+    label: 'Ordenes pendientes',
+    to: '/ot/lista',
+    routePatterns: ['/ot/lista', '/ot/:id'],
+    requiredAnyPageNames: ['OtListPage', 'OtDetailPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'Crear OT',
+    to: '/ot/crear',
+    routePatterns: ['/ot/crear'],
+    requiredAnyPageNames: ['OtCreatePage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'RegistrarOrdenAgenda_Detalle',
+    to: '/ot/RegistrarOrdenAgenda_Detalle',
+    routePatterns: ['/ot/RegistrarOrdenAgenda_Detalle', '/ot/realizada'],
+    requiredAnyPageNames: ['OtRealizadaPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'RegistrarOrdenAgenda',
+    to: '/ot/RegistrarOrdenAgenda',
+    routePatterns: ['/ot/RegistrarOrdenAgenda'],
+    requiredAnyPageNames: ['RegistrarOTAgendaPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'Modificar OT',
+    to: '/ot/modificar',
+    routePatterns: ['/ot/modificar'],
+    requiredAnyPageNames: ['OtModificarPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'Modificar fecha OT',
+    to: '/ot/modificar-fecha',
+    routePatterns: ['/ot/modificar-fecha'],
+    requiredAnyPageNames: ['OtModificarFechaPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'Anular OT',
+    to: '/ot/anular',
+    routePatterns: ['/ot/anular'],
+    requiredAnyPageNames: ['OtAnularPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'CuNoRealizado Lista',
     to: '/cu-no-realizado',
-    routePatterns: ['/cu-no-realizado', '/cu-no-realizado/nuevo', '/cu-no-realizado/:id'],
-    requiredMenuIds: [54],
+    routePatterns: ['/cu-no-realizado'],
+    requiredAnyPageNames: ['CuNoRealizadoListPage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'CuNoRealizado Crear',
+    to: '/cu-no-realizado/nuevo',
+    routePatterns: ['/cu-no-realizado/nuevo'],
+    requiredAnyPageNames: ['CuNoRealizadoCreatePage'],
+    showInSidebar: false,
+  },
+  {
+    label: 'CuNoRealizado Detalle',
+    to: '/cu-no-realizado/:id',
+    routePatterns: ['/cu-no-realizado/:id'],
+    requiredAnyPageNames: ['CuNoRealizadoDetailPage'],
+    showInSidebar: false,
   },
   {
     label: 'Cuadrillas',
@@ -44,14 +109,64 @@ export const navigationItems: NavigationItem[] = [
       '/supervisor/conformacion-cuadrilla/crear',
       '/supervisor/conformacion-cuadrilla/editar',
     ],
-    requiredAnyMenuNames: ['tsm_conformacioncuadrillas'],
-    requiredAnyMenuIds: [1, 62],
+    requiredAnyPageNames: ['ConformacionCuadrillaPage'],
+    sidebarLabelFromMenu: true,
+  },
+  {
+    label: 'Seguimiento y Control Operativo',
+    to: '/supervisor/llamada-atencion',
+    routePatterns: ['/supervisor/llamada-atencion'],
+    requiredAnyPageNames: ['LlamadaAtencionPage', 'LlamadaAtencionPrincipal'],
+    sidebarLabelFromMenu: false,
+  },
+  {
+    label: 'Supervision',
+    to: '/supervisor/supervision',
+    routePatterns: ['/supervisor/supervision'],
+    allowedRoles: ['supervisor'],
+    sidebarLabelFromMenu: false,
+  },
+  {
+    label: 'Crear Supervision',
+    to: '/backoffice/supervision',
+    routePatterns: ['/backoffice/supervision'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'digitador', 'sistemas', 'admin'],
+    showInSidebar: true,
+  },
+  {
+    label: 'NPS',
+    to: '/nps',
+    routePatterns: ['/nps'],
+    allowedRoles: ['tecnico', 'supervisor', 'central', 'backoffice_v', 'sistemas', 'admin'],
+    showInSidebar: true,
+  },
+  {
+    label: 'Georeferencias',
+    to: '/digitador/georef',
+    routePatterns: ['/digitador/georef'],
+    allowedRoles: ['digitador', 'sistemas', 'admin', 'central'],
+    showInSidebar: true,
+  },
+  {
+    label: 'Grupos',
+    to: '/central/grupos',
+    routePatterns: ['/central/grupos'],
+    allowedRoles: ['central', 'back office', 'backoffice', 'backoffice_v', 'backup', 'sistemas', 'admin'],
+    sidebarLabelFromMenu: true,
+    showInSidebar: true,
   },
   {
     label: 'Pool de Privilegios',
     to: '/admin/privilegios',
     routePatterns: ['/admin/privilegios'],
-    requiredAnyMenuNames: ['tsm_privilegios'],
-    requiredAnyMenuIds: [3],
+    requiredAnyPageNames: ['PrivilegiosPage'],
+    sidebarLabelFromMenu: true,
+  },
+  {
+    label: 'Prueba',
+    to: '/prueba',
+    routePatterns: ['/prueba'],
+    requiredAnyPageNames: ['PruebaPage'],
+    sidebarLabelFromMenu: true,
   },
 ]

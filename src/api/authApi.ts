@@ -35,8 +35,15 @@ const mapRoleName = (idRol: number, current: string): string => {
   return ''
 }
 
+const extractAuthBase = (payload: unknown): Record<string, unknown> => {
+  if (!isRecord(payload)) return {}
+  const data = isRecord(payload.data) ? payload.data : payload
+  if (isRecord(data.usuario)) return data.usuario
+  return data
+}
+
 const normalizeAuthMeResponse = (payload: unknown): AuthMeResponse => {
-  const base = isRecord(payload) && isRecord(payload.data) ? payload.data : isRecord(payload) ? payload : {}
+  const base = extractAuthBase(payload)
   const idRol = readNumberField(base, ['idRol', 'IdRol', 'Id_Rol', 'id_rol'])
   const rol = mapRoleName(idRol, readStringField(base, ['rol', 'Rol', 'nombreRol', 'NombreRol']))
   return {
@@ -45,12 +52,15 @@ const normalizeAuthMeResponse = (payload: unknown): AuthMeResponse => {
     rol,
     idRol,
     idSucursal: readNumberField(base, ['idSucursal', 'IdSucursal', 'Id_Sucursal', 'id_sucursal']),
+    hostName: readStringField(base, ['hostName', 'HostName', 'hostname', 'Hostname', 'pcName', 'PcName']),
+    necesitaCambio: String(readStringField(base, ['necesitaCambio', 'NecesitaCambio', 'necesitacambio', 'Necesita_Cambio'])).toLowerCase() === 'true'
+      || readNumberField(base, ['necesitaCambio', 'NecesitaCambio', 'necesitacambio', 'Necesita_Cambio']) === 1,
+    ultimaModificacion: readStringField(base, ['ultimaModificacion', 'UltimaModificacion', 'ultimamodificacion', 'ultima_modificacion']) || undefined,
   }
 }
 
 const hasAuthData = (payload: unknown): boolean => {
-  if (!isRecord(payload)) return false
-  const base = isRecord(payload.data) ? payload.data : payload
+  const base = extractAuthBase(payload)
   return (
     readNumberField(base, ['idUsuario', 'IdUsuario', 'Id_Usuario', 'id_usuario']) > 0 ||
     Boolean(readStringField(base, ['nombre', 'Nombre', 'nombreUsuario', 'NombreUsuario'])) ||
@@ -87,7 +97,18 @@ const normalizeSucursalesResponse = (payload: unknown): ApiResponse<Sucursal[]> 
   }
 }
 
-const readSessionToken = (headers: Record<string, HeaderValue> | undefined): string => {
+const readSessionToken = (
+  headers: Record<string, HeaderValue> | undefined,
+  payload?: unknown
+): string => {
+  if (isRecord(payload)) {
+    const data = isRecord(payload.data) ? payload.data : payload
+    const tokenFromBody = readStringField(data, ['token', 'Token', 'accessToken', 'access_token'])
+    if (tokenFromBody) {
+      return tokenFromBody
+    }
+  }
+
   const rawToken = headers?.['x-session-token'] ?? headers?.['X-Session-Token']
   const token = Array.isArray(rawToken)
     ? rawToken[0]
@@ -98,7 +119,7 @@ const readSessionToken = (headers: Record<string, HeaderValue> | undefined): str
         : undefined
 
   if (!token) {
-    throw new Error('No se recibio el header X-Session-Token.')
+    throw new Error('No se recibio token ni en body ni en header X-Session-Token.')
   }
   return token
 }
@@ -135,7 +156,10 @@ export const login = async (payload: LoginRequest): Promise<SessionData> => {
   if (apiVerboseEnabled) {
     console.log('Respuesta /auth/login:', response.status, response.data, response.headers)
   }
-  const sessionToken = readSessionToken(response.headers as Record<string, HeaderValue> | undefined)
+  const sessionToken = readSessionToken(
+    response.headers as Record<string, HeaderValue> | undefined,
+    response.data
+  )
   const loginMe = hasAuthData(response.data) ? normalizeAuthMeResponse(response.data) : null
   try {
     const me = await fetchMe(sessionToken)

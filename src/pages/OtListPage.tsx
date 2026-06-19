@@ -369,7 +369,7 @@ const OtListPage = () => {
           return <span className="text-xs text-slate-400">Sin ID</span>
         }
         return (
-          <Button variant="secondary" onClick={() => navigate(`/ot/${id}`)} type="button">
+          <Button variant="secondary" onClick={() => navigate(`/GestionOTs/${id}`)} type="button">
             Agregar datos
           </Button>
         )
@@ -469,7 +469,7 @@ const OtListPage = () => {
   const handleOpenDetail = (row: OtSummary) => {
     const id = getOtId(row)
     if (!id) return
-    navigate(`/ot/${id}`)
+    navigate(`/GestionOTs/${id}`)
   }
 
   const openDayModal = (dayKey: string) => {
@@ -487,22 +487,33 @@ const OtListPage = () => {
     <div className="bento-page">
       <div className="bento-page-head flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Lista de OT pendientes</h2>
+          <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Lista de OT pendientes</h2>
           <p className="text-sm text-slate-500">
             {isSupervisor ? 'Viendo todas las OT pendientes.' : isTecnico ? 'Viendo tus OT pendientes.' : 'Viendo OT pendientes.'}
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button variant={view === 'horario' ? 'primary' : 'secondary'} type="button" onClick={() => handleSelectView('horario')}>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+        <Button
+          className="w-full sm:w-auto"
+          variant={view === 'horario' ? 'primary' : 'secondary'}
+          type="button"
+          onClick={() => handleSelectView('horario')}
+        >
           Horario
         </Button>
-        <Button variant={view === 'buscar' ? 'primary' : 'secondary'} type="button" onClick={() => handleSelectView('buscar')}>
+        <Button
+          className="w-full sm:w-auto"
+          variant={view === 'buscar' ? 'primary' : 'secondary'}
+          type="button"
+          onClick={() => handleSelectView('buscar')}
+        >
           Buscar
         </Button>
         {isSupervisor ? (
           <Button
+            className="col-span-2 w-full sm:col-auto sm:w-auto"
             variant={view === 'calendario' ? 'primary' : 'secondary'}
             type="button"
             onClick={() => handleSelectView('calendario')}
@@ -513,7 +524,7 @@ const OtListPage = () => {
       </div>
 
       {view === 'horario' ? (
-        <div className="glass-panel p-6">
+        <div className="glass-panel p-3 sm:p-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h3 className="section-title">Horario</h3>
@@ -603,10 +614,10 @@ const OtListPage = () => {
                           type="button"
                           onClick={() => handleOpenDetail(row)}
                           disabled={!id}
-                          className={`flex w-full flex-col gap-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-left text-xs text-slate-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 ${pickAccentClass(
-                            grupoLabel
-                          )}`}
-                        >
+                      className={`flex w-full flex-col gap-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-left text-sm text-slate-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 ${pickAccentClass(
+                        grupoLabel
+                      )}`}
+                    >
                         <div className="flex items-center justify-between">
                           <span className="font-semibold text-slate-700">{codigo}</span>
                           {time ? <span className="text-[11px] text-slate-400">{time}</span> : null}
@@ -641,10 +652,10 @@ const OtListPage = () => {
                         type="button"
                         onClick={() => handleOpenDetail(row)}
                         disabled={!id}
-                        className={`flex w-full flex-col gap-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-left text-xs text-slate-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 ${pickAccentClass(
-                          grupoLabel
-                        )}`}
-                      >
+                      className={`flex w-full flex-col gap-1 rounded-xl border border-white/80 bg-white px-3 py-2 text-left text-sm text-slate-700 shadow-sm transition hover:border-brand-200 hover:bg-brand-50 ${pickAccentClass(
+                        grupoLabel
+                      )}`}
+                    >
                         <div className="font-semibold text-slate-700">{codigo}</div>
                         {cliente ? <span className="text-[11px] text-slate-500">{cliente}</span> : null}
                         {ruta ? <span className="text-[11px] text-slate-400">{ruta}</span> : null}
@@ -660,7 +671,7 @@ const OtListPage = () => {
       ) : null}
 
       {view === 'buscar' ? (
-        <div className="glass-panel p-6">
+        <div className="glass-panel p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="section-title">Buscar</h3>
@@ -712,14 +723,14 @@ const OtListPage = () => {
             {buscarErrorMessage ? (
               <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{buscarErrorMessage}</div>
             ) : (
-              <Table columns={columns} data={buscarData} emptyLabel={emptyLabel} />
+              <Table columns={columns} data={buscarData} emptyLabel={emptyLabel} variant="row-block" mobileRowBlockMode="cards" />
             )}
           </div>
         </div>
       ) : null}
 
       {view === 'calendario' ? (
-        <div className="glass-panel bg-slate-50/80 p-6">
+        <div className="glass-panel bg-slate-50/80 p-3 sm:p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="section-title">Calendario</h3>
@@ -758,7 +769,7 @@ const OtListPage = () => {
               ))}
             </div>
 
-            <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-7 sm:gap-2">
+            <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-7 lg:gap-2">
               {calendarDays.map((day) => {
                 const dayKey = formatISODate(day)
                 const dayItems = calendarItemsByDate.get(dayKey) ?? []
@@ -770,7 +781,7 @@ const OtListPage = () => {
                   <div
                     key={dayKey}
                     onClick={isMobile ? () => openDayModal(dayKey) : undefined}
-                    className={`min-h-[160px] rounded-2xl border px-3 py-3 shadow-sm transition sm:min-h-[190px] ${
+                    className={`min-h-[140px] rounded-2xl border px-3 py-3 shadow-sm transition sm:min-h-[170px] lg:min-h-[190px] ${
                       isCurrentMonth ? DAY_CARD_CLASS : 'border-slate-300 bg-white'
                     } ${isMobile ? 'cursor-pointer hover:border-brand-200' : ''}`}
                   >
@@ -789,7 +800,7 @@ const OtListPage = () => {
                             event.stopPropagation()
                             openDayModal(dayKey)
                           }}
-                          className="hidden rounded-full border border-slate-300 px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600 sm:inline-flex"
+                          className="rounded-full border border-slate-300 px-2 py-0.5 text-[10px] font-semibold text-slate-600 hover:border-brand-200 hover:text-brand-600"
                         >
                           Info
                         </button>
