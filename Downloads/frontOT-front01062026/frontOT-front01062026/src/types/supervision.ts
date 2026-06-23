@@ -124,3 +124,19 @@ export type SupervisionInicioPendiente = {
   observacionNovedades?: string
   ubicacionCierreGeoref?: string
 }
+
+export type SupervisionJornadaHistorico = {
+  idInicio?: string
+  idTecnico: string
+  tecnicoNombre: string
+  fecha?: string
+  fechaInicio?: string
+  fechaCierre?: string
+  sucursal?: string
+  grupo?: string
+  idSupervisor?: string
+  supervisorNombre?: string
+  estadoJornada: 'CERRADA' | 'SIN_CIERRE' | 'NO_INICIO' | string
+  sinInicio?: boolean
+  sinCierre?: boolean
+}

@@ -28,6 +28,9 @@ import TecnicoInicioJornadaPage from '../pages/TecnicoInicioJornadaPage'
 import ChangePasswordPage from '../pages/ChangePasswordPage'
 import NpsDashboardPage from '../pages/NpsDashboardPage'
 import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
+import RegistroTorPage from '../pages/RegistroTorPage'
+import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPage'
+import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -77,9 +80,12 @@ const AppRoutes = () => {
           <Route path="/supervisor/llamada-atencion" element={<LlamadaAtencionPage />} />
           <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
           <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
+          <Route path="/jornadas/historico" element={<HistoricoJornadasPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />
           <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
+          <Route path="/Registro_TOR" element={<RegistroTorPage />} />
+          <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>

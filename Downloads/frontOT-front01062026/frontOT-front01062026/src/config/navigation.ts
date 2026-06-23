@@ -127,6 +127,13 @@ export const navigationItems: NavigationItem[] = [
     sidebarLabelFromMenu: false,
   },
   {
+    label: 'Historicos jornadas',
+    to: '/jornadas/historico',
+    routePatterns: ['/jornadas/historico'],
+    allowedRoles: ['supervisor', 'central', 'back office', 'backoffice', 'backoffice_v', 'backup', 'sistemas', 'admin', 'administrador'],
+    showInSidebar: true,
+  },
+  {
     label: 'Crear Supervision',
     to: '/backoffice/supervision',
     routePatterns: ['/backoffice/supervision'],
@@ -145,6 +152,22 @@ export const navigationItems: NavigationItem[] = [
     to: '/digitador/georef',
     routePatterns: ['/digitador/georef'],
     allowedRoles: ['digitador', 'sistemas', 'admin', 'central'],
+    showInSidebar: true,
+  },
+  {
+    label: 'Registro_TOR',
+    to: '/Registro_TOR',
+    routePatterns: ['/Registro_TOR'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'digitador', 'sistemas', 'admin'],
+    sidebarLabelFromMenu: false,
+    showInSidebar: true,
+  },
+  {
+    label: 'VerificacionBoletaDigital',
+    to: '/VerificacionBoletaDigital',
+    routePatterns: ['/VerificacionBoletaDigital'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'digitador', 'sistemas', 'admin'],
+    sidebarLabelFromMenu: false,
     showInSidebar: true,
   },
   {

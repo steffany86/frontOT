@@ -5,6 +5,7 @@ import type {
   SupervisionCreatePayload,
   SupervisionCreateResult,
   SupervisionInicioPendiente,
+  SupervisionJornadaHistorico,
   SupervisionListParams,
   SupervisionRegistro,
   SupervisionTecnico,
@@ -346,6 +347,48 @@ export const fetchIniciosJornadaConfirmadosHoySupervision = async (): Promise<Su
   const { data } = await api.get(`${SUPERVISION_BASE_PATH}/jornadas/confirmadas-hoy`)
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapInicioPendiente).filter((item) => item.idInicio)
+}
+
+const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHistorico => ({
+  idInicio: normalizeString(readValue(row, ['idInicio', 'id_inicio'])) || undefined,
+  idTecnico:
+    normalizeString(
+      readValue(row, ['idTecnico', 'id_tecnico', 'idVendedor', 'id_vendedor', 'idUsuarioTecnico', 'id_usuario_tecnico'])
+    ) || '',
+  tecnicoNombre:
+    normalizeString(readValue(row, ['tecnicoNombre', 'tecnico', 'nombreTecnico', 'nombre_tecnico', 'nombre'])) || 'Tecnico sin nombre',
+  fecha: normalizeString(readValue(row, ['fecha'])) || undefined,
+  fechaInicio: normalizeString(readValue(row, ['fechaInicio', 'fecha_inicio', 'fechaRegistro', 'fecha_registro'])) || undefined,
+  fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
+  sucursal: normalizeString(readValue(row, ['sucursal', 'Sucursal'])) || undefined,
+  grupo: normalizeString(readValue(row, ['grupo', 'Grupo', 'cuadrilla'])) || undefined,
+  idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'idUsuarioSupervisor'])) || undefined,
+  supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'supervisorACargo'])) || undefined,
+  estadoJornada: normalizeString(readValue(row, ['estadoJornada', 'estado_jornada', 'estado'])) || 'NO_INICIO',
+  sinInicio: String(readValue(row, ['sinInicio', 'sin_inicio']) ?? '').toLowerCase() === 'true',
+  sinCierre: String(readValue(row, ['sinCierre', 'sin_cierre']) ?? '').toLowerCase() === 'true',
+})
+
+export type JornadaHistoricoParams = {
+  fecha?: string
+  sucursal?: string
+  idTecnico?: string
+  scope?: 'supervisor' | 'backoffice'
+}
+
+export const fetchHistoricoJornadas = async (params: JornadaHistoricoParams): Promise<SupervisionJornadaHistorico[]> => {
+  const scope = params.scope === 'supervisor' ? 'supervisor' : 'backoffice'
+  const path = scope === 'supervisor' ? `${SUPERVISION_BASE_PATH}/jornadas/historico` : '/backoffice/supervision/jornadas/historico'
+  const query = Object.fromEntries(
+    Object.entries({
+      fecha: params.fecha?.trim() || undefined,
+      sucursal: scope === 'backoffice' ? params.sucursal?.trim() || undefined : undefined,
+      idTecnico: params.idTecnico?.trim() || undefined,
+    }).filter(([, value]) => value !== undefined && value !== '')
+  )
+  const { data } = await api.get(path, { params: query })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapJornadaHistorico).filter((item) => item.idTecnico)
 }
 
 export const aprobarInicioJornadaPendiente = async (idInicio: string): Promise<void> => {
