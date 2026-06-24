@@ -128,15 +128,40 @@ export type SupervisionInicioPendiente = {
 export type SupervisionJornadaHistorico = {
   idInicio?: string
   idTecnico: string
+  idUsuarioInicio?: string
   tecnicoNombre: string
+  idAuxiliar?: string
+  auxiliarNombre?: string
   fecha?: string
   fechaInicio?: string
   fechaCierre?: string
+  imagen?: string
   sucursal?: string
   grupo?: string
   idSupervisor?: string
   supervisorNombre?: string
+  capacitado?: string
+  charla?: string
+  botiquin?: string
+  extintor?: string
+  fechaVencimiento?: string
+  equipoEpp?: string
+  estadoEpp?: string
+  apr?: string
+  escalera?: string
+  anclaje?: string
+  ubicacionGeoref?: string
+  codigoClienteCierre?: string
+  danoMaterial?: string
+  observacionMaterial?: string
+  danoPersona?: string
+  observacionPersona?: string
+  novedadesTrabajo?: string
+  observacionNovedades?: string
+  ubicacionCierreGeoref?: string
   estadoJornada: 'CERRADA' | 'SIN_CIERRE' | 'NO_INICIO' | string
   sinInicio?: boolean
   sinCierre?: boolean
+  noMarcoCierre?: string
+  usuarioRetirado?: boolean
 }

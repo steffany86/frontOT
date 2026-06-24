@@ -349,28 +349,49 @@ export const fetchIniciosJornadaConfirmadosHoySupervision = async (): Promise<Su
   return rows.map(mapInicioPendiente).filter((item) => item.idInicio)
 }
 
-const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHistorico => ({
-  idInicio: normalizeString(readValue(row, ['idInicio', 'id_inicio'])) || undefined,
-  idTecnico:
-    normalizeString(
-      readValue(row, ['idTecnico', 'id_tecnico', 'idVendedor', 'id_vendedor', 'idUsuarioTecnico', 'id_usuario_tecnico'])
-    ) || '',
-  tecnicoNombre:
-    normalizeString(readValue(row, ['tecnicoNombre', 'tecnico', 'nombreTecnico', 'nombre_tecnico', 'nombre'])) || 'Tecnico sin nombre',
-  fecha: normalizeString(readValue(row, ['fecha'])) || undefined,
-  fechaInicio: normalizeString(readValue(row, ['fechaInicio', 'fecha_inicio', 'fechaRegistro', 'fecha_registro'])) || undefined,
-  fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
-  sucursal: normalizeString(readValue(row, ['sucursal', 'Sucursal'])) || undefined,
-  grupo: normalizeString(readValue(row, ['grupo', 'Grupo', 'cuadrilla'])) || undefined,
-  idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'idUsuarioSupervisor'])) || undefined,
-  supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'supervisorACargo'])) || undefined,
-  estadoJornada: normalizeString(readValue(row, ['estadoJornada', 'estado_jornada', 'estado'])) || 'NO_INICIO',
-  sinInicio: String(readValue(row, ['sinInicio', 'sin_inicio']) ?? '').toLowerCase() === 'true',
-  sinCierre: String(readValue(row, ['sinCierre', 'sin_cierre']) ?? '').toLowerCase() === 'true',
-})
+const readBooleanLike = (value: unknown): boolean => {
+  const text = String(value ?? '').trim().toLowerCase()
+  return text === 'true' || text === '1' || text === 'si' || text === 'sí'
+}
+
+const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHistorico => {
+  const inicio = mapInicioPendiente(row)
+  const noMarcoCierre = readValue(row, ['noMarcoCierre', 'no_marco_cierre'])
+  const noMarcoCierreText = normalizeString(noMarcoCierre)
+  const fechaCierre = normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || inicio.fechaCierre
+  const sinCierre = readBooleanLike(readValue(row, ['sinCierre', 'sin_cierre'])) || noMarcoCierreText === '1' || !fechaCierre
+  const estadoRaw = normalizeString(readValue(row, ['estadoJornada', 'estado_jornada', 'estado']))
+  return {
+    ...inicio,
+    idInicio: inicio.idInicio || undefined,
+    idTecnico:
+      normalizeString(
+        readValue(row, ['idTecnico', 'id_tecnico', 'idVendedor', 'id_vendedor', 'idUsuarioTecnico', 'id_usuario_tecnico'])
+      ) || inicio.idTecnico || '',
+    idUsuarioInicio: normalizeString(readValue(row, ['idUsuarioInicio', 'id_usuario_inicio'])) || undefined,
+    tecnicoNombre:
+      normalizeString(readValue(row, ['tecnicoNombre', 'tecnico', 'nombreTecnico', 'nombre_tecnico', 'nombre'])) ||
+      inicio.tecnicoNombre ||
+      'Tecnico sin nombre',
+    fecha: normalizeString(readValue(row, ['fecha'])) || undefined,
+    fechaInicio: normalizeString(readValue(row, ['fechaInicio', 'fecha_inicio', 'fechaRegistro', 'fecha_registro'])) || inicio.fechaRegistro,
+    fechaCierre,
+    sucursal: normalizeString(readValue(row, ['sucursal', 'Sucursal'])) || undefined,
+    grupo: normalizeString(readValue(row, ['grupo', 'Grupo', 'cuadrilla'])) || undefined,
+    idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'idUsuarioSupervisor'])) || inicio.idSupervisor,
+    supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'supervisorACargo'])) || inicio.supervisorNombre,
+    estadoJornada: estadoRaw || (sinCierre ? 'NO_REALIZO_CIERRE' : 'NO_INICIO'),
+    sinInicio: readBooleanLike(readValue(row, ['sinInicio', 'sin_inicio'])),
+    sinCierre,
+    noMarcoCierre: noMarcoCierreText || undefined,
+    usuarioRetirado: readBooleanLike(readValue(row, ['usuarioRetirado', 'usuario_retirado'])),
+  }
+}
 
 export type JornadaHistoricoParams = {
   fecha?: string
+  fechaDesde?: string
+  fechaHasta?: string
   sucursal?: string
   idTecnico?: string
   scope?: 'supervisor' | 'backoffice'
@@ -382,6 +403,8 @@ export const fetchHistoricoJornadas = async (params: JornadaHistoricoParams): Pr
   const query = Object.fromEntries(
     Object.entries({
       fecha: params.fecha?.trim() || undefined,
+      fechaDesde: params.fechaDesde?.trim() || undefined,
+      fechaHasta: params.fechaHasta?.trim() || undefined,
       sucursal: scope === 'backoffice' ? params.sucursal?.trim() || undefined : undefined,
       idTecnico: params.idTecnico?.trim() || undefined,
     }).filter(([, value]) => value !== undefined && value !== '')
@@ -389,6 +412,15 @@ export const fetchHistoricoJornadas = async (params: JornadaHistoricoParams): Pr
   const { data } = await api.get(path, { params: query })
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapJornadaHistorico).filter((item) => item.idTecnico)
+}
+
+export const fetchHistoricoJornadaDetalle = async (
+  idInicio: string,
+  scope: 'supervisor' | 'backoffice' = 'backoffice'
+): Promise<SupervisionJornadaHistorico> => {
+  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const { data } = await api.get(`${basePath}/jornadas/${idInicio}/detalle`)
+  return mapJornadaHistorico(normalizeObjectResponse<Record<string, unknown>>(data))
 }
 
 export const aprobarInicioJornadaPendiente = async (idInicio: string): Promise<void> => {
