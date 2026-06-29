@@ -39,6 +39,7 @@ export type UpdateConformacionCuadrillaOptions = {
   target?: 'web' | 'dbordenres'
 }
 
+
 const CONFORMACION_WEB_BASE_PATH = '/supervisor/conformacion-cuadrilla-web'
 const CONFORMACION_WEB_CATALOG_BASE_PATH = `${CONFORMACION_WEB_BASE_PATH}/catalogos`
 const CONFORMACION_BACKOFFICE_BASE_PATH = '/supervisor/conformacion-cuadrilla'
@@ -617,7 +618,7 @@ export const fetchConformacionGrupos = async (params: ConformacionCuadrillaCatal
     const normalized = label.toLowerCase()
     if (query && !normalized.includes(query)) continue
     if (!byKey.has(normalized)) {
-      byKey.set(normalized, { grupo: label })
+      byKey.set(normalized, { ...row, grupo: label })
     }
   }
   return applyLimit(Array.from(byKey.values()), params.limit)

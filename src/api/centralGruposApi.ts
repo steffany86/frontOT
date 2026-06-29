@@ -235,7 +235,20 @@ export const cambiarSupervisorMasivoCentral = async (payload: {
   idSupervisorDestino: number
   idGrupos?: number[]
   sucursal?: string
+  reasignarInicioJornada?: boolean
 }): Promise<Record<string, unknown>> => {
   const { data } = await api.post(`${BASE_PATH}/cambiar-supervisor-masivo`, payload)
   return (data && typeof data === 'object' && 'data' in data ? (data as { data: Record<string, unknown> }).data : data) as Record<string, unknown>
+}
+
+export const validarIniciosJornadaCambioSupervisorCentral = async (payload: {
+  idSupervisorOrigen: number
+  idSupervisorDestino: number
+  idGrupos?: number[]
+  sucursal?: string
+}): Promise<{ requiereConfirmacion?: boolean; conflictos?: Record<string, unknown>[] }> => {
+  const { data } = await api.post(`${BASE_PATH}/cambiar-supervisor-masivo/inicios-jornada`, payload)
+  return (data && typeof data === 'object' && 'data' in data
+    ? (data as { data: { requiereConfirmacion?: boolean; conflictos?: Record<string, unknown>[] } }).data
+    : data) as { requiereConfirmacion?: boolean; conflictos?: Record<string, unknown>[] }
 }

@@ -15,6 +15,7 @@ import {
   fetchCentralTecnicos,
   marcarSupervisorAusenteCentral,
   restaurarSupervisorCentral,
+  validarIniciosJornadaCambioSupervisorCentral,
 } from '../api/centralGruposApi'
 import { useAuth } from '../context/AuthContext'
 import { fetchSucursales } from '../services/authApi'
@@ -44,6 +45,17 @@ const CentralGruposPage = () => {
   const [gruposSeleccionadosCambio, setGruposSeleccionadosCambio] = useState<string[]>([])
   const [supervisorEdicionNombre, setSupervisorEdicionNombre] = useState('')
   const [backupMode, setBackupMode] = useState<'ausente' | 'cambiar'>('ausente')
+  const [pendingJornadaSupervisorChange, setPendingJornadaSupervisorChange] = useState<{
+    payload: {
+      idSupervisorOrigen: number
+      idSupervisorDestino: number
+      idGrupos?: number[]
+      sucursal?: string
+      reasignarInicioJornada?: boolean
+    }
+    conflictos: Record<string, unknown>[]
+    supervisorDestino: string
+  } | null>(null)
 
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -203,8 +215,8 @@ const CentralGruposPage = () => {
   })
 
 
-  const cambiarSupervisorMasivoMutation = useMutation({
-    mutationFn: async () => {
+  const cambiarSupervisorMasivoMutation = useMutation<{ total: number; pending?: boolean }, unknown, boolean | undefined>({
+    mutationFn: async (forceReasignarInicioJornada = false) => {
       const origen = supervisores.find((s) => s.idUsuarioSupervisor === idSupervisorOrigen)
       const destino = supervisores.find((s) => s.idUsuarioSupervisor === idSupervisorDestino)
       if (!origen || !destino) {
@@ -219,16 +231,33 @@ const CentralGruposPage = () => {
       if (targetIds.length === 0) {
         throw new Error('No hay grupos para transferir.')
       }
-      const result = await cambiarSupervisorMasivoCentral({
+      const payload = {
         idSupervisorOrigen: Number(origen.idUsuarioSupervisor),
         idSupervisorDestino: Number(destino.idUsuarioSupervisor),
         idGrupos: modoCambioSupervisor === 'todos' ? [] : targetIds.map((id) => Number(id)),
         sucursal: loginSucursal,
+      }
+      if (!forceReasignarInicioJornada) {
+        const validacion = await validarIniciosJornadaCambioSupervisorCentral(payload)
+        if (validacion.requiereConfirmacion && validacion.conflictos?.length) {
+          setPendingJornadaSupervisorChange({
+            payload,
+            conflictos: validacion.conflictos,
+            supervisorDestino: destino.supervisorACargo,
+          })
+          return { total: 0, pending: true }
+        }
+      }
+      const result = await cambiarSupervisorMasivoCentral({
+        ...payload,
+        reasignarInicioJornada: forceReasignarInicioJornada,
       })
       return { total: Number(result.actualizados ?? targetIds.length) }
     },
     onSuccess: (result) => {
+      if (result.pending) return
       setOpenCambioSupervisorModal(false)
+      setPendingJornadaSupervisorChange(null)
       setSupervisorEdicionNombre('')
       setIdSupervisorOrigen('')
       setIdSupervisorDestino('')
@@ -327,6 +356,10 @@ const CentralGruposPage = () => {
     asignarTecnicoMutation.mutate()
   }
 
+  const handleConfirmarCambioSupervisorConJornada = () => {
+    cambiarSupervisorMasivoMutation.mutate(true)
+  }
+
 
   const handleAbrirCambiarColaborador = (idGrupo: string) => {
     setBackupMode('cambiar')
@@ -378,6 +411,15 @@ const CentralGruposPage = () => {
     setOpenCambioSupervisorModal(true)
   }
 
+  const conflictText = (row: Record<string, unknown>, key: string): string => {
+    const value = row[key]
+    return value === undefined || value === null ? '' : String(value).trim()
+  }
+
+  const closeErrorModal = () => {
+    setError(null)
+  }
+
   return (
     <div className="bento-page">
       <div className="bento-page-head rounded-2xl border border-[#dbe5fa] bg-white/95 px-4 py-3 shadow-sm sm:px-5">
@@ -393,7 +435,6 @@ const CentralGruposPage = () => {
         </div>
       ) : null}
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
       {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div> : null}
 
       <FormCard
@@ -521,6 +562,22 @@ const CentralGruposPage = () => {
       </FormCard>
 
       <Modal
+        open={Boolean(error)}
+        onClose={closeErrorModal}
+        title="Tengo este error"
+        maxWidthClass="max-w-xl"
+        actions={
+          <Button type="button" variant="secondary" onClick={closeErrorModal}>
+            Cerrar
+          </Button>
+        }
+      >
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+          {error}
+        </div>
+      </Modal>
+
+      <Modal
         open={openCrearModal}
         onClose={() => setOpenCrearModal(false)}
         title="Crear grupo"
@@ -600,7 +657,7 @@ const CentralGruposPage = () => {
             <Button type="button" variant="secondary" onClick={() => setOpenCambioSupervisorModal(false)}>
               Cancelar
             </Button>
-            <Button type="button" onClick={() => cambiarSupervisorMasivoMutation.mutate()} disabled={cambiarSupervisorMasivoMutation.isPending || !canManageGroups}>
+            <Button type="button" onClick={() => cambiarSupervisorMasivoMutation.mutate(undefined)} disabled={cambiarSupervisorMasivoMutation.isPending || !canManageGroups}>
               {cambiarSupervisorMasivoMutation.isPending ? 'Cambiando...' : 'Aplicar cambio'}
             </Button>
           </>
@@ -675,6 +732,48 @@ const CentralGruposPage = () => {
             </div>
           ) : null}
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(pendingJornadaSupervisorChange)}
+        onClose={() => setPendingJornadaSupervisorChange(null)}
+        title="Inicio de jornada con otro supervisor"
+        maxWidthClass="max-w-3xl"
+        actions={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setPendingJornadaSupervisorChange(null)} disabled={cambiarSupervisorMasivoMutation.isPending}>
+              No
+            </Button>
+            <Button type="button" onClick={handleConfirmarCambioSupervisorConJornada} disabled={cambiarSupervisorMasivoMutation.isPending}>
+              {cambiarSupervisorMasivoMutation.isPending ? 'Aplicando...' : 'Si, asignar'}
+            </Button>
+          </>
+        }
+      >
+        {pendingJornadaSupervisorChange ? (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-700">
+              Hay tecnicos con inicio de jornada hoy con otro supervisor. Al asignarlos al supervisor{' '}
+              <span className="font-semibold">{pendingJornadaSupervisorChange.supervisorDestino}</span>, tambien se reasignara su inicio de jornada
+              de TigoHogar.
+            </p>
+            <div className="max-h-72 overflow-y-auto rounded-xl border border-slate-200">
+              {pendingJornadaSupervisorChange.conflictos.map((row, index) => (
+                <div key={`inicio-conf-${index}`} className="border-b border-slate-100 px-3 py-2 text-sm last:border-b-0">
+                  <p className="font-semibold text-slate-900">
+                    {conflictText(row, 'tecnico') || `Tecnico ${conflictText(row, 'idTecnico')}`}
+                  </p>
+                  <p className="text-xs text-slate-600">
+                    Supervisor actual:{' '}
+                    <span className="font-semibold">
+                      {conflictText(row, 'supervisorAnteriorNombre') || conflictText(row, 'idSupervisorAnterior') || conflictText(row, 'idEncargado')}
+                    </span>
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal
