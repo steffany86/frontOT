@@ -42,8 +42,14 @@ const extractAuthBase = (payload: unknown): Record<string, unknown> => {
   return data
 }
 
+const extractAuthEnvelope = (payload: unknown): Record<string, unknown> => {
+  if (!isRecord(payload)) return {}
+  return isRecord(payload.data) ? payload.data : payload
+}
+
 const normalizeAuthMeResponse = (payload: unknown): AuthMeResponse => {
   const base = extractAuthBase(payload)
+  const envelope = extractAuthEnvelope(payload)
   const idRol = readNumberField(base, ['idRol', 'IdRol', 'Id_Rol', 'id_rol'])
   const rol = mapRoleName(idRol, readStringField(base, ['rol', 'Rol', 'nombreRol', 'NombreRol']))
   return {
@@ -52,7 +58,9 @@ const normalizeAuthMeResponse = (payload: unknown): AuthMeResponse => {
     rol,
     idRol,
     idSucursal: readNumberField(base, ['idSucursal', 'IdSucursal', 'Id_Sucursal', 'id_sucursal']),
-    hostName: readStringField(base, ['hostName', 'HostName', 'hostname', 'Hostname', 'pcName', 'PcName']),
+    hostName: readStringField(base, ['hostName', 'HostName', 'hostname', 'Hostname', 'pcName', 'PcName'])
+      || readStringField(envelope, ['hostName', 'HostName', 'hostname', 'Hostname', 'pcName', 'PcName']),
+    expira: readStringField(envelope, ['expira', 'Expira', 'expiresAt', 'ExpiresAt', 'expiration']),
     necesitaCambio: String(readStringField(base, ['necesitaCambio', 'NecesitaCambio', 'necesitacambio', 'Necesita_Cambio'])).toLowerCase() === 'true'
       || readNumberField(base, ['necesitaCambio', 'NecesitaCambio', 'necesitacambio', 'Necesita_Cambio']) === 1,
     ultimaModificacion: readStringField(base, ['ultimaModificacion', 'UltimaModificacion', 'ultimamodificacion', 'ultima_modificacion']) || undefined,

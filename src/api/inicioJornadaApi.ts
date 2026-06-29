@@ -21,6 +21,11 @@ const normalizeBoolean = (value: unknown): boolean => {
   return text === '1' || text === 'true' || text === 'si'
 }
 
+const normalizeNumber = (value: unknown): number | undefined => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
 const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(row, key)) {
@@ -40,6 +45,10 @@ export const fetchInicioJornadaEstado = async (sucursal?: string): Promise<Inici
     fechaServidor: normalizeString(readValue(row, ['fechaServidor', 'fecha_servidor'])) || undefined,
     idEncargado: normalizeString(readValue(row, ['idEncargado', 'id_encargado', 'idSupervisor', 'id_supervisor'])) || undefined,
     encargado: normalizeString(readValue(row, ['encargado', 'supervisor', 'nombreSupervisor', 'nombre'])) || undefined,
+    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
+    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
+    fechaInicioPendienteCierre:
+      normalizeString(readValue(row, ['fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
   }
 }
 
@@ -68,6 +77,10 @@ export const fetchCierreJornadaEstado = async (): Promise<CierreJornadaEstado> =
     cerradoHoy: normalizeBoolean(readValue(row, ['cerradoHoy'])),
     requiereCierre: normalizeBoolean(readValue(row, ['requiereCierre'])),
     noMarcoCount: Number(readValue(row, ['noMarcoCount', 'no_marco_count']) ?? 0),
+    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
+    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
+    fechaInicioPendienteCierre:
+      normalizeString(readValue(row, ['fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
   }
 }
 

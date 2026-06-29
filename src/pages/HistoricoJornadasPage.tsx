@@ -684,7 +684,7 @@ const HistoricoJornadasPage = () => {
         <Table
           columns={columns}
           data={filteredRows}
-          emptyLabel={jornadasQuery.isLoading ? 'Cargando jornadas...' : 'Sin registros para los filtros seleccionados'}
+          emptyLabel={jornadasQuery.isLoading ? 'Cargando jornadas...' : 'NO HAY DATOS PARA LA FECHA'}
           rowClassName={jornadaRowClass}
           desktopMinWidthClass="min-w-[1080px]"
           density="compact"

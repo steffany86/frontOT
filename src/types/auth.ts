@@ -11,6 +11,7 @@ export interface AuthMeResponse {
   idRol: number
   idSucursal: number
   hostName?: string
+  expira?: string
   necesitaCambio?: boolean
   ultimaModificacion?: string
 }

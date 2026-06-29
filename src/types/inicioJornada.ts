@@ -4,6 +4,9 @@ export type InicioJornadaEstado = {
   fechaServidor?: string
   idEncargado?: string
   encargado?: string
+  requiereCierreAyer?: boolean
+  idInicioPendienteCierre?: number
+  fechaInicioPendienteCierre?: string
 }
 
 export type CierreJornadaEstado = {
@@ -12,6 +15,9 @@ export type CierreJornadaEstado = {
   cerradoHoy: boolean
   requiereCierre: boolean
   noMarcoCount: number
+  requiereCierreAyer?: boolean
+  idInicioPendienteCierre?: number
+  fechaInicioPendienteCierre?: string
 }
 
 export type InicioJornadaEncargado = {
@@ -38,6 +44,7 @@ export type InicioJornadaCreatePayload = {
 }
 
 export type CierreJornadaPayload = {
+  idInicio?: number
   codigoCliente: string
   danoMaterial: 'SI' | 'NO'
   observacionMaterial?: string

@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBell, faClipboardCheck, faGear, faHand, faShieldHalved, faStar, faThumbsUp, faUsers, faUserShield, faWrench } from '@fortawesome/free-solid-svg-icons'
+import { faBell, faClipboardCheck, faFileInvoice, faGear, faHand, faHelmetSafety, faLocationDot, faShieldHalved, faStar, faThumbsUp, faUsers, faUserShield, faWrench } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import type { NavigationItem } from '../../config/navigation'
 
@@ -57,9 +57,12 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
   const getItemIcon = (item: NavigationItem) => {
     const key = `${item.label} ${item.to}`.toLowerCase()
     if (key.includes('gestion') || key.includes('/ot')) return faClipboardCheck
+    if (key.includes('historico') || key.includes('jornada')) return faHelmetSafety
     if (key.includes('conform') || key.includes('cuadrilla')) return faUsers
     if (key.includes('llamada') || key.includes('seguimiento') || key.includes('control operativo')) return faBell
     if (key.includes('nps')) return faThumbsUp
+    if (key.includes('georef')) return faLocationDot
+    if (key.includes('boleta')) return faFileInvoice
     if (key.includes('central')) return faWrench
     if (key.includes('privileg')) return faUserShield
     if (key.includes('supervision')) return faHand

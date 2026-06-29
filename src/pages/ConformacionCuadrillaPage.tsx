@@ -17,7 +17,6 @@ import {
   fetchConformacionDigitadores,
   fetchConformacionGrupos,
   fetchConformacionSalesforce,
-  fetchConformacionSucursales,
   fetchConformacionSupervisores,
   fetchConformacionTecnicoDetalle,
   fetchConformacionTecnicos,
@@ -34,6 +33,7 @@ import type {
 import { formatDate, todayISO } from '../utils/dates'
 import { useSessionStore } from '../store/sessionStore'
 import { useAuth } from '../context/AuthContext'
+import { fetchSucursales } from '../services/authApi'
 
 type CuadrillaModalMode = 'view' | 'edit'
 type CuadrillaListTab = 'general' | 'confirmadas'
@@ -935,6 +935,12 @@ const getRecordRealId = (row: ConformacionCuadrillaRecord): number | null => {
   return parsed
 }
 
+const getRecordControlOrdenesId = (row: ConformacionCuadrillaRecord): number | null => {
+  const parsed = toOptionalNumber(row.idRegistro)
+  if (parsed === undefined || parsed <= 0) return null
+  return parsed
+}
+
 const getRecordRutaId = (row: ConformacionCuadrillaRecord): number | null => {
   const idRutaCandidate =
     readValue(row as unknown as CatalogItem, RECORD_ID_RUTA_KEYS) ??
@@ -1069,7 +1075,15 @@ const ConformacionCuadrillaPage = () => {
   })
   const sucursalesQuery = useQuery({
     queryKey: ['catalogos-sucursales-conformacion'],
-    queryFn: fetchConformacionSucursales,
+    queryFn: async (): Promise<CatalogItem[]> => {
+      const response = await fetchSucursales()
+      return response.data.map((item) => ({
+        ...item,
+        idSucursal: item.idSucursal,
+        sucursal: item.sucursal,
+        Sucursal: item.sucursal,
+      }))
+    },
     enabled: canViewCuadrillas,
   })
   const gruposQuery = useQuery({
@@ -1546,6 +1560,17 @@ const ConformacionCuadrillaPage = () => {
     return normalized.confirmada === true || isConfirmedInDbToday(normalized)
   }
 
+  const resolveReassignmentSource = (row: ConformacionCuadrillaRecord): { sourceId: number; sourceTarget: UpdateTarget } | null => {
+    if (isRecordLockedForReassignment(row)) return null
+    const controlOrdenesId = getRecordControlOrdenesId(row)
+    if (controlOrdenesId !== null) {
+      return { sourceId: controlOrdenesId, sourceTarget: 'dbordenres' }
+    }
+    const sourceId = getRecordRealId(row)
+    if (sourceId === null) return null
+    return { sourceId, sourceTarget: 'web' }
+  }
+
   const listDataForValidation = useMemo(() => {
     const normalized = (listQuery.data ?? []).map(normalizeListRecord)
     const filtered = normalized.filter((row) => {
@@ -1576,7 +1601,10 @@ const ConformacionCuadrillaPage = () => {
     return deduped
   }, [confirmadasFechaFiltro, confirmadasTotalQuery.data])
   const recordsForConflictValidation = useMemo(() => {
-    const merged = [...listDataForValidation, ...confirmedRowsForConflictValidation]
+    const baseRows = (listQuery.data ?? [])
+      .map(normalizeListRecord)
+      .filter((row) => !isRowEliminado(row))
+    const merged = [...baseRows, ...confirmedRowsForConflictValidation]
     const seen = new Set<string>()
     const unique: ConformacionCuadrillaRecord[] = []
     for (const row of merged) {
@@ -1586,7 +1614,7 @@ const ConformacionCuadrillaPage = () => {
       unique.push(sessionDraftByKey[key] ?? row)
     }
     return unique
-  }, [confirmedRowsForConflictValidation, listDataForValidation, sessionDraftByKey])
+  }, [confirmedRowsForConflictValidation, listQuery.data, sessionDraftByKey])
   const vehiculoOptionsAll = useMemo(() => {
     const byValue = new Map<string, SelectOption>()
     for (const option of vehiculoOptionsGlobal) {
@@ -2137,8 +2165,7 @@ const findVehiculoConflictRecord = (
   const vehiculoKey = String(row.vehiculo ?? '').trim().toLowerCase()
   const rowTecnicoId = normalizeTecnicoComparableId(row.idTecnico)
   if (!vehiculoKey) return null
-  return (
-    recordsForConflictValidation.find((record) => {
+  const matches = recordsForConflictValidation.filter((record) => {
       const recordKey = getRecordSelectionKey(record)
       if (options?.ignoreSelectionKey && recordKey === options.ignoreSelectionKey) return false
       const recordVehiculoKey = String(record.vehiculo ?? '').trim().toLowerCase()
@@ -2149,8 +2176,8 @@ const findVehiculoConflictRecord = (
       )
       if (rowTecnicoId && recordTecnicoId && rowTecnicoId === recordTecnicoId) return false
       return true
-    }) ?? null
-  )
+    })
+  return matches.find((record) => isRecordLockedForReassignment(record)) ?? matches[0] ?? null
 }
 
   const findAuxiliarConflictRecord = (
@@ -2588,12 +2615,15 @@ const findVehiculoConflictRecord = (
     const nextRow = { ...currentRow, idTecnicoAuxiliar: normalizedValue }
     const conflictRecord = findAuxiliarConflictRecord(nextRow)
     if (conflictRecord) {
-      const sourceId = getRecordRealId(conflictRecord)
-      if (sourceId === null) {
+      const source = resolveReassignmentSource(conflictRecord)
+      if (isRecordLockedForReassignment(conflictRecord)) {
+        setSubmitError('El auxiliar esta asignado a una cuadrilla confirmada y no se puede tomar.')
+        return
+      }
+      if (source === null) {
         setSubmitError('El auxiliar esta asignado a otra cuadrilla y no tiene id editable para reasignacion.')
         return
       }
-      const sourceTarget: UpdateTarget = activeTab === 'confirmadas' ? 'dbordenres' : 'web'
       setPendingReassignmentPrompt({
         field: 'auxiliar',
         rowIndex: index,
@@ -2601,9 +2631,9 @@ const findVehiculoConflictRecord = (
         selectedLabel: option?.label || '',
         source: {
           field: 'auxiliar',
-          sourceId,
+          sourceId: source.sourceId,
           sourceRecord: conflictRecord,
-          sourceTarget,
+          sourceTarget: source.sourceTarget,
           sourceGroupLabel: toVisualLabel(conflictRecord.grupo, 'Sin grupo'),
           sourceTecnicoLabel: resolveTecnicoListLabel(conflictRecord),
           sourceDisplayValue: toVisualLabel(conflictRecord.auxiliar, 'Sin auxiliar'),
@@ -2638,12 +2668,15 @@ const findVehiculoConflictRecord = (
     const nextRow = { ...currentRow, vehiculo: normalizedValue }
     const conflictRecord = findVehiculoConflictRecord(nextRow)
     if (conflictRecord) {
-      const sourceId = getRecordRealId(conflictRecord)
-      if (sourceId === null) {
+      const source = resolveReassignmentSource(conflictRecord)
+      if (isRecordLockedForReassignment(conflictRecord)) {
+        setSubmitError('El vehiculo esta asignado a una cuadrilla confirmada y no se puede tomar.')
+        return
+      }
+      if (source === null) {
         setSubmitError('El vehiculo esta asignado a otra cuadrilla y no tiene id editable para reasignacion.')
         return
       }
-      const sourceTarget: UpdateTarget = activeTab === 'confirmadas' ? 'dbordenres' : 'web'
       setPendingReassignmentPrompt({
         field: 'vehiculo',
         rowIndex: index,
@@ -2651,9 +2684,9 @@ const findVehiculoConflictRecord = (
         selectedLabel: normalizedValue,
         source: {
           field: 'vehiculo',
-          sourceId,
+          sourceId: source.sourceId,
           sourceRecord: conflictRecord,
-          sourceTarget,
+          sourceTarget: source.sourceTarget,
           sourceGroupLabel: toVisualLabel(conflictRecord.grupo, 'Sin grupo'),
           sourceTecnicoLabel: resolveTecnicoListLabel(conflictRecord),
           sourceDisplayValue: toVisualLabel(conflictRecord.vehiculo, 'Sin vehiculo'),
@@ -3193,24 +3226,15 @@ const findVehiculoConflictRecord = (
     return toApiErrorText(firstError, 'No se pudo cargar uno o mas totales del tablero.')
   }, [confirmadasTotalQuery.error, pendientesTotalQuery.error])
   const emptyListMessage = useMemo(() => {
-    const queryText = listSearch.trim()
-    const fechaLabel = activeTab === 'confirmadas' ? confirmadasFechaFiltro : generalFechaFiltro
-
     if (activeTab === 'confirmadas') {
       if (!sucursalActiva) {
         return 'Selecciona una sucursal para ver cuadrillas confirmadas de BDControlOrdenes.'
       }
-      if (queryText) {
-        return `No hay cuadrillas confirmadas que coincidan con "${queryText}".`
-      }
-      return `No hay cuadrillas confirmadas en BDControlOrdenes para ${sucursalActivaLabel} en fecha ${fechaLabel}.`
+      return 'NO HAY DATOS PARA LA FECHA'
     }
 
-    if (queryText) {
-      return `No hay cuadrillas pendientes que coincidan con "${queryText}".`
-    }
-    return `No hay cuadrillas pendientes para ${sucursalActivaLabel} en fecha ${fechaLabel}.`
-  }, [activeTab, confirmadasFechaFiltro, generalFechaFiltro, listSearch, sucursalActiva, sucursalActivaLabel])
+    return 'NO HAY DATOS PARA LA FECHA'
+  }, [activeTab, sucursalActiva])
   const hasPendingReassignments = Boolean(pendingConfirmation?.reassignments?.length)
 
   if (!canViewCuadrillas) {
@@ -3964,10 +3988,10 @@ const findVehiculoConflictRecord = (
         actions={
           <>
             <Button variant="secondary" onClick={handleCancelReassignmentPrompt} type="button" disabled={isSaving}>
-              Cancelar
+              No
             </Button>
             <Button onClick={handleConfirmReassignmentPrompt} type="button" disabled={isSaving || isPendingReassignmentLocked}>
-              Reasignar
+              Si, sobrescribir
             </Button>
           </>
         }
@@ -3975,7 +3999,9 @@ const findVehiculoConflictRecord = (
         {pendingReassignmentPrompt ? (
           <div className="space-y-2">
             <p>
-              Este {pendingReassignmentPrompt.field} ya esta asignado a otra cuadrilla.
+              {pendingReassignmentPrompt.field === 'vehiculo'
+                ? 'Hay otra cuadrilla con este vehiculo. Quieres sobrescribir la asignacion?'
+                : 'Este auxiliar ya esta asignado a otra cuadrilla.'}
             </p>
             <p>
               Cuadrilla actual: <span className="font-semibold">{pendingReassignmentPrompt.source.sourceGroupLabel}</span> | Tecnico:{' '}
@@ -3986,10 +4012,16 @@ const findVehiculoConflictRecord = (
             </p>
             {isPendingReassignmentLocked ? (
               <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                Reasignacion bloqueada: esta cuadrilla ya fue confirmada y existe registro en tbl_conformacioncuadrilladiario para la fecha.
+                {pendingReassignmentPrompt.field === 'vehiculo'
+                  ? 'No se puede tomar este vehiculo porque la cuadrilla origen ya esta confirmada en ControlOrdenes.'
+                  : 'Reasignacion bloqueada: esta cuadrilla ya fue confirmada y existe registro en tbl_conformacioncuadrilladiario para la fecha.'}
               </p>
             ) : (
-              <p>Si confirmas, se desligara de esa cuadrilla y se asignara aqui al guardar.</p>
+              <p>
+                {pendingReassignmentPrompt.field === 'vehiculo'
+                  ? 'Si aceptas, al guardar se quitara el vehiculo de la cuadrilla origen y se asignara a esta.'
+                  : 'Si confirmas, se desligara de esa cuadrilla y se asignara aqui al guardar.'}
+              </p>
             )}
           </div>
         ) : null}

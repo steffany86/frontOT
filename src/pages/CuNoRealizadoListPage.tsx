@@ -63,7 +63,7 @@ const CuNoRealizadoListPage = () => {
         {errorMessage ? (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{errorMessage}</div>
         ) : (
-          <Table columns={columns} data={query.data ?? []} emptyLabel="No hay registros disponibles." />
+          <Table columns={columns} data={query.data ?? []} emptyLabel="NO HAY DATOS PARA LA FECHA" />
         )}
       </FormCard>
     </div>

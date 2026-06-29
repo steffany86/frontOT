@@ -879,7 +879,7 @@ const SupervisorSupervisionPage = () => {
                 data={iniciosConfirmadosAbiertosHoy}
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
-                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'Sin confirmadas abiertas hoy.'}
+                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -906,7 +906,7 @@ const SupervisorSupervisionPage = () => {
                 data={cierresJornadaHoy}
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
-                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando cierres...' : 'Sin cierres de jornada hoy.'}
+                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando cierres...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -938,7 +938,7 @@ const SupervisorSupervisionPage = () => {
                 data={iniciosPendientes}
                 stickyHeader
                 desktopMinWidthClass="min-w-[760px]"
-                emptyLabel={iniciosPendientesQuery.isLoading ? 'Cargando pendientes...' : 'Sin inicios pendientes de aprobacion.'}
+                emptyLabel={iniciosPendientesQuery.isLoading ? 'Cargando pendientes...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -996,7 +996,7 @@ const SupervisorSupervisionPage = () => {
                 data={listadosPendientes}
                 stickyHeader
                 desktopMinWidthClass="min-w-[960px]"
-                emptyLabel={listadoPendientesQuery.isLoading ? 'Cargando pendientes...' : 'Sin supervisiones pendientes.'}
+                emptyLabel={listadoPendientesQuery.isLoading ? 'Cargando pendientes...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -1069,7 +1069,9 @@ const SupervisorSupervisionPage = () => {
               {listadoQuery.isLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Cargando notas...</div>
               ) : listados.length === 0 ? (
-                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sin notas de supervision.</div>
+                <div className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center">
+                  <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
+                </div>
               ) : (
                 listados.map((row) => (
                   <article key={row.idSupervision} className="rounded-3xl border border-[#cfd8ee] bg-white p-3 shadow-sm">
@@ -1129,7 +1131,7 @@ const SupervisorSupervisionPage = () => {
                 stickyHeader
                 density="compact"
                 desktopMinWidthClass="min-w-[920px]"
-                emptyLabel={listadoQuery.isLoading ? 'Cargando notas...' : 'Sin notas de supervision.'}
+                emptyLabel={listadoQuery.isLoading ? 'Cargando notas...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>

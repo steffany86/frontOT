@@ -11,7 +11,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { matchPath } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../config/navigation'
-import { fetchPermisos, login as loginRequest } from '../services/authApi'
+import { fetchMe, fetchPermisos, login as loginRequest } from '../services/authApi'
 import { getApiErrorMessage, isAuthError, setUnauthorizedHandler } from '../services/httpClient'
 import { useSessionStore } from '../store/sessionStore'
 import type { LoginRequest, SessionData } from '../types/auth'
@@ -139,6 +139,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const refreshPermisos = useCallback(async (): Promise<PermisosUsuario | null> => {
     const activeToken = getSessionStorage()?.sessionToken ?? token
     if (!activeToken) return null
+    const me = await fetchMe(activeToken)
+    const restoredSession: SessionData = {
+      sessionToken: activeToken,
+      ...me,
+    }
+    setSessionStorage(restoredSession)
+    useSessionStore.getState().setSession(restoredSession)
+    setToken(activeToken)
+    setUsuario(mapSessionToUser(restoredSession))
     const nextPermisos = await fetchPermisos(activeToken)
     hydratePermisos(nextPermisos)
     loadedPermisosTokenRef.current = activeToken

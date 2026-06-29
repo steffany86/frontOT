@@ -1714,12 +1714,10 @@ const OtDashboardPage = () => {
               Operacion bloqueada por multiples grupos asignados. Solicita quedar con un solo grupo y vuelve a ingresar.
             </div>
           ) : filteredCardEntries.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-              {allRows.length === 0
-                ? 'Revise registro Conformacion de cuadrillas y/o no hay datos en agenda'
-                : estadoTab === 'finalizadas'
-                  ? 'No hay registros en tbl_venta para la fecha seleccionada.'
-                  : 'No hay OT pendientes para la fecha seleccionada.'}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-14 text-center">
+              <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">
+                NO HAY DATOS PARA LA FECHA
+              </p>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -2062,8 +2060,8 @@ const OtDashboardPage = () => {
                     <section className="space-y-2">
                       <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
                       {rows.length === 0 ? (
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500">
-                          Sin registros.
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-8 text-center">
+                          <p className="text-xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
                         </div>
                       ) : (
                         <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-slate-200">

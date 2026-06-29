@@ -112,9 +112,22 @@ const hasNtbDifference = (row: DigitadorGeorefRow): boolean => {
 
 const isNtbKey = (key: string): boolean => ['ntb', 'ntbv'].includes(key.replace(/[_\-\s]/g, '').toLowerCase())
 
+const tecnicoFilterKey = (row: DigitadorGeorefRow): string => {
+  const tecnico = asText(row, ['TECNICO', 'tecnico'])
+  const sf = asText(row, ['tecnico_nombre'])
+  const raw = tecnico || sf
+  return raw.trim().replace(/\s+/g, ' ').toLowerCase()
+}
+
+const tecnicoFilterLabel = (row: DigitadorGeorefRow): string => {
+  const tecnico = asText(row, ['TECNICO', 'tecnico']).trim()
+  const sf = asText(row, ['tecnico_nombre']).trim()
+  return tecnico || sf || 'Sin tecnico'
+}
+
 const NtbDifferenceBadge = () => (
-  <span className="inline-flex w-fit rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
-    NTB diferente
+  <span className="inline-flex w-fit rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm shadow-red-200 ring-1 ring-red-700">
+    (pendiente)
   </span>
 )
 
@@ -136,12 +149,12 @@ const TecnicoCell = ({ row }: { row: DigitadorGeorefRow }) => {
   )
 }
 
-const DarkField = ({ label, value, boxed = false, danger = false }: { label: string; value: string; boxed?: boolean; danger?: boolean }) => (
+const DarkField = ({ label, value, boxed = false, danger: _danger = false }: { label: string; value: string; boxed?: boolean; danger?: boolean }) => (
   <div className="grid min-w-0 grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-3 text-[11px] sm:text-xs">
-    <span className={`font-bold uppercase ${danger ? 'text-rose-700' : 'text-slate-600'}`}>{label}</span>
+    <span className="font-extrabold uppercase text-slate-950">{label}</span>
     <span
       className={`min-h-7 break-words rounded-md px-2 py-1 font-semibold ${
-        danger ? 'text-rose-700' : boxed ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200' : 'text-slate-900'
+        boxed ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200' : 'text-slate-950'
       }`}
     >
       {value || '-'}
@@ -175,62 +188,71 @@ const GeorefSummaryCard = ({
   const ntbVenta = asText(row, ['N_T_B_V', 'NTB_V', 'ntb_v', 'NTBV'])
 
   return (
-    <article className={`rounded-[24px] border p-4 text-slate-900 shadow-sm sm:p-5 ${ntbDifferent ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-slate-50'}`}>
-      <div className="grid gap-4 lg:grid-cols-[1.15fr_1.25fr_0.7fr] lg:items-start">
-        <div className="space-y-3">
+    <article className={`rounded-[26px] border p-5 text-slate-950 shadow-sm sm:p-6 ${ntbDifferent ? 'border-red-300 bg-red-50/50' : 'border-slate-200 bg-slate-50'}`}>
+      <div className="grid gap-5 lg:grid-cols-[1.15fr_1.25fr_0.7fr] lg:items-stretch">
+        <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
           <DarkField label="OT" value={asText(row, ['OT', 'ot'])} boxed danger={ntbDifferent} />
           <DarkField label="Cliente" value={asText(row, ['cliente_nro', 'cliente'])} boxed danger={ntbDifferent} />
           <button
             type="button"
             onClick={onOpenDetail}
             disabled={!selection}
-            className="w-full rounded-md bg-white px-3 py-3 text-left text-xs font-medium text-slate-800 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl bg-white px-3.5 py-3.5 text-left text-xs font-semibold text-slate-950 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <TecnicoCell row={row} />
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
           <DarkField label="N_T_B" value={ntb} danger={ntbDifferent} />
           <DarkField label="N_T_B_V" value={ntbVenta} danger={ntbDifferent} />
-          <div className="grid gap-3 text-[11px] sm:grid-cols-[5.25rem_minmax(0,1fr)] sm:text-xs">
-            <span className={`font-bold uppercase ${ntbDifferent ? 'text-rose-700' : 'text-slate-600'}`}>Latitud Long</span>
-            <div className="grid gap-3 font-semibold text-slate-900 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-              <div className="space-y-1">
-                <p>{formatCoordinateVisualOnly(latTecnico)}</p>
-                <p>{formatCoordinateVisualOnly(lonTecnico)}</p>
+          <div className="rounded-2xl bg-slate-50 px-4 py-4 text-[11px] ring-1 ring-slate-200 sm:text-xs">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <span className="text-sm font-extrabold uppercase tracking-wide text-slate-950">Coordenadas</span>
+              {ntbDifferent ? <span className="rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">revisar</span> : null}
+            </div>
+            <div className="grid gap-4 font-semibold text-slate-950 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
+              <div className="grid gap-2.5">
+                <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-700">Longitud</span>
+                  <span className="rounded-xl bg-white px-3 py-2 font-mono text-xs font-extrabold text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(lonTecnico)}</span>
+                </div>
+                <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3">
+                  <span className="text-[10px] font-extrabold uppercase text-slate-700">Latitud</span>
+                  <span className="rounded-xl bg-white px-3 py-2 font-mono text-xs font-extrabold text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(latTecnico)}</span>
+                </div>
               </div>
-              <div className="text-left text-[11px] font-bold sm:text-right">
-                <p className="text-rose-600">diferencia</p>
-                <p className="text-rose-600">{formatMeters(asNumber(row, ['DistanciaMetros']))}</p>
+              <div className="flex min-w-[6.5rem] flex-col justify-center rounded-2xl bg-white px-4 py-3 text-left text-[11px] font-extrabold text-slate-950 ring-1 ring-slate-300 sm:text-right">
+                <p className="uppercase tracking-wide text-slate-700">diferencia</p>
+                <p className="mt-1 text-sm">{formatMeters(asNumber(row, ['DistanciaMetros']))}</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap items-end gap-4 pt-1">
-            <label className="flex cursor-pointer items-end gap-3">
-              <span className="max-w-16 text-[10px] font-bold leading-none text-slate-600">confirmar ubicacion</span>
+          <div className="flex flex-wrap gap-3 pt-2">
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5 ring-1 ring-slate-200">
               <input
                 type="checkbox"
-                className="h-6 w-6 rounded border-slate-300 text-blue-600"
+                className="h-5 w-5 rounded border-slate-300 text-blue-600"
                 checked={actualizado || draft.confirmarUbicacion}
                 disabled={actualizado}
                 onChange={(event) => onDraftChange({ ...draft, confirmarUbicacion: event.target.checked })}
               />
+              <span className="text-[10px] font-extrabold uppercase leading-tight text-slate-800">confirmar ubicacion</span>
             </label>
-            <label className="flex cursor-pointer items-end gap-3">
-              <span className="max-w-16 text-[10px] font-bold leading-none text-slate-600">confirmar NODO</span>
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5 ring-1 ring-slate-200">
               <input
                 type="checkbox"
-                className="h-6 w-6 rounded border-slate-300 text-blue-600"
+                className="h-5 w-5 rounded border-slate-300 text-blue-600"
                 checked={actualizadoNodo || draft.confirmarNodo}
                 disabled={actualizadoNodo}
                 onChange={(event) => onDraftChange({ ...draft, confirmarNodo: event.target.checked })}
               />
+              <span className="text-[10px] font-extrabold uppercase leading-tight text-slate-800">confirmar NODO</span>
             </label>
           </div>
         </div>
 
-        <div className="flex h-full flex-col justify-between gap-4">
+        <div className="flex h-full flex-col justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
           <div className="flex flex-col items-start gap-3 lg:items-end">
             {ntbDifferent ? <NtbDifferenceBadge /> : null}
           </div>
@@ -239,7 +261,7 @@ const GeorefSummaryCard = ({
               type="button"
               onClick={onOpenDetail}
               disabled={!selection}
-              className="rounded-md border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               detalle
             </button>
@@ -247,7 +269,7 @@ const GeorefSummaryCard = ({
               type="button"
               onClick={onConfirm}
               disabled={confirmDisabled}
-              className="rounded-md bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               confirmar
             </button>
@@ -307,7 +329,9 @@ const DigitadorGeorefPage = () => {
   const [fecha, setFecha] = useState(todayIso())
   const [selected, setSelected] = useState<MapSelection | null>(null)
   const [tab, setTab] = useState<'pendientes' | 'confirmados'>('pendientes')
+  const [distanciaFilter, setDistanciaFilter] = useState<'todas' | 'mayor15' | 'menorIgual15'>('todas')
   const [confirmDrafts, setConfirmDrafts] = useState<Record<number, ConfirmDraft>>({})
+  const [tecnicoFilter, setTecnicoFilter] = useState('')
 
   const query = useQuery({
     queryKey: ['digitador-georef-distancias', fecha],
@@ -325,8 +349,28 @@ const DigitadorGeorefPage = () => {
   })
 
   const rows = useMemo(() => query.data ?? [], [query.data])
-  const pendientes = useMemo(() => rows.filter((row) => !isFullyConfirmed(row)), [rows])
-  const confirmados = useMemo(() => rows.filter((row) => isFullyConfirmed(row)), [rows])
+  const tecnicoOptions = useMemo(() => {
+    const byKey = new Map<string, string>()
+    for (const row of rows) {
+      const key = tecnicoFilterKey(row)
+      if (!key) continue
+      if (!byKey.has(key)) byKey.set(key, tecnicoFilterLabel(row))
+    }
+    return Array.from(byKey.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'es', { sensitivity: 'base' }))
+  }, [rows])
+  const filteredRows = useMemo(() => {
+    return rows.filter((row) => {
+      if (tecnicoFilter && tecnicoFilterKey(row) !== tecnicoFilter) return false
+      const distancia = asNumber(row, ['DistanciaMetros'])
+      if (distanciaFilter === 'mayor15') return distancia !== null && distancia > 15
+      if (distanciaFilter === 'menorIgual15') return distancia !== null && distancia <= 15
+      return true
+    })
+  }, [rows, tecnicoFilter, distanciaFilter])
+  const pendientes = useMemo(() => filteredRows.filter((row) => !isFullyConfirmed(row)), [filteredRows])
+  const confirmados = useMemo(() => filteredRows.filter((row) => isFullyConfirmed(row)), [filteredRows])
   const visibleRows = tab === 'pendientes' ? pendientes : confirmados
 
   const buildSelection = (row: DigitadorGeorefRow): MapSelection | null => {
@@ -371,11 +415,50 @@ const DigitadorGeorefPage = () => {
             <h1 className="text-2xl font-extrabold text-slate-900">Georeferencias por revisar</h1>
             <p className="text-sm text-slate-500">Registros finalizados con distancia mayor o igual a 15 metros.</p>
           </div>
-          <div className="flex items-end gap-2">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="block min-w-[16rem]">
+              <span className="mb-1 block text-xs font-semibold text-slate-600">Tecnico</span>
+              <select
+                className="input-base h-10 rounded-md text-sm"
+                value={tecnicoFilter}
+                onChange={(event) => setTecnicoFilter(event.target.value)}
+                disabled={query.isLoading || tecnicoOptions.length === 0}
+              >
+                <option value="">Todos los tecnicos</option>
+                {tecnicoOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label className="block">
               <span className="mb-1 block text-xs font-semibold text-slate-600">Fecha</span>
               <input className="input-base h-10 rounded-md text-sm" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
             </label>
+            <div className="block">
+              <span className="mb-1 block text-xs font-semibold text-slate-600">Diferencia</span>
+              <div className="flex h-10 rounded-xl border border-slate-200 bg-slate-50 p-1">
+                {[
+                  { value: 'todas', label: 'Todas' },
+                  { value: 'mayor15', label: '> 15 m' },
+                  { value: 'menorIgual15', label: '<= 15 m' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setDistanciaFilter(option.value as typeof distanciaFilter)}
+                    className={`rounded-lg px-3 text-xs font-extrabold transition ${
+                      distanciaFilter === option.value
+                        ? 'bg-slate-950 text-white shadow-sm'
+                        : 'text-slate-600 hover:bg-white hover:text-slate-950'
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Button type="button" variant="secondary" onClick={() => query.refetch()} disabled={query.isFetching}>
               {query.isFetching ? 'Actualizando...' : 'Actualizar'}
             </Button>
@@ -423,8 +506,10 @@ const DigitadorGeorefPage = () => {
             )
           })}
           {!query.isLoading && visibleRows.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-slate-500">
-              Sin registros {tab === 'pendientes' ? 'pendientes' : 'confirmados'} para la fecha seleccionada.
+            <div className="px-4 py-14 text-center">
+              <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950 sm:text-4xl">
+                NO HAY REGISTROS PARA LA FECHA
+              </p>
             </div>
           ) : null}
           {query.isLoading ? <div className="px-4 py-8 text-center text-sm text-slate-500">Cargando registros...</div> : null}

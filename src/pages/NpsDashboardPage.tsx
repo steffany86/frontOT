@@ -183,15 +183,33 @@ const NpsDashboardPage = () => {
     setDismissedNoStatsModal(false)
   }, [modo, fechaInicio, fechaFin, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre, usuario?.idUsuario])
 
+  const filtrosParams = useMemo(
+    () => ({ modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre }),
+    [modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre]
+  )
+  const dashboardParams = useMemo(
+    () => ({
+      modo,
+      fechaInicio,
+      fechaFin,
+      idSucursal,
+      idSupervisor: undefined,
+      idTecnico: undefined,
+      supervisorNombre,
+      tecnicoNombre,
+    }),
+    [modo, fechaInicio, fechaFin, idSucursal, supervisorNombre, tecnicoNombre]
+  )
+
   const sucursalesQuery = useQuery({ queryKey: ['auth-sucursales-nps'], queryFn: fetchSucursales })
   const filtrosQuery = useQuery({
     queryKey: ['nps-filtros', modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre, role, usuario?.idUsuario],
-    queryFn: () => fetchNpsFiltros({ modo, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre }),
+    queryFn: () => fetchNpsFiltros(filtrosParams),
     enabled: Boolean(isCentral || idSucursal || !isCentral),
   })
   const dashboardQuery = useQuery({
     queryKey: ['nps-dashboard', modo, fechaInicio, fechaFin, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre, role, usuario?.idUsuario],
-    queryFn: () => fetchNpsDashboard({ modo, fechaInicio, fechaFin, idSucursal, idSupervisor, idTecnico, supervisorNombre, tecnicoNombre }),
+    queryFn: () => fetchNpsDashboard(dashboardParams),
     enabled: Boolean(isCentral || idSucursal || !isCentral),
   })
 
@@ -367,6 +385,10 @@ const NpsDashboardPage = () => {
   const shouldHideChartsForNoStats =
     modo === 'nps_invitado' &&
     isTecnico &&
+    !dashboardQuery.isLoading &&
+    !dashboardQuery.isError &&
+    rows.length === 0
+  const shouldShowNpsEmpty =
     !dashboardQuery.isLoading &&
     !dashboardQuery.isError &&
     rows.length === 0
@@ -645,13 +667,13 @@ const NpsDashboardPage = () => {
         )}
       >
         <p className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">
-          No hay registros para los ultimos 4 dias
+          NO HAY DATOS NPS
         </p>
       </Modal>
-      {shouldHideChartsForNoStats ? (
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center text-slate-600">
-          <p className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">
-            No hay registros para los ultimos 4 dias
+      {shouldShowNpsEmpty ? (
+        <div className="rounded-xl border border-slate-200 bg-white px-4 py-14 text-center">
+          <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950 sm:text-4xl">
+            NO HAY DATOS NPS
           </p>
         </div>
       ) : null}
@@ -1155,7 +1177,9 @@ const NpsDashboardPage = () => {
             )
           })}
           {filteredTableRows.length === 0 ? (
-            <div className="p-3 text-sm text-slate-500">No hay técnicos para el filtro actual.</div>
+            <div className="px-4 py-10 text-center">
+              <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS NPS</p>
+            </div>
           ) : null}
         </div>
       </div>
@@ -1190,7 +1214,9 @@ const NpsDashboardPage = () => {
               ))}
               {detractoresRows.length === 0 ? (
                 <tr>
-                  <td className="p-3 text-slate-500" colSpan={6}>No hay detractores para el filtro actual.</td>
+                  <td className="px-4 py-10 text-center" colSpan={6}>
+                    <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS NPS</p>
+                  </td>
                 </tr>
               ) : null}
             </tbody>

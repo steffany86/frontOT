@@ -156,7 +156,7 @@ const readBoolean = (row: UnknownRecord, keys: string[]): boolean | null => {
   if (typeof value === 'number') return value !== 0
   if (typeof value === 'string') {
     const normalized = value.trim().toLowerCase()
-    if (['1', 'true', 'si', 'sí', 's', 'yes'].includes(normalized)) return true
+    if (['1', 'true', 'si', 'sÃ­', 's', 'yes'].includes(normalized)) return true
     if (['0', 'false', 'no', 'n'].includes(normalized)) return false
   }
   return null
@@ -632,6 +632,7 @@ const OtRealizadaPage = () => {
   const [serie, setSerie] = useState('')
   const [serieSuggestions, setSerieSuggestions] = useState<SerieSuggestionOption[]>([])
   const [serieSelectorOpen, setSerieSelectorOpen] = useState(false)
+  const [serieSelectorSearch, setSerieSelectorSearch] = useState('')
   const [serieSelectorLoading, setSerieSelectorLoading] = useState(false)
   const [chipId, setChipId] = useState('')
   const [cantidad, setCantidad] = useState('1')
@@ -685,6 +686,7 @@ const OtRealizadaPage = () => {
   const serieInputRef = useRef<HTMLInputElement | null>(null)
   const chipIdInputRef = useRef<HTMLInputElement | null>(null)
   const cantidadInputRef = useRef<HTMLInputElement | null>(null)
+  const serieSelectorSearchRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioProductoRef = useRef<HTMLSelectElement | null>(null)
   const cargoUsuarioSerieRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioChipRef = useRef<HTMLInputElement | null>(null)
@@ -1594,6 +1596,13 @@ const OtRealizadaPage = () => {
     setErrorModalOpen(false)
   }
 
+  useEffect(() => {
+    const message = error || cargoUsuarioError
+    if (!message) return
+    setErrorModalMessage(message)
+    setErrorModalOpen(true)
+  }, [cargoUsuarioError, error])
+
   const handleCantidadBlur = () => {
     if (skipMaterialBlurValidationRef.current) {
       skipMaterialBlurValidationRef.current = false
@@ -1742,6 +1751,13 @@ const OtRealizadaPage = () => {
       cancelled = true
     }
   }, [idRutaValidacion, isInstalledType, needsSerie, productoId, selectedTipoMaterialLabel, serieSelectorOpen, tipoMaterialId])
+
+  useEffect(() => {
+    if (!serieSelectorOpen) return
+    window.setTimeout(() => {
+      serieSelectorSearchRef.current?.focus()
+    }, 80)
+  }, [serieSelectorOpen])
 
   useEffect(() => {
     const serieTerm = cargoUsuarioSerie.trim()
@@ -2113,6 +2129,10 @@ const OtRealizadaPage = () => {
   }, [needsSerie, serie, validateSerieBalance])
 
   const handleSerieBlur = (): void => {
+    if (isInstalledType || serieSelectorOpen) {
+      setSerieValidationError(null)
+      return
+    }
     if (skipMaterialBlurValidationRef.current) {
       skipMaterialBlurValidationRef.current = false
       setSerieValidationError(null)
@@ -3995,6 +4015,17 @@ const OtRealizadaPage = () => {
 
   const formInteractionLocked = formLocked || mutation.isPending || isPrevalidating || registroFechaBloqueado || !resolvedIdSucursal
 
+  const filteredSerieSuggestions = useMemo(() => {
+    const normalizeSearch = (value: string): string => value.toLowerCase().replace(/[^a-z0-9]/g, '')
+    const term = normalizeSearch(serieSelectorSearch)
+    if (!term) return serieSuggestions
+    return serieSuggestions.filter((item) => {
+      const serial = normalizeSearch(item.serial)
+      const chip = normalizeSearch(item.chipId ?? '')
+      return serial.includes(term) || chip.includes(term)
+    })
+  }, [serieSelectorSearch, serieSuggestions])
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSuccess(null)
@@ -4346,7 +4377,7 @@ const OtRealizadaPage = () => {
               <Table
                 columns={columns}
                 data={materialRows}
-                emptyLabel="Sin materiales agregados."
+                emptyLabel="NO HAY DATOS PARA LA FECHA"
                 rowClassName={(row) => (isRetiredMaterialRow(row) ? 'bg-slate-200' : '')}
                 mobileRenderMode="table"
                 mobileTableMinWidthClass="min-w-[620px]"
@@ -4523,7 +4554,7 @@ const OtRealizadaPage = () => {
               <Table
                 columns={cargoUsuarioColumns}
                 data={cargoUsuarioRows}
-                emptyLabel="Sin cargo usuario agregado."
+                emptyLabel="NO HAY DATOS PARA LA FECHA"
                 mobileRenderMode="table"
                 mobileTableMinWidthClass="min-w-[720px]"
                 density="compact"
@@ -4586,22 +4617,44 @@ const OtRealizadaPage = () => {
       <Modal
         open={serieSelectorOpen}
         title="Selecciona serie"
-        onClose={() => setSerieSelectorOpen(false)}
+        onClose={() => {
+          setSerieSelectorOpen(false)
+          setSerieSelectorSearch('')
+        }}
         containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
         contentClassName="p-0"
         actions={
-          <Button type="button" variant="secondary" onClick={() => setSerieSelectorOpen(false)}>
+          <Button type="button" variant="secondary" onClick={() => { setSerieSelectorOpen(false); setSerieSelectorSearch('') }}>
             Cerrar
           </Button>
         }
       >
-        <div className="max-h-[70dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
-          {serieSelectorLoading ? (
+        <div className="relative z-10 mb-3 pointer-events-auto">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar serie</label>
+          <input
+            ref={serieSelectorSearchRef}
+            type="search"
+            className="input-base rounded-xl py-2 text-sm"
+            value={serieSelectorSearch}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              event.stopPropagation()
+              setSerieSelectorSearch(event.target.value)
+            }}
+            placeholder="Buscar por serie o ChipID..."
+            autoFocus
+          />
+        </div>
+        <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">          {serieSelectorLoading ? (
             <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando series...</div>
-          ) : serieSuggestions.length === 0 ? (
+          ) : filteredSerieSuggestions.length === 0 ? (
             <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin series disponibles.</div>
           ) : (
-            serieSuggestions.map((item) => {
+            filteredSerieSuggestions.map((item) => {
               const selected = item.serial === serie
               const serialParts = splitSerialLastFour(item.serial)
               return (
@@ -4618,6 +4671,7 @@ const OtRealizadaPage = () => {
                     setSerieCamposBloqueados(true)
                     setSerieSuggestions([])
                     setSerieSelectorOpen(false)
+                    setSerieSelectorSearch('')
                     setCantidadBlurConfirmada(true)
                     setChipUniquenessState('valid')
                   }}

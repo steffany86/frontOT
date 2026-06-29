@@ -215,7 +215,9 @@ const RegistroTorPage = () => {
                   </tr>
                 ) : registrados.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-5 text-slate-500" colSpan={4}>Sin registros para mostrar.</td>
+                    <td className="px-4 py-12 text-center" colSpan={4}>
+                      <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
+                    </td>
                   </tr>
                 ) : (
                   registrados.map((item, index) => (
@@ -237,8 +239,8 @@ const RegistroTorPage = () => {
                 Cargando registrados...
               </div>
             ) : registrados.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                Sin registros para mostrar.
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-12 text-center">
+                <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
               </div>
             ) : (
               registrados.map((item, index) => (

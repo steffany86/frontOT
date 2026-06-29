@@ -331,6 +331,7 @@ const RegistrarOTAgendaPage = () => {
   const [successModalOpen, setSuccessModalOpen] = useState(false)
   const [successModalMessage, setSuccessModalMessage] = useState('')
   const [duplicateOrdenModalOpen, setDuplicateOrdenModalOpen] = useState(false)
+  const [submitErrorModalOpen, setSubmitErrorModalOpen] = useState(false)
   const [pdfFile, setPdfFile] = useState<File | null>(null)
   const [nodo, setNodo] = useState('')
   const [ramal, setRamal] = useState('')
@@ -796,6 +797,7 @@ const RegistrarOTAgendaPage = () => {
   const nodoValid = /^[A-Z]{3}\d{3,4}$/.test(nodoUpper)
   const ramalUpper = ramal.trim().toUpperCase()
   const ramalValid = ramalUpper.length > 0
+  const ramalInvalidAfterSubmit = hasAttemptedSubmit && !ramalValid
   const parsedTap = parseNumber(tap)
   const tapValid = /^\d{3}$/.test(tap.trim())
   const tapDisplay = tap.trim() ? tap.trim().padStart(3, '0') : '-'
@@ -1293,6 +1295,11 @@ const RegistrarOTAgendaPage = () => {
     handleBackToDashboard()
   }
 
+  useEffect(() => {
+    if (!submitError) return
+    setSubmitErrorModalOpen(true)
+  }, [submitError])
+
   const runPreRegisterValidations = async (): Promise<boolean> => {
     const routeId = hiddenIdRuta ?? hiddenIdGrupo ?? null
     const executionDate = formatDateDDMMYYYY(new Date())
@@ -1611,7 +1618,12 @@ const RegistrarOTAgendaPage = () => {
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Ramal</label>
-              <select className="input-base rounded-md py-2 text-sm" value={ramal} onChange={(event) => setRamal(event.target.value)}>
+              <select
+                className={`input-base rounded-md py-2 text-sm ${ramalInvalidAfterSubmit ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
+                value={ramal}
+                onChange={(event) => setRamal(event.target.value)}
+                aria-invalid={ramalInvalidAfterSubmit}
+              >
                 <option value="">{ramalesQuery.isLoading ? 'Cargando ramales...' : 'Selecciona ramal'}</option>
                 {ramalOptions.map((option) => (
                   <option key={option} value={option}>
@@ -1619,6 +1631,7 @@ const RegistrarOTAgendaPage = () => {
                   </option>
                 ))}
               </select>
+              {ramalInvalidAfterSubmit ? <p className="mt-1 text-xs text-rose-600">Ramal es requerido.</p> : null}
             </div>
 
             <div>
@@ -1857,6 +1870,20 @@ const RegistrarOTAgendaPage = () => {
         }
       >
         <p>No se puede escribir esta orden, ya existe.</p>
+      </Modal>
+
+      <Modal
+        open={submitErrorModalOpen && Boolean(submitError) && !duplicateOrdenModalOpen}
+        title="No se pudo registrar la OT"
+        onClose={() => setSubmitErrorModalOpen(false)}
+        contentClassName="max-w-full overflow-x-hidden whitespace-pre-wrap break-all"
+        actions={
+          <Button type="button" variant="secondary" onClick={() => setSubmitErrorModalOpen(false)}>
+            Cerrar
+          </Button>
+        }
+      >
+        <p className="max-w-full overflow-x-hidden whitespace-pre-wrap break-all">{submitError}</p>
       </Modal>
 
       <Modal

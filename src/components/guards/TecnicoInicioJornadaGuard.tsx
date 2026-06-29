@@ -1,4 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { fetchInicioJornadaEstado } from '../../api/inicioJornadaApi'
 import { useAuth } from '../../context/AuthContext'
@@ -6,6 +8,7 @@ import { fetchSucursales } from '../../services/authApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 import Button from '../common/Button'
 import Modal from '../common/Modal'
+import CierreJornadaForm from '../tecnico/CierreJornadaForm'
 import InicioJornadaChecklistForm from '../tecnico/InicioJornadaChecklistForm'
 
 const TecnicoInicioJornadaGuard = () => {
@@ -34,7 +37,9 @@ const TecnicoInicioJornadaGuard = () => {
     queryKey: ['tecnico-inicio-jornada', 'estado', loginSucursal || 'auto'],
     queryFn: () => fetchInicioJornadaEstado(loginSucursal),
     enabled: isAuthenticated && requiresInicioJornada,
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchInterval: 15 * 1000,
+    refetchOnWindowFocus: true,
   })
 
   if (!isAuthenticated || !requiresInicioJornada) {
@@ -53,7 +58,8 @@ const TecnicoInicioJornadaGuard = () => {
     )
   }
 
-  const pendiente = estadoQuery.data?.pendiente ?? false
+  const requiereCierreAyer = Boolean(estadoQuery.data?.requiereCierreAyer && estadoQuery.data?.idInicioPendienteCierre)
+  const pendiente = !requiereCierreAyer && (estadoQuery.data?.pendiente ?? false)
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
@@ -62,6 +68,34 @@ const TecnicoInicioJornadaGuard = () => {
   return (
     <>
       <Outlet />
+      <Modal
+        open={requiereCierreAyer}
+        onClose={handleLogout}
+        title="Modal de cierre de jornada de AYER"
+        maxWidthClass="max-w-3xl"
+        actions={
+          <Button type="button" variant="secondary" onClick={handleLogout}>
+            Cerrar sesion
+          </Button>
+        }
+      >
+        <div className="mb-4 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+            <FontAwesomeIcon icon={faClockRotateLeft} />
+          </span>
+          <div>
+            <p className="text-sm font-extrabold">No marco el cierre ayer.</p>
+            <p className="mt-1 text-sm font-semibold">Por favor, antes de iniciar, llenar los campos de cierre.</p>
+          </div>
+        </div>
+        <CierreJornadaForm
+          idInicio={estadoQuery.data?.idInicioPendienteCierre}
+          submitLabel="Registrar cierre de ayer"
+          onClosed={() => {
+            estadoQuery.refetch()
+          }}
+        />
+      </Modal>
       <Modal
         open={pendiente}
         onClose={handleLogout}

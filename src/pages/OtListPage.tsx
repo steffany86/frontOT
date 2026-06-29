@@ -481,7 +481,7 @@ const OtListPage = () => {
     setView(next)
   }
 
-  const emptyLabel = isTecnico ? 'No hay OT para esta fecha/filtros.' : 'No hay OT para esta fecha/filtros.'
+  const emptyLabel = isTecnico ? 'NO HAY DATOS PARA LA FECHA' : 'NO HAY DATOS PARA LA FECHA'
 
   return (
     <div className="bento-page">
@@ -585,8 +585,8 @@ const OtListPage = () => {
 
           <div className="mt-4 space-y-3">
             {scheduleGroups.groups.length === 0 && scheduleGroups.withoutTime.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                No hay OT para esta fecha/filtros.
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-12 text-center">
+                <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
               </div>
             ) : null}
 
@@ -859,8 +859,8 @@ const OtListPage = () => {
 
             <div className="mt-5 max-h-[60vh] space-y-3 overflow-y-auto pr-1">
               {selectedDayItems.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                  No hay OT para este dia.
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-12 text-center">
+                  <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
                 </div>
               ) : (
                 selectedDayItems.map((row, index) => {

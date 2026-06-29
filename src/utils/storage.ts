@@ -1,6 +1,6 @@
 import type { SessionData } from '../types/auth'
 
-const SESSION_TTL_MS = 45 * 60 * 1000
+const DEFAULT_SESSION_TTL_MS = 8 * 60 * 60 * 1000
 
 const storageKeys = {
   sessionToken: 'sessionToken',
@@ -63,10 +63,13 @@ export const getSessionStorage = (): SessionData | null => {
 export const setSessionStorage = (data: SessionData): void => {
   const currentExpiresAtRaw = localStorage.getItem(storageKeys.sessionExpiresAt)
   const currentExpiresAt = Number(currentExpiresAtRaw)
+  const backendExpiresAt = data.expira ? Date.parse(data.expira) : NaN
   const nextExpiresAt =
-    Number.isFinite(currentExpiresAt) && currentExpiresAt > Date.now()
-      ? currentExpiresAt
-      : Date.now() + SESSION_TTL_MS
+    Number.isFinite(backendExpiresAt) && backendExpiresAt > Date.now()
+      ? backendExpiresAt
+      : Number.isFinite(currentExpiresAt) && currentExpiresAt > Date.now()
+        ? currentExpiresAt
+        : Date.now() + DEFAULT_SESSION_TTL_MS
 
   localStorage.setItem(storageKeys.sessionToken, data.sessionToken)
   localStorage.setItem(storageKeys.idUsuario, String(data.idUsuario))

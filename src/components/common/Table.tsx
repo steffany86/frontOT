@@ -28,7 +28,7 @@ interface TableProps<T> {
 const Table = <T,>({
   columns,
   data,
-  emptyLabel = 'Sin registros',
+  emptyLabel = 'NO HAY DATOS PARA LA FECHA',
   rowClassName = '',
   variant = 'default',
   hideHeader = false,
@@ -57,7 +57,9 @@ const Table = <T,>({
     <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft">
       <div className="md:hidden">
         {data.length === 0 ? (
-          <div className="px-4 py-6 text-center text-sm text-slate-500">{emptyLabel}</div>
+          <div className="px-4 py-12 text-center">
+            <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">{emptyLabel}</p>
+          </div>
         ) : mobileRenderMode === 'table' || (isRowBlock && mobileRowBlockMode === 'table') ? (
           <div className="overflow-x-auto">
             <table className={`w-full ${mobileTableMinWidthClass} border-collapse text-xs`}>
@@ -185,8 +187,8 @@ const Table = <T,>({
           <tbody>
             {data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className={`${isCompact ? 'px-3 py-4' : 'px-4 py-6'} text-center text-slate-500`}>
-                  {emptyLabel}
+                <td colSpan={columns.length} className={`${isCompact ? 'px-3 py-8' : 'px-4 py-12'} text-center`}>
+                  <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">{emptyLabel}</p>
                 </td>
               </tr>
             ) : (

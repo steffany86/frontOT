@@ -75,6 +75,18 @@ const getComparisonBadge = (row: BoletaDigitalOt): { label: string; className: s
   }
 }
 
+const formatBoletaFecha = (value: string): string => {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const year = date.getFullYear()
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${day}/${month}/${year} ${hours}:${minutes}`
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -443,7 +455,9 @@ const VerificacionBoletaDigitalPage = () => {
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-5 text-slate-500" colSpan={7}>Sin boletas para mostrar.</td>
+                  <td className="px-4 py-12 text-center" colSpan={7}>
+                    <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
+                  </td>
                 </tr>
               ) : (
                 visibleRows.map((row, index) => {
@@ -455,7 +469,7 @@ const VerificacionBoletaDigitalPage = () => {
                     <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">{row.ot || '-'}</td>
                     <td className="px-4 py-3 text-slate-700">{row.cliente || '-'}</td>
                     <td className="px-4 py-3 text-slate-700">{row.tecnico || '-'}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{row.fecha || '-'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatBoletaFecha(row.fecha)}</td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${comparisonBadge.className}`}>
                         {comparisonBadge.label}
@@ -527,8 +541,8 @@ const VerificacionBoletaDigitalPage = () => {
               Cargando boletas...
             </div>
           ) : visibleRows.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-              Sin boletas para mostrar.
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-12 text-center">
+              <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
             </div>
           ) : (
             visibleRows.map((row, index) => {
@@ -540,7 +554,7 @@ const VerificacionBoletaDigitalPage = () => {
                   <div className="mt-3 grid gap-2 text-xs text-slate-600">
                     <p><span className="font-semibold uppercase text-slate-500">Cliente:</span> {row.cliente || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Tecnico:</span> {row.tecnico || '-'}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">Fecha:</span> {row.fecha || '-'}</p>
+                    <p><span className="font-semibold uppercase text-slate-500">Fecha:</span> {formatBoletaFecha(row.fecha)}</p>
                     <p>
                       <span className="font-semibold uppercase text-slate-500">Comparacion:</span>{' '}
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${comparisonBadge.className}`}>
