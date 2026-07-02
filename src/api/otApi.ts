@@ -1244,15 +1244,16 @@ export const registrarVentaParaRegistroOtWb = async (
         : typeof rawCodigoCliente === 'string'
           ? rawCodigoCliente.trim()
           : ''
-    const originalName = pdfFile.name ?? 'archivo.pdf'
-    const hasPdfExtension = /\.pdf$/i.test(originalName)
-    const baseName = hasPdfExtension ? originalName.replace(/\.pdf$/i, '') : originalName
-    const finalName = codigoCliente ? `${baseName}_COD_${codigoCliente}.pdf` : originalName
+    const originalName = pdfFile.name ?? 'archivo'
+    const extensionMatch = originalName.match(/(\.[A-Za-z0-9]+)$/)
+    const extension = extensionMatch?.[1] ?? ''
+    const baseName = extension ? originalName.slice(0, -extension.length) : originalName
+    const finalName = codigoCliente ? `${baseName}_COD_${codigoCliente}${extension}` : originalName
     const fileToUpload =
       finalName === originalName
         ? pdfFile
         : new File([pdfFile], finalName, {
-            type: pdfFile.type || 'application/pdf',
+            type: pdfFile.type || 'application/octet-stream',
             lastModified: pdfFile.lastModified,
           })
     const formData = new FormData()
@@ -1269,6 +1270,5 @@ export const registrarVentaParaRegistroOtWb = async (
     return response.data as RegistrarVentaParaRegistroOtResult
   }
 }
-
 
 

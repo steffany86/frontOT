@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FocusEvent, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
@@ -43,6 +43,9 @@ const GEO_MAX_SAMPLES = 5
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = 10 * 1024 * 1024
+const IMAGE_MAX_BYTES = 10 * 1024 * 1024
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
+const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png']
 const TIPO_SERVICIO_ID_KEYS = [
   'id_tiposervicio',
   'Id_TipoServicio',
@@ -164,6 +167,38 @@ const firstPositiveNumber = (...values: Array<number | null | undefined>): numbe
 const normalizeTipoTecnologia = (value: unknown): string => {
   if (value === undefined || value === null) return ''
   return String(value).trim().toUpperCase()
+}
+
+const normalizeTipoArchivo = (value: unknown): 'PDF' | 'IMAGEN' => {
+  const normalized = String(value ?? '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+  return normalized === 'IMAGEN' || normalized === 'IMAGE' ? 'IMAGEN' : 'PDF'
+}
+
+const readBooleanFlag = (value: unknown): boolean => {
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    return normalized === '1' || normalized === 'true' || normalized === 'si' || normalized === 's'
+  }
+  return false
+}
+
+const readOptionalBooleanFlag = (value: unknown): boolean | null => {
+  if (value === undefined || value === null || value === '') return null
+  if (typeof value === 'number') return value === 1
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase()
+    if (normalized === '') return null
+    if (normalized === '1' || normalized === 'true' || normalized === 'si' || normalized === 's') return true
+    if (normalized === '0' || normalized === 'false' || normalized === 'no' || normalized === 'n') return false
+  }
+  return null
 }
 
 const sanitizeNodoInput = (value: string): string => {
@@ -340,9 +375,17 @@ const RegistrarOTAgendaPage = () => {
   const [tipoTecnologia, setTipoTecnologia] = useState('')
   const [checkPlantaExterna, setCheckPlantaExterna] = useState(false)
   const [tieneDetalle, setTieneDetalle] = useState(false)
-  const [nodoTouched, setNodoTouched] = useState(false)
-  const [tapTouched, setTapTouched] = useState(false)
   const queryClient = useQueryClient()
+  const tipoServicioRef = useRef<HTMLSelectElement | null>(null)
+  const estadoRef = useRef<HTMLSelectElement | null>(null)
+  const otRef = useRef<HTMLInputElement | null>(null)
+  const clienteRef = useRef<HTMLInputElement | null>(null)
+  const tipoTecnologiaRef = useRef<HTMLSelectElement | null>(null)
+  const nodoRef = useRef<HTMLInputElement | null>(null)
+  const ramalRef = useRef<HTMLSelectElement | null>(null)
+  const tapRef = useRef<HTMLInputElement | null>(null)
+  const bocaRef = useRef<HTMLSelectElement | null>(null)
+  const archivoRef = useRef<HTMLInputElement | null>(null)
 
   const otRaw = (navState?.ot ?? '').trim()
   const ot = parseNumber(otRaw)
@@ -660,14 +703,43 @@ const RegistrarOTAgendaPage = () => {
     })
     if (!selected) return false
     const raw = readValue(selected, ['habilitarTieneDetalle', 'HabilitarTieneDetalle', 'habilitar_tiene_detalle'])
-    if (typeof raw === 'number') return raw === 1
-    if (typeof raw === 'boolean') return raw
-    if (typeof raw === 'string') {
-      const normalized = raw.trim().toLowerCase()
-      return normalized === '1' || normalized === 'true' || normalized === 'si' || normalized === 's'
-    }
-    return false
+    return readBooleanFlag(raw)
   }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+
+  const canUseMaterialCheck = useMemo(() => {
+    const rows = tiposServicioQuery.data ?? []
+    const selectedId = effectiveIdTipoServicio
+    if (selectedId === null) return false
+    const selected = rows.find((row) => {
+      const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+      return id !== null && id === selectedId
+    })
+    if (!selected) return false
+    const raw = readValue(selected, [
+      'checkSeUsoMaterial',
+      'CheckSeUsoMaterial',
+      'check_se_uso_material',
+      'checkSeUsoMaterial_PROTW',
+      'CheckSeUsoMaterial_PROTW',
+      'checkmaterial',
+      'CheckMaterial',
+    ])
+    const parsed = readOptionalBooleanFlag(raw)
+    return parsed ?? true
+  }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+
+  const tipoArchivoProtw = useMemo(() => {
+    const rows = tiposServicioQuery.data ?? []
+    const selectedId = effectiveIdTipoServicio
+    if (selectedId === null) return 'PDF' as const
+    const selected = rows.find((row) => {
+      const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+      return id !== null && id === selectedId
+    })
+    return normalizeTipoArchivo(readValue(selected ?? {}, ['tipoArchivoPROTW', 'TipoArchivo_PROTW', 'tipoarchivo_protw', 'TipoArchivoPROTW']))
+  }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+  const archivoAdjuntoLabel = tipoArchivoProtw === 'IMAGEN' ? 'imagen' : 'PDF'
+  const archivoAdjuntoAccept = tipoArchivoProtw === 'IMAGEN' ? '.jpg,.jpeg,.png,image/jpeg,image/png' : '.pdf,application/pdf'
 
   const estadosQuery = useQuery({
     queryKey: ['catalogos-estados-agenda'],
@@ -677,6 +749,11 @@ const RegistrarOTAgendaPage = () => {
     queryKey: ['catalogos-ramales-agenda'],
     queryFn: fetchRamales,
   })
+
+  useEffect(() => {
+    setPdfFile(null)
+  }, [tipoArchivoProtw])
+
   const tiposTecnologiaQuery = useQuery({
     queryKey: ['catalogos-tipo-tecnologia-agenda', hiddenIdRuta ?? null],
     queryFn: () => fetchTiposTecnologia(hiddenIdRuta as number),
@@ -797,7 +874,6 @@ const RegistrarOTAgendaPage = () => {
   const nodoValid = /^[A-Z]{3}\d{3,4}$/.test(nodoUpper)
   const ramalUpper = ramal.trim().toUpperCase()
   const ramalValid = ramalUpper.length > 0
-  const ramalInvalidAfterSubmit = hasAttemptedSubmit && !ramalValid
   const parsedTap = parseNumber(tap)
   const tapValid = /^\d{3}$/.test(tap.trim())
   const tapDisplay = tap.trim() ? tap.trim().padStart(3, '0') : '-'
@@ -851,8 +927,19 @@ const RegistrarOTAgendaPage = () => {
     return `Faltan datos requeridos: ${missingRequiredFields.join(', ')}.`
   }, [missingRequiredFields])
 
+  const shouldShowValidation = hasAttemptedSubmit
+  const tipoServicioInvalid = shouldShowValidation && firstPositiveNumber(effectiveIdTipoServicio) === null
+  const estadoInvalid = shouldShowValidation && parsedEstadoId === null
+  const otInvalid = shouldShowValidation && !hasValidOrdenTrabajo
+  const clienteInvalid = shouldShowValidation && !hasValidCodigoCliente
+  const nodoInvalid = shouldShowValidation && !nodoValid
+  const ramalInvalid = shouldShowValidation && !ramalValid
+  const tapInvalid = shouldShowValidation && !tapValid
+  const bocaInvalid = shouldShowValidation && !bocaValid
+  const tipoTecnologiaInvalid = shouldShowValidation && !tipoTecnologia.trim()
+  const archivoInvalid = shouldShowValidation && !pdfFile
+
   const handleNodoBlur = (event: FocusEvent<HTMLInputElement>) => {
-    setNodoTouched(true)
     if (!nodoValid) {
       const input = event.currentTarget
       window.setTimeout(() => {
@@ -864,7 +951,6 @@ const RegistrarOTAgendaPage = () => {
   }
 
   const handleTapBlur = (event: FocusEvent<HTMLInputElement>) => {
-    setTapTouched(true)
     if (!tapValid) {
       const input = event.currentTarget
       window.setTimeout(() => {
@@ -875,9 +961,27 @@ const RegistrarOTAgendaPage = () => {
     }
   }
 
+  const focusFirstInvalidField = () => {
+    const target =
+      (tipoServicioInvalid ? tipoServicioRef.current : null) ??
+      (estadoInvalid ? estadoRef.current : null) ??
+      (otInvalid ? otRef.current : null) ??
+      (clienteInvalid ? clienteRef.current : null) ??
+      (tipoTecnologiaInvalid ? tipoTecnologiaRef.current : null) ??
+      (nodoInvalid ? nodoRef.current : null) ??
+      (ramalInvalid ? ramalRef.current : null) ??
+      (tapInvalid ? tapRef.current : null) ??
+      (bocaInvalid ? bocaRef.current : null) ??
+      (archivoInvalid ? archivoRef.current : null)
+    window.setTimeout(() => {
+      target?.focus()
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 0)
+  }
+
   useEffect(() => {
-    setTieneDetalle(tieneDetalleSuggested)
-  }, [tieneDetalleSuggested])
+    setTieneDetalle(canUseMaterialCheck ? tieneDetalleSuggested : false)
+  }, [canUseMaterialCheck, tieneDetalleSuggested])
 
   useEffect(() => {
     if (isTipoAsistencia) return
@@ -1357,7 +1461,7 @@ const RegistrarOTAgendaPage = () => {
       return false
     }
     if (!pdfFile) {
-      setSubmitError('Debes adjuntar el archivo PDF para registrar la OT.')
+      setSubmitError(`Debes adjuntar el archivo ${archivoAdjuntoLabel} para registrar la OT.`)
       return false
     }
     return true
@@ -1418,7 +1522,7 @@ const RegistrarOTAgendaPage = () => {
       return
     }
     if (!pdfFile) {
-      setSubmitError('Debes adjuntar el archivo PDF para registrar la OT.')
+      setSubmitError(`Debes adjuntar el archivo ${archivoAdjuntoLabel} para registrar la OT.`)
       return
     }
     setConfirmModalOpen(true)
@@ -1474,6 +1578,10 @@ const RegistrarOTAgendaPage = () => {
   }, [otDetailQuery.error])
 
   const showOtDetailError = otDetailQuery.isError && !isNotFoundError(otDetailQuery.error)
+  const closeSubmitErrorModal = () => {
+    setSubmitErrorModalOpen(false)
+    focusFirstInvalidField()
+  }
 
   return (
     <div className="bento-page overflow-x-hidden">
@@ -1514,9 +1622,11 @@ const RegistrarOTAgendaPage = () => {
                 <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={tipoServicioLabel} disabled />
               ) : (
                 <select
-                  className="input-base rounded-md py-2 text-sm"
+                  ref={tipoServicioRef}
+                  className={`input-base rounded-md py-2 text-sm ${tipoServicioInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                   value={idTipoServicioManual}
                   onChange={(event) => setIdTipoServicioManual(event.target.value)}
+                  aria-invalid={tipoServicioInvalid}
                 >
                   <option value="">{tiposServicioQuery.isLoading ? 'Cargando tipos...' : 'Selecciona tipo de servicio'}</option>
                   {tipoServicioOptions.map((option) => (
@@ -1526,12 +1636,14 @@ const RegistrarOTAgendaPage = () => {
                   ))}
                 </select>
               )}
+              {tipoServicioInvalid ? <p className="mt-1 text-xs text-rose-600">Tipo instalacion es requerido.</p> : null}
             </div>
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
               <input
-                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'}`}
+                ref={otRef}
+                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'} ${otInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={otInputValue}
                 onChange={(event) => {
                   if (!isManualMode) return
@@ -1539,13 +1651,16 @@ const RegistrarOTAgendaPage = () => {
                 }}
                 placeholder={isManualMode ? 'Ingresa nro de orden' : undefined}
                 disabled={!isManualMode}
+                aria-invalid={otInvalid}
               />
+              {otInvalid ? <p className="mt-1 text-xs text-rose-600">Nro orden es requerido.</p> : null}
             </div>
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Cod Cliente</label>
               <input
-                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'}`}
+                ref={clienteRef}
+                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'} ${clienteInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={clienteInputValue}
                 onChange={(event) => {
                   if (!isManualMode) return
@@ -1553,12 +1668,20 @@ const RegistrarOTAgendaPage = () => {
                 }}
                 placeholder={isManualMode ? 'Ingresa cod cliente' : undefined}
                 disabled={!isManualMode}
+                aria-invalid={clienteInvalid}
               />
+              {clienteInvalid ? <p className="mt-1 text-xs text-rose-600">Cod cliente es requerido.</p> : null}
             </div>
 
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Estado</label>
-              <select className="input-base rounded-md py-2 text-sm" value={idEstado} onChange={(event) => setIdEstado(event.target.value)}>
+              <select
+                ref={estadoRef}
+                className={`input-base rounded-md py-2 text-sm ${estadoInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
+                value={idEstado}
+                onChange={(event) => setIdEstado(event.target.value)}
+                aria-invalid={estadoInvalid}
+              >
                 <option value="">{estadosQuery.isLoading ? 'Cargando estados...' : 'Selecciona estado'}</option>
                 {estadoOptions.map((option) => (
                   <option
@@ -1572,6 +1695,7 @@ const RegistrarOTAgendaPage = () => {
                   </option>
                 ))}
               </select>
+              {estadoInvalid ? <p className="mt-1 text-xs text-rose-600">Estado es requerido.</p> : null}
             </div>
 
             <div className="hidden">
@@ -1587,9 +1711,11 @@ const RegistrarOTAgendaPage = () => {
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Tipo Tecnologia</label>
               <select
-                className="input-base rounded-md py-2 text-sm"
+                ref={tipoTecnologiaRef}
+                className={`input-base rounded-md py-2 text-sm ${tipoTecnologiaInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={tipoTecnologia}
                 onChange={(event) => setTipoTecnologia(event.target.value)}
+                aria-invalid={tipoTecnologiaInvalid}
               >
                 <option value="">{tiposTecnologiaQuery.isLoading ? 'Cargando tecnologia...' : 'Selecciona tecnologia'}</option>
                 {tipoTecnologiaOptions.map((option) => (
@@ -1598,20 +1724,22 @@ const RegistrarOTAgendaPage = () => {
                   </option>
                 ))}
               </select>
+              {tipoTecnologiaInvalid ? <p className="mt-1 text-xs text-rose-600">Tipo tecnologia es requerido.</p> : null}
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nodo</label>
               <input
-                className="input-base rounded-md py-2 text-sm uppercase"
+                ref={nodoRef}
+                className={`input-base rounded-md py-2 text-sm uppercase ${nodoInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={nodo}
                 onChange={(event) => setNodo(sanitizeNodoInput(event.target.value))}
                 onBlur={handleNodoBlur}
                 placeholder="SCZ123"
                 maxLength={7}
-                aria-invalid={nodoTouched && !nodoValid}
+                aria-invalid={nodoInvalid}
               />
-              {nodoTouched && !nodoValid ? (
+              {nodoInvalid ? (
                 <p className="mt-1 text-xs text-rose-600">Nodo debe tener 3 letras y 3 o 4 numeros (ej: SCZ123 o SCZ1234).</p>
               ) : null}
             </div>
@@ -1619,10 +1747,11 @@ const RegistrarOTAgendaPage = () => {
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Ramal</label>
               <select
-                className={`input-base rounded-md py-2 text-sm ${ramalInvalidAfterSubmit ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
+                ref={ramalRef}
+                className={`input-base rounded-md py-2 text-sm ${ramalInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={ramal}
                 onChange={(event) => setRamal(event.target.value)}
-                aria-invalid={ramalInvalidAfterSubmit}
+                aria-invalid={ramalInvalid}
               >
                 <option value="">{ramalesQuery.isLoading ? 'Cargando ramales...' : 'Selecciona ramal'}</option>
                 {ramalOptions.map((option) => (
@@ -1631,26 +1760,33 @@ const RegistrarOTAgendaPage = () => {
                   </option>
                 ))}
               </select>
-              {ramalInvalidAfterSubmit ? <p className="mt-1 text-xs text-rose-600">Ramal es requerido.</p> : null}
+              {ramalInvalid ? <p className="mt-1 text-xs text-rose-600">Ramal es requerido.</p> : null}
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">TAP</label>
               <input
-                className="input-base rounded-md py-2 text-sm"
+                ref={tapRef}
+                className={`input-base rounded-md py-2 text-sm ${tapInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={tap}
                 onChange={(event) => setTap(event.target.value.replace(/[^\d]/g, '').slice(0, 3))}
                 onBlur={handleTapBlur}
                 placeholder="0-999"
                 maxLength={3}
-                aria-invalid={tapTouched && !tapValid}
+                aria-invalid={tapInvalid}
               />
-              {tapTouched && !tapValid ? <p className="mt-1 text-xs text-rose-600">TAP debe tener exactamente 3 digitos.</p> : null}
+              {tapInvalid ? <p className="mt-1 text-xs text-rose-600">TAP debe tener exactamente 3 digitos.</p> : null}
             </div>
 
             <div>
               <label className="mb-1 block text-xs font-semibold text-slate-700">Boca</label>
-              <select className="input-base rounded-md py-2 text-sm" value={boca} onChange={(event) => setBoca(event.target.value)}>
+              <select
+                ref={bocaRef}
+                className={`input-base rounded-md py-2 text-sm ${bocaInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
+                value={boca}
+                onChange={(event) => setBoca(event.target.value)}
+                aria-invalid={bocaInvalid}
+              >
                 <option value="">Selecciona boca</option>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
                   <option key={item} value={String(item)}>
@@ -1658,6 +1794,7 @@ const RegistrarOTAgendaPage = () => {
                   </option>
                 ))}
               </select>
+              {bocaInvalid ? <p className="mt-1 text-xs text-rose-600">Boca es requerida.</p> : null}
             </div>
 
             <div className="md:col-span-4">
@@ -1693,26 +1830,35 @@ const RegistrarOTAgendaPage = () => {
             </div>
 
             <div className="md:col-span-1 md:pt-6">
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+              <label className={`inline-flex items-center gap-2 text-sm font-semibold ${canUseMaterialCheck ? 'text-slate-700' : 'text-slate-400'}`}>
                 <input
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
                   checked={tieneDetalle}
-                  onChange={(event) => setTieneDetalle(event.target.checked)}
+                  onChange={(event) => {
+                    if (!canUseMaterialCheck) return
+                    setTieneDetalle(event.target.checked)
+                  }}
+                  disabled={!canUseMaterialCheck}
                 />
                 Se uso material?
               </label>
+              {!canUseMaterialCheck ? (
+                <p className="mt-1 text-xs text-slate-500">Este tipo de instalacion no permite registrar material.</p>
+              ) : null}
               {mustKeepTieneDetalleUnchecked ? (
                 <p className="mt-1 text-xs text-slate-500">Para este estado, "Se uso material?" no aplica.</p>
               ) : null}
             </div>
 
             <div className="md:col-span-6">
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Adjuntar PDF (obligatorio)</label>
+              <label className="mb-1 block text-xs font-semibold text-slate-700">Adjuntar {archivoAdjuntoLabel} (obligatorio)</label>
               <input
-                className="input-base rounded-md py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-3 file:py-2"
+                ref={archivoRef}
+                className={`input-base rounded-md py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-200 file:px-3 file:py-2 ${archivoInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 type="file"
-                accept=".pdf,application/pdf"
+                accept={archivoAdjuntoAccept}
+                aria-invalid={archivoInvalid}
                 onChange={(event) => {
                   const file = event.target.files?.[0] ?? null
                   if (!file) {
@@ -1721,18 +1867,21 @@ const RegistrarOTAgendaPage = () => {
                   }
                   const lowerName = file.name.toLowerCase()
                   const mimeType = (file.type ?? '').toLowerCase()
-                  const isPdfExtension = lowerName.endsWith('.pdf')
-                  const isPdfMime = mimeType === '' || mimeType === 'application/pdf'
-                  const isPdf = isPdfExtension && isPdfMime
-                  if (!isPdf) {
+                  const isValidPdf = lowerName.endsWith('.pdf') && (mimeType === '' || mimeType === 'application/pdf')
+                  const isValidImage =
+                    IMAGE_EXTENSIONS.some((extension) => lowerName.endsWith(extension)) &&
+                    (mimeType === '' || IMAGE_MIME_TYPES.includes(mimeType))
+                  const isValidType = tipoArchivoProtw === 'IMAGEN' ? isValidImage : isValidPdf
+                  if (!isValidType) {
                     setPdfFile(null)
-                    setSubmitError('Solo se permite adjuntar archivos PDF.')
+                    setSubmitError(tipoArchivoProtw === 'IMAGEN' ? 'Solo se permite adjuntar imagen JPG o PNG.' : 'Solo se permite adjuntar archivos PDF.')
                     event.target.value = ''
                     return
                   }
-                  if (file.size > PDF_MAX_BYTES) {
+                  const maxBytes = tipoArchivoProtw === 'IMAGEN' ? IMAGE_MAX_BYTES : PDF_MAX_BYTES
+                  if (file.size > maxBytes) {
                     setPdfFile(null)
-                    setSubmitError('El PDF supera el limite de 10MB.')
+                    setSubmitError(`El archivo ${archivoAdjuntoLabel} supera el limite de 10MB.`)
                     event.target.value = ''
                     return
                   }
@@ -1741,7 +1890,10 @@ const RegistrarOTAgendaPage = () => {
                 }}
                 disabled={registroGuardado || mutation.isPending || isPrevalidating}
               />
-              <p className="mt-1 text-xs text-slate-500">{pdfFile ? `Archivo: ${pdfFile.name}` : 'Debes adjuntar un PDF para continuar.'}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                {pdfFile ? `Archivo: ${pdfFile.name}` : `Debes adjuntar ${tipoArchivoProtw === 'IMAGEN' ? 'una imagen JPG/PNG' : 'un PDF'} para continuar.`}
+              </p>
+              {archivoInvalid ? <p className="mt-1 text-xs text-rose-600">Archivo obligatorio.</p> : null}
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
@@ -1875,10 +2027,10 @@ const RegistrarOTAgendaPage = () => {
       <Modal
         open={submitErrorModalOpen && Boolean(submitError) && !duplicateOrdenModalOpen}
         title="No se pudo registrar la OT"
-        onClose={() => setSubmitErrorModalOpen(false)}
+        onClose={closeSubmitErrorModal}
         contentClassName="max-w-full overflow-x-hidden whitespace-pre-wrap break-all"
         actions={
-          <Button type="button" variant="secondary" onClick={() => setSubmitErrorModalOpen(false)}>
+          <Button type="button" variant="secondary" onClick={closeSubmitErrorModal}>
             Cerrar
           </Button>
         }

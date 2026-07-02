@@ -6,6 +6,8 @@ export type BoletaDigitalOt = {
   fecha: string
   rutaPdf: string
   estado: string
+  estadoArchivo: string
+  otFisica: string
   comparacion: string
   previamenteModificada: boolean
   raw: Record<string, unknown>

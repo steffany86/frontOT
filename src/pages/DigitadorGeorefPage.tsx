@@ -93,8 +93,18 @@ const formatDetailValue = (value: unknown): string => {
   return String(value)
 }
 
+const HIDDEN_DETAIL_KEYS = new Set([
+  'actualizado',
+  'fecharegistro',
+  'fecharegistromodificadistancia',
+])
+
+const normalizeDetailKey = (key: string): string => key.replace(/[_\-\s]/g, '').toLowerCase()
+
 const getDetailEntries = (row: DigitadorGeorefRow): Array<[string, string]> =>
-  Object.entries(row).map(([key, value]) => [key, formatDetailValue(value)])
+  Object.entries(row)
+    .filter(([key]) => !HIDDEN_DETAIL_KEYS.has(normalizeDetailKey(key)))
+    .map(([key, value]) => [key, formatDetailValue(value)])
 
 const normalizeCompareValue = (value: string): string => value.trim().replace(/\s+/g, '').toUpperCase()
 
@@ -126,7 +136,7 @@ const tecnicoFilterLabel = (row: DigitadorGeorefRow): string => {
 }
 
 const NtbDifferenceBadge = () => (
-  <span className="inline-flex w-fit rounded-full bg-red-600 px-3.5 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-sm shadow-red-200 ring-1 ring-red-700">
+  <span className="inline-flex w-fit rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm shadow-red-200 ring-1 ring-red-700">
     (pendiente)
   </span>
 )
@@ -150,10 +160,10 @@ const TecnicoCell = ({ row }: { row: DigitadorGeorefRow }) => {
 }
 
 const DarkField = ({ label, value, boxed = false, danger: _danger = false }: { label: string; value: string; boxed?: boolean; danger?: boolean }) => (
-  <div className="grid min-w-0 grid-cols-[5.25rem_minmax(0,1fr)] items-center gap-3 text-[11px] sm:text-xs">
+  <div className="grid min-w-0 grid-cols-[4.8rem_minmax(0,1fr)] items-center gap-2 text-[10px] sm:text-[11px]">
     <span className="font-extrabold uppercase text-slate-950">{label}</span>
     <span
-      className={`min-h-7 break-words rounded-md px-2 py-1 font-semibold ${
+      className={`min-h-6 break-words rounded-md px-2 py-1 font-semibold leading-tight ${
         boxed ? 'bg-white text-slate-950 shadow-sm ring-1 ring-slate-200' : 'text-slate-950'
       }`}
     >
@@ -188,72 +198,76 @@ const GeorefSummaryCard = ({
   const ntbVenta = asText(row, ['N_T_B_V', 'NTB_V', 'ntb_v', 'NTBV'])
 
   return (
-    <article className={`rounded-[26px] border p-5 text-slate-950 shadow-sm sm:p-6 ${ntbDifferent ? 'border-red-300 bg-red-50/50' : 'border-slate-200 bg-slate-50'}`}>
-      <div className="grid gap-5 lg:grid-cols-[1.15fr_1.25fr_0.7fr] lg:items-stretch">
-        <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-          <DarkField label="OT" value={asText(row, ['OT', 'ot'])} boxed danger={ntbDifferent} />
-          <DarkField label="Cliente" value={asText(row, ['cliente_nro', 'cliente'])} boxed danger={ntbDifferent} />
+    <article className={`rounded-xl border p-3 text-slate-950 shadow-sm ${ntbDifferent ? 'border-red-300 bg-red-50/60' : 'border-slate-200 bg-white'}`}>
+      <div className="grid gap-3 lg:grid-cols-[1.05fr_1.45fr_9.5rem] lg:items-stretch">
+        <div className="grid min-w-0 content-start gap-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            <DarkField label="OT" value={asText(row, ['OT', 'ot'])} boxed danger={ntbDifferent} />
+            <DarkField label="Cliente" value={asText(row, ['cliente_nro', 'cliente'])} boxed danger={ntbDifferent} />
+          </div>
           <button
             type="button"
             onClick={onOpenDetail}
             disabled={!selection}
-            className="w-full rounded-xl bg-white px-3.5 py-3.5 text-left text-xs font-semibold text-slate-950 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-10 w-full rounded-lg bg-slate-50 px-3 py-2 text-left text-[11px] font-semibold leading-tight text-slate-950 ring-1 ring-slate-200 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
             <TecnicoCell row={row} />
           </button>
         </div>
 
-        <div className="space-y-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-          <DarkField label="N_T_B" value={ntb} danger={ntbDifferent} />
-          <DarkField label="N_T_B_V" value={ntbVenta} danger={ntbDifferent} />
-          <div className="rounded-2xl bg-slate-50 px-4 py-4 text-[11px] ring-1 ring-slate-200 sm:text-xs">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="text-sm font-extrabold uppercase tracking-wide text-slate-950">Coordenadas</span>
-              {ntbDifferent ? <span className="rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white">revisar</span> : null}
+        <div className="grid min-w-0 gap-2">
+          <div className="grid gap-2 md:grid-cols-2">
+            <DarkField label="N_T_B" value={ntb} danger={ntbDifferent} />
+            <DarkField label="N_T_B_V" value={ntbVenta} danger={ntbDifferent} />
+          </div>
+          <div className="rounded-lg bg-slate-50 px-3 py-2 text-[11px] ring-1 ring-slate-200">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <span className="font-extrabold uppercase tracking-wide text-slate-950">Coordenadas</span>
+              {ntbDifferent ? <span className="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wide text-white">revisar</span> : null}
             </div>
-            <div className="grid gap-4 font-semibold text-slate-950 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-stretch">
-              <div className="grid gap-2.5">
-                <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-700">Longitud</span>
-                  <span className="rounded-xl bg-white px-3 py-2 font-mono text-xs font-extrabold text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(lonTecnico)}</span>
+            <div className="grid gap-2 font-semibold text-slate-950 md:grid-cols-[minmax(0,1fr)_8.5rem] md:items-stretch">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid grid-cols-[4.2rem_minmax(0,1fr)] items-center gap-2">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-700">Longitud</span>
+                  <span className="rounded-lg bg-white px-2 py-1.5 font-mono text-[11px] font-extrabold leading-tight text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(lonTecnico)}</span>
                 </div>
-                <div className="grid grid-cols-[5rem_minmax(0,1fr)] items-center gap-3">
-                  <span className="text-[10px] font-extrabold uppercase text-slate-700">Latitud</span>
-                  <span className="rounded-xl bg-white px-3 py-2 font-mono text-xs font-extrabold text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(latTecnico)}</span>
+                <div className="grid grid-cols-[4.2rem_minmax(0,1fr)] items-center gap-2">
+                  <span className="text-[9px] font-extrabold uppercase text-slate-700">Latitud</span>
+                  <span className="rounded-lg bg-white px-2 py-1.5 font-mono text-[11px] font-extrabold leading-tight text-slate-950 ring-1 ring-slate-300">{formatCoordinateVisualOnly(latTecnico)}</span>
                 </div>
               </div>
-              <div className="flex min-w-[6.5rem] flex-col justify-center rounded-2xl bg-white px-4 py-3 text-left text-[11px] font-extrabold text-slate-950 ring-1 ring-slate-300 sm:text-right">
+              <div className="flex min-w-0 items-center justify-between gap-2 rounded-lg bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-slate-950 ring-1 ring-slate-300 md:flex-col md:items-end md:justify-center">
                 <p className="uppercase tracking-wide text-slate-700">diferencia</p>
-                <p className="mt-1 text-sm">{formatMeters(asNumber(row, ['DistanciaMetros']))}</p>
+                <p className="text-xs">{formatMeters(asNumber(row, ['DistanciaMetros']))}</p>
               </div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-3 pt-2">
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5 ring-1 ring-slate-200">
+          <div className="flex flex-wrap gap-2">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
               <input
                 type="checkbox"
-                className="h-5 w-5 rounded border-slate-300 text-blue-600"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
                 checked={actualizado || draft.confirmarUbicacion}
                 disabled={actualizado}
                 onChange={(event) => onDraftChange({ ...draft, confirmarUbicacion: event.target.checked })}
               />
-              <span className="text-[10px] font-extrabold uppercase leading-tight text-slate-800">confirmar ubicacion</span>
+              <span className="text-[9px] font-extrabold uppercase leading-tight text-slate-800">confirmar ubicacion</span>
             </label>
-            <label className="flex cursor-pointer items-center gap-3 rounded-xl bg-slate-50 px-3.5 py-2.5 ring-1 ring-slate-200">
+            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
               <input
                 type="checkbox"
-                className="h-5 w-5 rounded border-slate-300 text-blue-600"
+                className="h-4 w-4 rounded border-slate-300 text-blue-600"
                 checked={actualizadoNodo || draft.confirmarNodo}
                 disabled={actualizadoNodo}
                 onChange={(event) => onDraftChange({ ...draft, confirmarNodo: event.target.checked })}
               />
-              <span className="text-[10px] font-extrabold uppercase leading-tight text-slate-800">confirmar NODO</span>
+              <span className="text-[9px] font-extrabold uppercase leading-tight text-slate-800">confirmar NODO</span>
             </label>
           </div>
         </div>
 
-        <div className="flex h-full flex-col justify-between gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200/80">
-          <div className="flex flex-col items-start gap-3 lg:items-end">
+        <div className="flex min-h-full flex-col justify-between gap-2 rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+          <div className="flex min-h-7 flex-col items-start gap-2 lg:items-end">
             {ntbDifferent ? <NtbDifferenceBadge /> : null}
           </div>
           <div className="grid gap-2">
@@ -261,7 +275,7 @@ const GeorefSummaryCard = ({
               type="button"
               onClick={onOpenDetail}
               disabled={!selection}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               detalle
             </button>
@@ -269,7 +283,7 @@ const GeorefSummaryCard = ({
               type="button"
               onClick={onConfirm}
               disabled={confirmDisabled}
-              className="rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               confirmar
             </button>
@@ -408,18 +422,38 @@ const DigitadorGeorefPage = () => {
   }
 
   return (
-    <div className="bento-page space-y-4">
-      <section className="sticky top-0 z-20 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-extrabold text-slate-900">Georeferencias por revisar</h1>
-            <p className="text-sm text-slate-500">Registros finalizados con distancia mayor o igual a 15 metros.</p>
+    <div className="bento-page gap-3">
+      <section className="sticky top-0 z-20 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-extrabold text-slate-900">Georeferencias por revisar</h1>
+            <p className="text-xs text-slate-500">Registros finalizados con distancia mayor o igual a 15 metros.</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setTab('pendientes')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  tab === 'pendientes' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
+                }`}
+              >
+                Pendientes ({pendientes.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTab('confirmados')}
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+                  tab === 'confirmados' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
+                }`}
+              >
+                Confirmados ({confirmados.length})
+              </button>
+            </div>
           </div>
           <div className="flex flex-wrap items-end gap-2">
-            <label className="block min-w-[16rem]">
-              <span className="mb-1 block text-xs font-semibold text-slate-600">Tecnico</span>
+            <label className="block min-w-[14rem]">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Tecnico</span>
               <select
-                className="input-base h-10 rounded-md text-sm"
+                className="input-base h-9 rounded-md py-1.5 text-sm"
                 value={tecnicoFilter}
                 onChange={(event) => setTecnicoFilter(event.target.value)}
                 disabled={query.isLoading || tecnicoOptions.length === 0}
@@ -433,12 +467,12 @@ const DigitadorGeorefPage = () => {
               </select>
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-semibold text-slate-600">Fecha</span>
-              <input className="input-base h-10 rounded-md text-sm" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
+              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Fecha</span>
+              <input className="input-base h-9 rounded-md py-1.5 text-sm" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
             </label>
             <div className="block">
-              <span className="mb-1 block text-xs font-semibold text-slate-600">Diferencia</span>
-              <div className="flex h-10 rounded-xl border border-slate-200 bg-slate-50 p-1">
+              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Diferencia</span>
+              <div className="flex h-9 rounded-lg border border-slate-200 bg-slate-50 p-1">
                 {[
                   { value: 'todas', label: 'Todas' },
                   { value: 'mayor15', label: '> 15 m' },
@@ -448,7 +482,7 @@ const DigitadorGeorefPage = () => {
                     key={option.value}
                     type="button"
                     onClick={() => setDistanciaFilter(option.value as typeof distanciaFilter)}
-                    className={`rounded-lg px-3 text-xs font-extrabold transition ${
+                    className={`rounded-md px-2.5 text-[11px] font-extrabold transition ${
                       distanciaFilter === option.value
                         ? 'bg-slate-950 text-white shadow-sm'
                         : 'text-slate-600 hover:bg-white hover:text-slate-950'
@@ -459,35 +493,15 @@ const DigitadorGeorefPage = () => {
                 ))}
               </div>
             </div>
-            <Button type="button" variant="secondary" onClick={() => query.refetch()} disabled={query.isFetching}>
+            <Button type="button" variant="secondary" className="h-9 rounded-lg px-3 py-1.5 text-xs" onClick={() => query.refetch()} disabled={query.isFetching}>
               {query.isFetching ? 'Actualizando...' : 'Actualizar'}
             </Button>
           </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => setTab('pendientes')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              tab === 'pendientes' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
-            }`}
-          >
-            Pendientes ({pendientes.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab('confirmados')}
-            className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-              tab === 'confirmados' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
-            }`}
-          >
-            Confirmados ({confirmados.length})
-          </button>
-        </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-auto p-3 sm:p-4">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="max-h-[calc(100vh-12.5rem)] space-y-2 overflow-auto p-2.5">
           {visibleRows.map((row, index) => {
             const selection = buildSelection(row)
             const id = selection?.id ?? index

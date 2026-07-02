@@ -69,6 +69,11 @@ export const fetchProductosSinFungible = async (rutaId?: number): Promise<Catalo
   return normalizeArrayResponse<CatalogItem>(data)
 }
 
+export const fetchMaterialesAutocarga = async (): Promise<CatalogItem[]> => {
+  const { data } = await api.get('/catalogos/materiales-autocarga')
+  return normalizeArrayResponse<CatalogItem>(data)
+}
+
 export const fetchProductosCargoUsuario = async (): Promise<CatalogItem[]> => {
   const { data } = await api.get('/catalogos/productos/TraerTodosLosProductosPCargoUsuarioWeb')
   return normalizeArrayResponse<CatalogItem>(data)

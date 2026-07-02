@@ -14,6 +14,7 @@ import {
   fetchSeriesSuggestions,
   fetchEstados,
   fetchKitsDecodificadores,
+  fetchMaterialesAutocarga,
   fetchNomencladores,
   fetchRutas,
   fetchProductosCargoUsuario,
@@ -581,6 +582,13 @@ const normalizeCatalogLabel = (value: string): string =>
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/[^a-zA-Z0-9]/g, '')
     .toUpperCase()
+const normalizeSearchText = (value: string): string =>
+  value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[_\-\s]+/g, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase()
 const normalizeRuleType = (value: string): string =>
   value
     .trim()
@@ -629,6 +637,8 @@ const OtRealizadaPage = () => {
   const [tipoMaterialId, setTipoMaterialId] = useState('')
   const [tipoMaterialEditEnabled, setTipoMaterialEditEnabled] = useState(false)
   const [productoId, setProductoId] = useState('')
+  const [productoSearch, setProductoSearch] = useState('')
+  const [productoSelectorOpen, setProductoSelectorOpen] = useState(false)
   const [serie, setSerie] = useState('')
   const [serieSuggestions, setSerieSuggestions] = useState<SerieSuggestionOption[]>([])
   const [serieSelectorOpen, setSerieSelectorOpen] = useState(false)
@@ -660,6 +670,8 @@ const OtRealizadaPage = () => {
   const [detalleGuardado, setDetalleGuardado] = useState(false)
   const [cargoUsuarioRows, setCargoUsuarioRows] = useState<CargoUsuarioRow[]>([])
   const [cargoUsuarioProductoId, setCargoUsuarioProductoId] = useState('')
+  const [cargoUsuarioProductoSearch, setCargoUsuarioProductoSearch] = useState('')
+  const [cargoUsuarioProductoSelectorOpen, setCargoUsuarioProductoSelectorOpen] = useState(false)
   const [cargoUsuarioSerie, setCargoUsuarioSerie] = useState('')
   const [cargoUsuarioSerieSuggestions, setCargoUsuarioSerieSuggestions] = useState<string[]>([])
   const [cargoUsuarioChipId, setCargoUsuarioChipId] = useState('')
@@ -682,12 +694,12 @@ const OtRealizadaPage = () => {
     message: string
   } | null>(null)
   const tipoMaterialSelectRef = useRef<HTMLSelectElement | null>(null)
-  const productoSelectRef = useRef<HTMLSelectElement | null>(null)
+  const productoSelectRef = useRef<HTMLButtonElement | null>(null)
   const serieInputRef = useRef<HTMLInputElement | null>(null)
   const chipIdInputRef = useRef<HTMLInputElement | null>(null)
   const cantidadInputRef = useRef<HTMLInputElement | null>(null)
   const serieSelectorSearchRef = useRef<HTMLInputElement | null>(null)
-  const cargoUsuarioProductoRef = useRef<HTMLSelectElement | null>(null)
+  const cargoUsuarioProductoRef = useRef<HTMLButtonElement | null>(null)
   const cargoUsuarioSerieRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioChipRef = useRef<HTMLInputElement | null>(null)
   const cargoUsuarioCantidadRef = useRef<HTMLInputElement | null>(null)
@@ -912,8 +924,8 @@ const OtRealizadaPage = () => {
   })
   const materialesAutocargaQuery = useQuery({
     queryKey: ['catalogos-materiales-autocarga-ot-detalle'],
-    queryFn: () => fetchProductosSinFungible(idRutaValidacion as number),
-    enabled: tipoServicioUsaNomencladores && Boolean(idRutaValidacion && idRutaValidacion > 0),
+    queryFn: fetchMaterialesAutocarga,
+    enabled: tipoServicioUsaNomencladores,
   })
   const kitsDecodificadoresQuery = useQuery({
     queryKey: ['catalogos-kits-decodificadores-ot-detalle'],
@@ -1333,6 +1345,11 @@ const OtRealizadaPage = () => {
       ),
     [productosQuery.data]
   )
+  const filteredProductoOptions = useMemo(() => {
+    const search = normalizeSearchText(productoSearch)
+    if (!search) return productoOptions
+    return productoOptions.filter((option) => normalizeSearchText(option.label).includes(search))
+  }, [productoOptions, productoSearch])
   const kitDecodificadorProductoIds = useMemo(() => {
     const set = new Set<number>()
     for (const item of kitsDecodificadoresQuery.data ?? []) {
@@ -1375,6 +1392,11 @@ const OtRealizadaPage = () => {
       ),
     [cargoUsuarioProductosQuery.data]
   )
+  const filteredCargoUsuarioProductoOptions = useMemo(() => {
+    const search = normalizeSearchText(cargoUsuarioProductoSearch)
+    if (!search) return cargoUsuarioProductoOptions
+    return cargoUsuarioProductoOptions.filter((option) => normalizeSearchText(option.label).includes(search))
+  }, [cargoUsuarioProductoOptions, cargoUsuarioProductoSearch])
   const productoMascaraMap = useMemo(() => {
     const map = new Map<string, CatalogItem>()
     for (const item of productosMascaraQuery.data ?? []) {
@@ -1566,6 +1588,20 @@ const OtRealizadaPage = () => {
     if (productoId && !productoBloqueado) {
       setProductoBloqueado(true)
     }
+  }
+
+  const selectProducto = (value: string) => {
+    setProductoId(value)
+    setProductoSelectorOpen(false)
+    setProductoSearch('')
+  }
+
+  const selectCargoUsuarioProducto = (value: string) => {
+    setCargoUsuarioGuardado(false)
+    setCargoUsuarioProductoId(value)
+    setCargoUsuarioProductoBloqueado(Boolean(value))
+    setCargoUsuarioProductoSelectorOpen(false)
+    setCargoUsuarioProductoSearch('')
   }
 
   const handleSerieFocus = () => {
@@ -2281,6 +2317,7 @@ const OtRealizadaPage = () => {
 
   useEffect(() => {
     setProductoId('')
+    setProductoSearch('')
     setSerie('')
     setChipId('')
     setCantidad('1')
@@ -2505,6 +2542,7 @@ const OtRealizadaPage = () => {
 
   const resetMaterialForm = () => {
     setProductoId('')
+    setProductoSearch('')
     setSerie('')
     setChipId('')
     setCantidad('1')
@@ -2743,6 +2781,7 @@ const OtRealizadaPage = () => {
 
   const resetCargoUsuarioForm = () => {
     setCargoUsuarioProductoId('')
+    setCargoUsuarioProductoSearch('')
     setCargoUsuarioProductoBloqueado(false)
     setCargoUsuarioSerie('')
     setCargoUsuarioChipId('')
@@ -4204,6 +4243,7 @@ const OtRealizadaPage = () => {
                   onChange={(event) => {
                     setTipoMaterialId(event.target.value)
                     setProductoId('')
+                    setProductoSearch('')
                     setProductoBloqueado(false)
                     setSerie('')
                     setChipId('')
@@ -4235,23 +4275,18 @@ const OtRealizadaPage = () => {
               <div className="min-w-0 md:col-span-1 xl:col-span-2">
                 <label className="flex w-full flex-col gap-1.5 text-sm text-slate-700">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Producto</span>
-                  <select
+                  <button
+                    type="button"
                     ref={productoSelectRef}
-                    className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
-                    value={productoId}
-                    onChange={(event) => setProductoId(event.target.value)}
+                    className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-left !text-sm"
+                    onClick={() => setProductoSelectorOpen(true)}
                     onBlur={() => {
                       if (!tipoMaterialEditEnabled) lockProducto()
                     }}
                     disabled={productosQuery.isLoading || tipoMaterialEditEnabled || productoBloqueado || !tipoMaterialId}
                   >
-                    <option value="">{productosQuery.isLoading ? 'Cargando productos...' : 'Selecciona producto'}</option>
-                    {productoOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    {productosQuery.isLoading ? 'Cargando productos...' : productoOptions.find((option) => option.value === productoId)?.label ?? 'Selecciona producto'}
+                  </button>
                 </label>
               </div>
               <div className="min-w-0 md:col-span-1 xl:col-span-1">
@@ -4392,25 +4427,17 @@ const OtRealizadaPage = () => {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-2 xl:col-span-6">
                 <Field label="Producto">
-                  <select
+                  <button
+                    type="button"
                     ref={cargoUsuarioProductoRef}
-                    className="input-base"
-                    value={cargoUsuarioProductoId}
-                    onChange={(event) => {
-                      setCargoUsuarioGuardado(false)
-                      const nextValue = event.target.value
-                      setCargoUsuarioProductoId(nextValue)
-                      setCargoUsuarioProductoBloqueado(Boolean(nextValue))
-                    }}
+                    className="input-base text-left"
+                    onClick={() => setCargoUsuarioProductoSelectorOpen(true)}
                     disabled={cargoUsuarioProductosQuery.isLoading || cargoUsuarioProductoBloqueado}
                   >
-                    <option value="">{cargoUsuarioProductosQuery.isLoading ? 'Cargando productos...' : 'Selecciona producto'}</option>
-                    {cargoUsuarioProductoOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                    {cargoUsuarioProductosQuery.isLoading
+                      ? 'Cargando productos...'
+                      : cargoUsuarioProductoOptions.find((option) => option.value === cargoUsuarioProductoId)?.label ?? 'Selecciona producto'}
+                  </button>
                 </Field>
               </div>
               {cargoUsuarioNeedsSerie ? (
@@ -4615,6 +4642,122 @@ const OtRealizadaPage = () => {
       </form>
 
       <Modal
+        open={productoSelectorOpen}
+        title="Selecciona producto"
+        onClose={() => {
+          setProductoSelectorOpen(false)
+          setProductoSearch('')
+        }}
+        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        contentClassName="p-0"
+        actions={
+          <Button type="button" variant="secondary" onClick={() => { setProductoSelectorOpen(false); setProductoSearch('') }}>
+            Cerrar
+          </Button>
+        }
+      >
+        <div className="relative z-10 mb-3 pointer-events-auto">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar producto</label>
+          <input
+            type="search"
+            className="input-base rounded-xl py-2 text-sm"
+            value={productoSearch}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              event.stopPropagation()
+              setProductoSearch(event.target.value)
+            }}
+            placeholder="Buscar producto..."
+            autoFocus
+          />
+        </div>
+        <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
+          {productosQuery.isLoading ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando productos...</div>
+          ) : filteredProductoOptions.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin productos disponibles.</div>
+          ) : (
+            filteredProductoOptions.map((option) => {
+              const selected = option.value === productoId
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 text-left text-lg font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  onClick={() => selectProducto(option.value)}
+                >
+                  <span className="min-w-0 break-words">{option.label}</span>
+                  <span className={`h-8 w-8 shrink-0 rounded-full border-4 ${selected ? 'border-cyan-700 bg-cyan-700 shadow-[inset_0_0_0_5px_white]' : 'border-slate-500 bg-white'}`} />
+                </button>
+              )
+            })
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={cargoUsuarioProductoSelectorOpen}
+        title="Selecciona producto"
+        onClose={() => {
+          setCargoUsuarioProductoSelectorOpen(false)
+          setCargoUsuarioProductoSearch('')
+        }}
+        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        contentClassName="p-0"
+        actions={
+          <Button type="button" variant="secondary" onClick={() => { setCargoUsuarioProductoSelectorOpen(false); setCargoUsuarioProductoSearch('') }}>
+            Cerrar
+          </Button>
+        }
+      >
+        <div className="relative z-10 mb-3 pointer-events-auto">
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar producto</label>
+          <input
+            type="search"
+            className="input-base rounded-xl py-2 text-sm"
+            value={cargoUsuarioProductoSearch}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onTouchStart={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+            onChange={(event) => {
+              event.stopPropagation()
+              setCargoUsuarioProductoSearch(event.target.value)
+            }}
+            placeholder="Buscar producto..."
+            autoFocus
+          />
+        </div>
+        <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
+          {cargoUsuarioProductosQuery.isLoading ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando productos...</div>
+          ) : filteredCargoUsuarioProductoOptions.length === 0 ? (
+            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin productos disponibles.</div>
+          ) : (
+            filteredCargoUsuarioProductoOptions.map((option) => {
+              const selected = option.value === cargoUsuarioProductoId
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 text-left text-lg font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  onClick={() => selectCargoUsuarioProducto(option.value)}
+                >
+                  <span className="min-w-0 break-words">{option.label}</span>
+                  <span className={`h-8 w-8 shrink-0 rounded-full border-4 ${selected ? 'border-cyan-700 bg-cyan-700 shadow-[inset_0_0_0_5px_white]' : 'border-slate-500 bg-white'}`} />
+                </button>
+              )
+            })
+          )}
+        </div>
+      </Modal>
+
+      <Modal
         open={serieSelectorOpen}
         title="Selecciona serie"
         onClose={() => {
@@ -4721,18 +4864,6 @@ const OtRealizadaPage = () => {
 }
 
 export default OtRealizadaPage
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

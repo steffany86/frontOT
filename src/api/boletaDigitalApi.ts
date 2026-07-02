@@ -41,7 +41,7 @@ const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
 const mapBoletaDigitalOt = (row: Record<string, unknown>): BoletaDigitalOt => {
   const rutaPdf = normalizeString(readValue(row, ['RutaPdf', 'RutaPDF', 'rutaPdf', 'ruta_pdf', 'pdf']))
   const id = normalizeString(readValue(row, ['Id', 'id', 'Id_Venta', 'idVenta', 'NroTrans', 'nroTrans']))
-  const ot = normalizeString(readValue(row, ['OrdenTrabajo', 'ordenTrabajo', 'OT', 'ot', 'NroOT', 'nroOT', 'OT_FISICA', 'otFisica']))
+  const ot = normalizeString(readValue(row, ['OrdenTrabajo', 'ordenTrabajo', 'OT', 'ot', 'NroOT', 'nroOT']))
   return {
     id,
     ot,
@@ -50,6 +50,8 @@ const mapBoletaDigitalOt = (row: Record<string, unknown>): BoletaDigitalOt => {
     fecha: normalizeString(readValue(row, ['Fecha', 'fecha', 'FechaRegistro', 'fechaRegistro', 'Fecha_Ejecucion', 'fechaEjecucion'])),
     rutaPdf,
     estado: normalizeString(readValue(row, ['Estado', 'estado'])),
+    estadoArchivo: normalizeString(readValue(row, ['EstadoArchivo', 'estadoArchivo', 'Estado_Archivo', 'estado_archivo'])),
+    otFisica: normalizeString(readValue(row, ['OT_FIsica', 'OT_FISICA', 'otFisica', 'ot_fisica', 'OtFisica'])),
     comparacion: normalizeString(readValue(row, ['Comparacion', 'comparacion', 'Comparación', 'comparación'])),
     previamenteModificada: normalizeBoolean(readValue(row, ['PreviamenteModificada', 'previamenteModificada'])),
     raw: row,

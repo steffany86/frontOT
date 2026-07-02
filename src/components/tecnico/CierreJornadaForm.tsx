@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBriefcaseMedical, faClipboardList, faHashtag, faLocationCrosshairs, faPersonFalling, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
+import { faBriefcaseMedical, faClipboardList, faFileSignature, faHashtag, faLocationCrosshairs, faPersonFalling, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import Button from '../common/Button'
 import Field from '../common/Field'
 import { cerrarJornada } from '../../api/inicioJornadaApi'
@@ -18,6 +18,11 @@ type CierreJornadaFormProps = {
 const fieldIconClass = 'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700'
 const choiceCardClass = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'
 
+const declaracionJuradaCierreJornada = [
+  'Bajo juramento declaro que la informacion consignada en este cierre de jornada corresponde fielmente a las actividades realizadas. Confirmo que no he omitido informacion relacionada con accidentes, incidentes, danos materiales, lesiones, condiciones inseguras o participacion de personal no autorizado.',
+  'Asimismo, reconozco que cualquier falsedad u omision en esta declaracion podra dar lugar a sanciones disciplinarias, contractuales, civiles y/o penales, siendo de mi exclusiva responsabilidad la veracidad de la informacion registrada.',
+]
+
 const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClosed }: CierreJornadaFormProps) => {
   const queryClient = useQueryClient()
   const [codigoCliente, setCodigoCliente] = useState('')
@@ -28,10 +33,13 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
   const [novedadesTrabajo, setNovedadesTrabajo] = useState<SiNo>('NO')
   const [observacionNovedades, setObservacionNovedades] = useState('')
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
+  const [declaracionAceptada, setDeclaracionAceptada] = useState(false)
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [intentoRegistrar, setIntentoRegistrar] = useState(false)
 
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
+  const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
 
   const cierreMutation = useMutation({
     mutationFn: () =>
@@ -45,6 +53,7 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
         novedadesTrabajo,
         observacionNovedades: novedadesTrabajo === 'SI' ? observacionNovedades : undefined,
         ubicacionGeoRef,
+        aceptoCierreJornada: declaracionAceptada ? 'SI' : 'NO',
       }),
     onSuccess: () => {
       setError(null)
@@ -85,6 +94,7 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
   }
 
   const handleSubmit = () => {
+    setIntentoRegistrar(true)
     const codigoSoloNumeros = normalizeOnlyDigits(codigoCliente)
     if (!codigoSoloNumeros || !ubicacionGeoRef.trim()) {
       setError('Codigo cliente y ubicacion son obligatorios.')
@@ -100,6 +110,10 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
     }
     if (novedadesTrabajo === 'SI' && !observacionNovedades.trim()) {
       setError('Debes completar observacion de novedades.')
+      return
+    }
+    if (!declaracionAceptada) {
+      setError('Debe aceptar la declaracion jurada para registrar el cierre de jornada.')
       return
     }
     setError(null)
@@ -211,6 +225,39 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
             ) : (
               <div className="hidden md:block" />
             )}
+          </div>
+        </div>
+
+        <div className={`${choiceCardClass} md:col-span-2 ${mostrarErrorDeclaracion ? 'border-rose-500 ring-2 ring-rose-100' : ''}`}>
+          <div className="mb-3 flex items-center gap-3">
+            <span className={fieldIconClass}>
+              <FontAwesomeIcon icon={faFileSignature} />
+            </span>
+            <p className="text-sm font-bold text-slate-900">Declaracion Jurada de cierre de Jornada</p>
+          </div>
+          <div className="grid gap-4">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+              {declaracionJuradaCierreJornada.map((parrafo) => (
+                <p key={parrafo} className="mb-3 last:mb-0">
+                  {parrafo}
+                </p>
+              ))}
+            </div>
+            <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
+              <input
+                type="checkbox"
+                className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}
+                checked={declaracionAceptada}
+                onChange={(event) => {
+                  setDeclaracionAceptada(event.target.checked)
+                  setError(null)
+                }}
+              />
+              <span>Acepto y declaro bajo juramento que la informacion registrada en el cierre es veraz.</span>
+            </label>
+            {mostrarErrorDeclaracion ? (
+              <p className="text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el cierre de jornada.</p>
+            ) : null}
           </div>
         </div>
       </div>

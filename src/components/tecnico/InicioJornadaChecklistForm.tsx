@@ -5,6 +5,7 @@ import {
   faCalendarDays,
   faCamera,
   faCircleCheck,
+  faFileSignature,
   faHelmetSafety,
   faImage,
   faTriangleExclamation,
@@ -44,6 +45,11 @@ const SectionHeader = ({ icon, title }: { icon: typeof faUserShield; title: stri
 
 const cardClass = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'
 
+const declaracionJuradaInicioJornada = [
+  'A través del presente, bajo juramento declaro expresamente que toda la información registrada en este formulario es veraz y corresponde a la realidad. Confirmo, bajo juramento, que únicamente el personal aquí identificado participará en la ejecución de las órdenes de trabajo asignadas así como en cualquier actividad relacionada con Makiro y/o Tigo, que dicho personal dispone y utilizará permanentemente durante la ejecución de las ordenes de trabajo, los Equipos de Protección Personal (EPP) exigidos, que se realizará el Análisis Preliminar de Riesgos (APR) previo a cada intervención y que todos los integrantes de la cuadrilla cuentan con las competencias, capacitaciones y autorizaciones requeridas para desarrollar las actividades encomendadas.',
+  'Asimismo, declaro conocer que la incorporación de personal no registrado, la omisión de información o la falsedad de los datos consignados constituye un incumplimiento a las normas de seguridad y podrá dar lugar a responsabilidades penales, civiles, administrativas, contractuales y legales. Así mismo, Declaro que no permitiré la participación en las actividades de ejecución de órdenes de trabajo, de ninguna persona distinta a las registradas en este sistema (Tigo Hogar Operaciones Técnicas Makiro).',
+]
+
 const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor, onRegistered }: InicioJornadaChecklistFormProps) => {
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [capacitado, setCapacitado] = useState<SiNo>('NO')
@@ -55,6 +61,7 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
   const [apr, setApr] = useState<SiNo>('NO')
   const [escalera, setEscalera] = useState<SiNo>('NO')
   const [anclaje, setAnclaje] = useState<SiNo>('NO')
+  const [declaracionAceptada, setDeclaracionAceptada] = useState(false)
   const [imagen, setImagen] = useState('')
   const [nombreImagen, setNombreImagen] = useState('')
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
@@ -62,8 +69,13 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [intentoRegistrar, setIntentoRegistrar] = useState(false)
   const elegirImagenInputRef = useRef<HTMLInputElement | null>(null)
   const tomarFotoInputRef = useRef<HTMLInputElement | null>(null)
+
+  const mostrarErrorFecha = intentoRegistrar && !fechaVencimiento
+  const mostrarErrorImagen = intentoRegistrar && !imagen
+  const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
 
   const registrarMutation = useMutation({
     mutationFn: () =>
@@ -80,6 +92,7 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
         anclaje,
         imagen,
         ubicacionGeoRef,
+        aceptoInicioJornada: declaracionAceptada ? 'SI' : 'NO',
         sucursal,
       }),
     onSuccess: () => {
@@ -99,17 +112,25 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
       const dataUrl = await readFileAsDataUrl(file)
       setImagen(dataUrl)
       setNombreImagen(file.name || 'imagen.jpg')
+      setError(null)
     } catch {
       setError('No se pudo leer la imagen.')
     }
   }
 
   const handleSubmit = () => {
-    if (!fechaVencimiento || !imagen || !ubicacionGeoRef.trim()) {
+    setIntentoRegistrar(true)
+    if (!fechaVencimiento || !imagen) {
       setFeedback(null)
-      setError('Fecha de vencimiento, imagen y ubicacion georeferenciada son obligatorios.')
+      setError('Fecha de vencimiento e imagen son obligatorios.')
       return
     }
+    if (!declaracionAceptada) {
+      setFeedback(null)
+      setError('Debe aceptar la declaracion jurada para registrar el inicio de jornada.')
+      return
+    }
+    setError(null)
     registrarMutation.mutate()
   }
 
@@ -166,16 +187,19 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
           <Field label="Encargado (Supervisor)">
             <input className="input-base bg-slate-100" value={nombreSupervisor?.trim() || 'Supervisor no encontrado'} readOnly />
           </Field>
-          <Field label="Fecha de vencimiento extintor">
+          <Field label="Fecha de vencimiento extintor" error={mostrarErrorFecha ? 'La fecha de vencimiento es obligatoria.' : undefined}>
             <div className="relative max-w-full overflow-hidden">
               <input
-                className="input-base w-full min-w-0 max-w-full pr-10 text-sm sm:text-base"
+                className={`input-base w-full min-w-0 max-w-full pr-10 text-sm sm:text-base ${mostrarErrorFecha ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                 style={{ WebkitAppearance: 'none' }}
                 type="date"
                 value={fechaVencimiento}
-                onChange={(event) => setFechaVencimiento(event.target.value)}
+                onChange={(event) => {
+                  setFechaVencimiento(event.target.value)
+                  setError(null)
+                }}
               />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500">
+              <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${mostrarErrorFecha ? 'text-rose-500' : 'text-slate-500'}`}>
                 <FontAwesomeIcon icon={faCalendarDays} />
               </span>
             </div>
@@ -214,15 +238,15 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
         </div>
       </div>
 
-      <div className="rounded-2xl border border-dashed border-blue-300 bg-white p-4 shadow-sm">
+      <div className={`rounded-2xl border border-dashed bg-white p-4 shadow-sm ${mostrarErrorImagen ? 'border-rose-500 ring-2 ring-rose-100' : 'border-blue-300'}`}>
         <SectionHeader icon={faCamera} title="Registro Visual" />
-        <Field label="Foto de perfil con su equipo">
+        <Field label="Foto de perfil con su equipo" error={mostrarErrorImagen ? 'Debe cargar o tomar una foto.' : undefined}>
           <div className="grid gap-3">
-            <div className="flex min-h-48 items-center justify-center rounded-2xl border border-slate-200 bg-slate-100/80 p-3">
+            <div className={`flex min-h-48 items-center justify-center rounded-2xl border p-3 ${mostrarErrorImagen ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-slate-100/80'}`}>
               {imagen ? (
                 <img src={imagen} alt="Foto seleccionada" className="h-44 w-full cursor-zoom-in rounded-xl object-cover" onClick={() => setZoomImageSrc(imagen)} />
               ) : (
-                <div className="text-center text-slate-500">
+                <div className={`text-center ${mostrarErrorImagen ? 'text-rose-600' : 'text-slate-500'}`}>
                   <FontAwesomeIcon icon={faImage} className="mb-2 text-3xl" />
                   <p>Sin imagen seleccionada.</p>
                 </div>
@@ -236,7 +260,9 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
                 Tomar foto
               </Button>
             </div>
-            <div className="text-xs text-slate-500">{nombreImagen ? `Imagen cargada: ${nombreImagen}` : 'Sin imagen seleccionada.'}</div>
+            <div className={`text-xs ${mostrarErrorImagen ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>
+              {nombreImagen ? `Imagen cargada: ${nombreImagen}` : 'Sin imagen seleccionada.'}
+            </div>
           </div>
           <input ref={elegirImagenInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)} />
           <input
@@ -301,6 +327,34 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
               <option value="NO">NO</option>
             </select>
           </Field>
+        </div>
+      </div>
+
+      <div className={cardClass}>
+        <SectionHeader icon={faFileSignature} title="Declaración Jurada de inicio de Jornada" />
+        <div className="grid gap-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+            {declaracionJuradaInicioJornada.map((parrafo) => (
+              <p key={parrafo} className="mb-3 last:mb-0">
+                {parrafo}
+              </p>
+            ))}
+          </div>
+          <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
+            <input
+              type="checkbox"
+              className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}
+              checked={declaracionAceptada}
+              onChange={(event) => {
+                setDeclaracionAceptada(event.target.checked)
+                setError(null)
+              }}
+            />
+            <span>Acepto y declaro bajo juramento que la información registrada es veraz.</span>
+          </label>
+          {mostrarErrorDeclaracion ? (
+            <p className="text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el inicio de jornada.</p>
+          ) : null}
         </div>
       </div>
 

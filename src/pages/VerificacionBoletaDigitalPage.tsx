@@ -33,7 +33,12 @@ const normalizeText = (value: string): string =>
 const matchesSearch = (row: BoletaDigitalOt, query: string): boolean => {
   const normalizedQuery = normalizeText(query)
   if (!normalizedQuery) return true
-  return normalizeText(row.ot).includes(normalizedQuery) || normalizeText(row.cliente).includes(normalizedQuery)
+  return (
+    normalizeText(row.ot).includes(normalizedQuery) ||
+    normalizeText(row.otFisica).includes(normalizedQuery) ||
+    normalizeText(row.cliente).includes(normalizedQuery) ||
+    normalizeText(row.estado).includes(normalizedQuery)
+  )
 }
 
 const isDifferentRow = (row: BoletaDigitalOt): boolean => {
@@ -41,7 +46,7 @@ const isDifferentRow = (row: BoletaDigitalOt): boolean => {
 }
 
 const isWithoutPdfRow = (row: BoletaDigitalOt): boolean => {
-  return normalizeText(row.comparacion) === 'sin_pdf' || normalizeText(row.estado) === 'sin_pdf'
+  return normalizeText(row.comparacion) === 'sin_pdf' || normalizeText(row.estadoArchivo || row.estado) === 'sin_pdf'
 }
 
 const canReplacePdf = (row: BoletaDigitalOt): boolean => {
@@ -268,7 +273,7 @@ const VerificacionBoletaDigitalPage = () => {
   }
 
   return (
-    <div className="bento-page">
+    <div className="bento-page max-w-full overflow-x-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -310,9 +315,9 @@ const VerificacionBoletaDigitalPage = () => {
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Verificación Boleta Digital</h2>
       </div>
 
-      <section className="rounded-2xl border border-slate-300 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-100/80 px-5 py-3">
-          <div className="inline-flex max-w-full gap-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm">
+      <section className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-100/80 px-4 py-2">
+          <div className="inline-flex max-w-full gap-1.5 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
             {[
               { id: 'all', label: 'Todos', count: rows.length },
               { id: 'iguales', label: 'Iguales', count: statusSummary.iguales },
@@ -324,7 +329,7 @@ const VerificacionBoletaDigitalPage = () => {
                 <button
                   key={tab.id}
                   type="button"
-                  className={`shrink-0 rounded-lg px-4 py-2 text-sm font-bold transition ${
+                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition ${
                     active
                       ? 'bg-blue-700 text-white shadow-sm'
                       : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-blue-700'
@@ -332,7 +337,7 @@ const VerificacionBoletaDigitalPage = () => {
                   onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
                 >
                   {tab.label}
-                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
                     {tab.count}
                   </span>
                 </button>
@@ -341,57 +346,57 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         </div>
 
-        <div className="grid gap-3 border-b border-slate-200 px-5 py-4 sm:grid-cols-3">
+        <div className="grid gap-2 border-b border-slate-200 px-3 py-2 sm:grid-cols-3">
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 text-left transition ${
+            className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${
               statusFilter === 'iguales'
                 ? 'border-emerald-400 bg-emerald-50 text-emerald-900'
                 : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-emerald-300'
             }`}
             onClick={() => setStatusFilter((current) => (current === 'iguales' ? 'all' : 'iguales'))}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide">Iguales</span>
-            <span className="mt-1 block text-2xl font-extrabold">{statusSummary.iguales}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide">Iguales</span>
+            <span className="block text-lg font-extrabold leading-5">{statusSummary.iguales}</span>
           </button>
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 text-left transition ${
+            className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${
               statusFilter === 'diferentes'
                 ? 'border-rose-400 bg-rose-50 text-rose-900'
                 : 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400'
             }`}
             onClick={() => setStatusFilter((current) => (current === 'diferentes' ? 'all' : 'diferentes'))}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide">Diferentes</span>
-            <span className="mt-1 block text-2xl font-extrabold">{statusSummary.diferentes}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide">Diferentes</span>
+            <span className="block text-lg font-extrabold leading-5">{statusSummary.diferentes}</span>
           </button>
           <button
             type="button"
-            className={`rounded-xl border px-4 py-3 text-left transition ${
+            className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${
               statusFilter === 'sin_pdf'
                 ? 'border-amber-400 bg-amber-50 text-amber-900'
                 : 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400'
             }`}
             onClick={() => setStatusFilter((current) => (current === 'sin_pdf' ? 'all' : 'sin_pdf'))}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide">Sin PDF</span>
-            <span className="mt-1 block text-2xl font-extrabold">{statusSummary.sinPdf}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide">Sin PDF</span>
+            <span className="block text-lg font-extrabold leading-5">{statusSummary.sinPdf}</span>
           </button>
         </div>
 
-        <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className="flex items-center gap-3 text-blue-700">
+        <div className="flex min-w-0 flex-col gap-3 border-b border-slate-200 px-4 py-3 xl:flex-row xl:items-end xl:justify-between">
+          <div className="flex min-w-0 items-center gap-3 text-blue-700">
             <FontAwesomeIcon icon={faFilePdf} />
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">Boletas digitales</h3>
+            <div className="min-w-0">
+              <h3 className="text-base font-bold text-slate-900">Boletas digitales</h3>
               <p className="text-xs text-slate-500">Registros encontrados: {filteredRows.length}</p>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[160px_160px_minmax(220px,360px)_auto] lg:items-end">
+          <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto] lg:items-end">
             <Field label="Desde" compact>
               <input
-                className="input-base"
+                className="input-base rounded-lg py-2 text-xs"
                 type="date"
                 value={fechaInicio}
                 onChange={(event) => setFechaInicio(event.target.value)}
@@ -399,7 +404,7 @@ const VerificacionBoletaDigitalPage = () => {
             </Field>
             <Field label="Hasta" compact>
               <input
-                className="input-base"
+                className="input-base rounded-lg py-2 text-xs"
                 type="date"
                 value={fechaFin}
                 onChange={(event) => setFechaFin(event.target.value)}
@@ -409,7 +414,7 @@ const VerificacionBoletaDigitalPage = () => {
               <div className="relative">
                 <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="input-base pl-10"
+                  className="input-base rounded-lg py-2 pl-9 text-xs"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar por OT o cliente"
@@ -435,27 +440,40 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         ) : null}
 
-        <div className="hidden max-h-[62vh] overflow-auto md:block">
-          <table className="min-w-full divide-y divide-slate-200 text-sm">
+        <div className="hidden max-h-[68vh] max-w-full overflow-auto md:block">
+          <table className="w-full min-w-[1060px] table-fixed divide-y divide-slate-200 text-sm">
+            <colgroup>
+              <col className="w-[9%]" />
+              <col className="w-[9%]" />
+              <col className="w-[10%]" />
+              <col className="w-[15%]" />
+              <col className="w-[13%]" />
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[10%]" />
+            </colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase text-slate-500 shadow-sm">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold">OT</th>
-                <th className="px-4 py-3 text-left font-semibold">Cliente</th>
-                <th className="px-4 py-3 text-left font-semibold">Tecnico</th>
-                <th className="px-4 py-3 text-left font-semibold">Fecha</th>
-                <th className="px-4 py-3 text-left font-semibold">Comparacion</th>
-                <th className="px-4 py-3 text-left font-semibold">RutaPDF</th>
-                <th className="px-4 py-3 text-right font-semibold">Acciones</th>
+                <th className="px-3 py-2 text-left font-semibold">OT</th>
+                <th className="px-3 py-2 text-left font-semibold">Cliente</th>
+                <th className="px-3 py-2 text-left font-semibold">Tecnico</th>
+                <th className="px-3 py-2 text-left font-semibold">Fecha</th>
+                <th className="px-3 py-2 text-left font-semibold">Estado</th>
+                <th className="px-3 py-2 text-left font-semibold">OT Fisica</th>
+                <th className="px-3 py-2 text-left font-semibold">Comparacion</th>
+                <th className="px-3 py-2 text-left font-semibold">RutaPDF</th>
+                <th className="px-3 py-2 text-right font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {otsQuery.isLoading ? (
                 <tr>
-                  <td className="px-4 py-5 text-slate-500" colSpan={7}>Cargando boletas...</td>
+                  <td className="px-3 py-4 text-slate-500" colSpan={9}>Cargando boletas...</td>
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={7}>
+                  <td className="px-4 py-12 text-center" colSpan={9}>
                     <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
                   </td>
                 </tr>
@@ -466,21 +484,27 @@ const VerificacionBoletaDigitalPage = () => {
                   const comparisonBadge = getComparisonBadge(row)
                   return (
                   <tr key={`${row.id || row.ot || row.rutaPdf}-${index}`} className={`align-top ${isDifferent ? 'bg-rose-50' : ''}`}>
-                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">{row.ot || '-'}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.cliente || '-'}</td>
-                    <td className="px-4 py-3 text-slate-700">{row.tecnico || '-'}</td>
-                    <td className="whitespace-nowrap px-4 py-3 text-slate-700">{formatBoletaFecha(row.fecha)}</td>
-                    <td className="px-4 py-3">
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${comparisonBadge.className}`}>
+                    <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">{row.ot || '-'}</td>
+                    <td className="truncate px-3 py-2 text-slate-700" title={row.cliente}>{row.cliente || '-'}</td>
+                    <td className="truncate px-3 py-2 text-slate-700" title={row.tecnico}>{row.tecnico || '-'}</td>
+                    <td className="whitespace-nowrap px-3 py-2 text-slate-700">{formatBoletaFecha(row.fecha)}</td>
+                    <td className="truncate px-3 py-2 text-slate-700" title={row.estado}>{row.estado || '-'}</td>
+                    <td className="truncate px-3 py-2 font-semibold text-slate-700" title={row.otFisica}>{row.otFisica || '-'}</td>
+                    <td className="px-3 py-2">
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${comparisonBadge.className}`}>
                         {comparisonBadge.label}
                       </span>
                     </td>
-                    <td className="max-w-sm truncate px-4 py-3 text-xs text-slate-500" title={row.rutaPdf}>{row.rutaPdf || '-'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
+                    <td className="px-3 py-2 text-xs text-slate-500">
+                      <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={row.rutaPdf}>
+                        {row.rutaPdf || '-'}
+                      </span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2">
+                      <div className="flex min-w-[104px] justify-end gap-1.5">
                         <button
                           type="button"
-                          className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
                           onClick={() => void openPdf(row)}
                           disabled={!row.rutaPdf || loadingKey === `${row.id || row.ot}-view`}
                           title="Ver PDF"
@@ -489,7 +513,7 @@ const VerificacionBoletaDigitalPage = () => {
                         </button>
                         <button
                           type="button"
-                          className="rounded-lg border border-slate-300 px-3 py-2 text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
+                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
                           onClick={() => void downloadPdf(row)}
                           disabled={!row.rutaPdf || loadingKey === `${row.id || row.ot}-download`}
                           title="Descargar PDF"
@@ -499,7 +523,7 @@ const VerificacionBoletaDigitalPage = () => {
                         {canReplace ? (
                           <button
                             type="button"
-                            className="rounded-lg border border-amber-300 px-3 py-2 text-amber-700 transition hover:border-amber-400 hover:bg-amber-50 disabled:opacity-50"
+                            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-amber-300 text-amber-700 transition hover:border-amber-400 hover:bg-amber-50 disabled:opacity-50"
                             onClick={() => selectReplacementPdf(row)}
                             disabled={!row.id || loadingKey === `${row.id || row.ot}-upload`}
                             title="Cambiar PDF"
@@ -552,9 +576,11 @@ const VerificacionBoletaDigitalPage = () => {
                 <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
                   <p className="font-semibold text-slate-900">OT: {row.ot || '-'}</p>
                   <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                    <p><span className="font-semibold uppercase text-slate-500">OT Fisica:</span> {row.otFisica || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Cliente:</span> {row.cliente || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Tecnico:</span> {row.tecnico || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Fecha:</span> {formatBoletaFecha(row.fecha)}</p>
+                    <p><span className="font-semibold uppercase text-slate-500">Estado:</span> {row.estado || '-'}</p>
                     <p>
                       <span className="font-semibold uppercase text-slate-500">Comparacion:</span>{' '}
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${comparisonBadge.className}`}>
