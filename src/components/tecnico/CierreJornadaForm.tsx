@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faBriefcaseMedical, faClipboardList, faFileSignature, faHashtag, faLocationCrosshairs, faPersonFalling, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import Button from '../common/Button'
 import Field from '../common/Field'
+import Modal from '../common/Modal'
 import { cerrarJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 
@@ -11,6 +12,7 @@ type SiNo = 'SI' | 'NO'
 
 type CierreJornadaFormProps = {
   idInicio?: number
+  supervisorPendiente?: string
   submitLabel?: string
   onClosed?: () => void
 }
@@ -23,7 +25,12 @@ const declaracionJuradaCierreJornada = [
   'Asimismo, reconozco que cualquier falsedad u omision en esta declaracion podra dar lugar a sanciones disciplinarias, contractuales, civiles y/o penales, siendo de mi exclusiva responsabilidad la veracidad de la informacion registrada.',
 ]
 
-const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClosed }: CierreJornadaFormProps) => {
+const getApiErrorCode = (error: unknown): string => {
+  const candidate = error as { response?: { data?: { code?: unknown } } }
+  return typeof candidate.response?.data?.code === 'string' ? candidate.response.data.code : ''
+}
+
+const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Registrar cierre', onClosed }: CierreJornadaFormProps) => {
   const queryClient = useQueryClient()
   const [codigoCliente, setCodigoCliente] = useState('')
   const [danoMaterial, setDanoMaterial] = useState<SiNo>('NO')
@@ -37,9 +44,11 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [intentoRegistrar, setIntentoRegistrar] = useState(false)
+  const [supervisorConfirmacionModalOpen, setSupervisorConfirmacionModalOpen] = useState(false)
 
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
   const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
+  const supervisorPendienteLabel = (supervisorPendiente?.trim() || '-').toUpperCase()
 
   const cierreMutation = useMutation({
     mutationFn: () =>
@@ -61,6 +70,11 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
       onClosed?.()
     },
     onError: (err) => {
+      if (getApiErrorCode(err) === 'CIERRE_PENDIENTE_APROBACION_SUPERVISOR') {
+        setError(null)
+        setSupervisorConfirmacionModalOpen(true)
+        return
+      }
       setError(getApiErrorMessage(err, 'No se pudo registrar cierre de jornada.'))
     },
   })
@@ -122,6 +136,22 @@ const CierreJornadaForm = ({ idInicio, submitLabel = 'Registrar cierre', onClose
 
   return (
     <div className="space-y-4">
+      <Modal
+        open={supervisorConfirmacionModalOpen}
+        onClose={() => setSupervisorConfirmacionModalOpen(false)}
+        title="Cierre no permitido"
+        actions={
+          <Button type="button" onClick={() => setSupervisorConfirmacionModalOpen(false)}>
+            Entendido
+          </Button>
+        }
+      >
+        <div className="space-y-3 text-sm font-semibold text-slate-700">
+          <p>No se puede registrar el cierre hasta que el supervisor confirme el dia de ayer.</p>
+          <p className="font-black uppercase text-slate-900">SUPERVISOR: {supervisorPendienteLabel}</p>
+          <p className="font-black uppercase text-amber-700">POR FAVOR LLENAR LOS DATOS EN EL DIA</p>
+        </div>
+      </Modal>
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <div className={choiceCardClass}>

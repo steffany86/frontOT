@@ -127,10 +127,10 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     tipoPenalizacion: normalizeString(readValue(row, ['tipoPenalizacion', 'TipoPenalizacion'])) || undefined,
     supervisionPor: normalizeString(readValue(row, ['supervisionPor', 'supervision_por', 'Supervision_Por'])) || undefined,
     tecnologia: normalizeString(readValue(row, ['tecnologia', 'Tecnologia'])) || undefined,
-    codigo: normalizeString(readValue(row, ['codigo', 'Codigo'])) || undefined,
-    ordenTrabajo: normalizeString(readValue(row, ['ordenTrabajo', 'OrdenTrabajo'])) || undefined,
-    tipoRevision: normalizeString(readValue(row, ['tipoRevision', 'TipoRevision'])) || undefined,
-    observacion: normalizeString(readValue(row, ['observacion', 'Observacion'])) || undefined,
+    codigo: normalizeString(readValue(row, ['codigo', 'Codigo', 'CODIGO', 'cliente_nro'])) || undefined,
+    ordenTrabajo: normalizeString(readValue(row, ['ordenTrabajo', 'OrdenTrabajo', 'orden_nro', 'OT'])) || undefined,
+    tipoRevision: normalizeString(readValue(row, ['tipoRevision', 'TipoRevision', 'Estado_Gestion', 'TipoRev'])) || undefined,
+    observacion: normalizeString(readValue(row, ['observacion', 'Observacion', 'obs_penalizada'])) || undefined,
     descripcionAdicionalObservacion:
       normalizeString(readValue(row, ['descripcionAdicionalObservacion', 'DescripcionAdicionalObservacion'])) || undefined,
     ubicacion: normalizeString(readValue(row, ['ubicacion', 'Ubicacion'])) || undefined,
@@ -144,6 +144,8 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     fotoObservacion3: normalizeString(readValue(row, ['fotoObservacion3', 'FotoObservacion3'])) || undefined,
     fotoObservacion4: normalizeString(readValue(row, ['fotoObservacion4', 'FotoObservacion4'])) || undefined,
     estadoSup: normalizeString(readValue(row, ['estadoSup', 'estado_sup', 'estdo_sup', 'EstadoSup'])) || undefined,
+    origen: normalizeString(readValue(row, ['origen', 'Origen'])) || undefined,
+    origenExterno: readValue(row, ['origenExterno', 'origen_externo']) === true || normalizeString(readValue(row, ['origenExterno', 'origen_externo'])) === 'true',
   }
 }
 
@@ -421,6 +423,19 @@ export const fetchHistoricoJornadaDetalle = async (
   const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/detalle`)
   return mapJornadaHistorico(normalizeObjectResponse<Record<string, unknown>>(data))
+}
+
+export const fetchInicioJornadaImagen = async (
+  idInicio: string,
+  scope: 'supervisor' | 'backoffice' = 'supervisor',
+  miniatura = true
+): Promise<Blob> => {
+  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen`, {
+    params: { miniatura },
+    responseType: 'blob',
+  })
+  return data
 }
 
 export const aprobarInicioJornadaPendiente = async (idInicio: string): Promise<void> => {

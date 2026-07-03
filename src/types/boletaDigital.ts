@@ -1,5 +1,6 @@
 export type BoletaDigitalOt = {
   id: string
+  nroTransaccion: string
   ot: string
   cliente: string
   tecnico: string

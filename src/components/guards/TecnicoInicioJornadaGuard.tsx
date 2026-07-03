@@ -4,12 +4,22 @@ import { faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { fetchInicioJornadaEstado } from '../../api/inicioJornadaApi'
 import { useAuth } from '../../context/AuthContext'
-import { fetchSucursales } from '../../services/authApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 import Button from '../common/Button'
 import Modal from '../common/Modal'
 import CierreJornadaForm from '../tecnico/CierreJornadaForm'
 import InicioJornadaChecklistForm from '../tecnico/InicioJornadaChecklistForm'
+
+const formatPendingClosureDate = (value?: string): string => {
+  if (!value?.trim()) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat('es-BO', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(date)
+}
 
 const TecnicoInicioJornadaGuard = () => {
   const navigate = useNavigate()
@@ -18,24 +28,9 @@ const TecnicoInicioJornadaGuard = () => {
   const isTecnico = roleId === 8 || roleNormalized === 'tecnico'
   const requiresInicioJornada = isTecnico
 
-  const sucursalesQuery = useQuery({
-    queryKey: ['auth-sucursales-tecnico-inicio-jornada-guard'],
-    queryFn: fetchSucursales,
-    enabled: isAuthenticated && requiresInicioJornada,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const loginSucursal = (() => {
-    const idSucursal = usuario?.idSucursal
-    const sucursales = sucursalesQuery.data?.data ?? []
-    if (!idSucursal || sucursales.length === 0) return undefined
-    const found = sucursales.find((item) => Number(item.idSucursal) === Number(idSucursal))
-    return found?.sucursal?.trim() || undefined
-  })()
-
   const estadoQuery = useQuery({
-    queryKey: ['tecnico-inicio-jornada', 'estado', loginSucursal || 'auto'],
-    queryFn: () => fetchInicioJornadaEstado(loginSucursal),
+    queryKey: ['tecnico-inicio-jornada', 'estado', usuario?.idSucursal || 'sesion'],
+    queryFn: () => fetchInicioJornadaEstado(),
     enabled: isAuthenticated && requiresInicioJornada,
     staleTime: 0,
     refetchInterval: 15 * 1000,
@@ -58,8 +53,10 @@ const TecnicoInicioJornadaGuard = () => {
     )
   }
 
-  const requiereCierreAyer = Boolean(estadoQuery.data?.requiereCierreAyer && estadoQuery.data?.idInicioPendienteCierre)
-  const pendiente = !requiereCierreAyer && (estadoQuery.data?.pendiente ?? false)
+  const requiereCierrePendiente = Boolean(estadoQuery.data?.requiereCierreAyer && estadoQuery.data?.idInicioPendienteCierre)
+  const pendiente = !requiereCierrePendiente && (estadoQuery.data?.pendiente ?? false)
+  const fechaCierrePendiente = formatPendingClosureDate(estadoQuery.data?.fechaInicioPendienteCierre)
+  const supervisorPendiente = (estadoQuery.data?.supervisorPendienteCierre || '-').toUpperCase()
   const handleLogout = () => {
     logout()
     navigate('/login', { replace: true })
@@ -69,9 +66,9 @@ const TecnicoInicioJornadaGuard = () => {
     <>
       <Outlet />
       <Modal
-        open={requiereCierreAyer}
+        open={requiereCierrePendiente}
         onClose={handleLogout}
-        title="Modal de cierre de jornada de AYER"
+        title="Cierre de jornada pendiente"
         maxWidthClass="max-w-3xl"
         actions={
           <Button type="button" variant="secondary" onClick={handleLogout}>
@@ -84,13 +81,17 @@ const TecnicoInicioJornadaGuard = () => {
             <FontAwesomeIcon icon={faClockRotateLeft} />
           </span>
           <div>
-            <p className="text-sm font-extrabold">No marco el cierre ayer.</p>
+            <p className="text-sm font-extrabold">Tiene una jornada anterior sin cierre.</p>
+            <p className="mt-2 text-2xl font-black uppercase tracking-wide text-amber-950">{fechaCierrePendiente}</p>
+            <p className="mt-2 text-sm font-black uppercase tracking-wide text-amber-950">SUPERVISOR: {supervisorPendiente}</p>
+            <p className="mt-1 text-xs font-black uppercase tracking-wide text-amber-800">SE RECOMIENDA LLENAR FORMULARIO A TIEMPO</p>
             <p className="mt-1 text-sm font-semibold">Por favor, antes de iniciar, llenar los campos de cierre.</p>
           </div>
         </div>
         <CierreJornadaForm
           idInicio={estadoQuery.data?.idInicioPendienteCierre}
-          submitLabel="Registrar cierre de ayer"
+          supervisorPendiente={estadoQuery.data?.supervisorPendienteCierre}
+          submitLabel="Registrar cierre pendiente"
           onClosed={() => {
             estadoQuery.refetch()
           }}
@@ -108,7 +109,6 @@ const TecnicoInicioJornadaGuard = () => {
         }
       >
         <InicioJornadaChecklistForm
-          sucursal={loginSucursal}
           nombreTecnico={usuario?.nombre}
           nombreSupervisor={estadoQuery.data?.encargado}
           onRegistered={() => {

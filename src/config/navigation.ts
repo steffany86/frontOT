@@ -148,6 +148,13 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Nombres NPS',
+    to: '/backoffice/nombres-nps',
+    routePatterns: ['/backoffice/nombres-nps'],
+    allowedRoles: ['backoffice_v', 'sistemas', 'admin'],
+    showInSidebar: true,
+  },
+  {
     label: 'Georeferencias',
     to: '/digitador/georef',
     routePatterns: ['/digitador/georef'],

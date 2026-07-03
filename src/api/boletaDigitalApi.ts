@@ -40,10 +40,22 @@ const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
 
 const mapBoletaDigitalOt = (row: Record<string, unknown>): BoletaDigitalOt => {
   const rutaPdf = normalizeString(readValue(row, ['RutaPdf', 'RutaPDF', 'rutaPdf', 'ruta_pdf', 'pdf']))
-  const id = normalizeString(readValue(row, ['Id', 'id', 'Id_Venta', 'idVenta', 'NroTrans', 'nroTrans']))
+  const nroTransaccion = normalizeString(readValue(row, [
+    'NroTransaccion',
+    'nroTransaccion',
+    'NroTrans',
+    'nroTrans',
+    'nventa',
+    'NVenta',
+    'NVENTA',
+    'Id_Venta',
+    'idVenta',
+  ]))
+  const id = normalizeString(readValue(row, ['Id', 'id', 'Id_Venta', 'idVenta', 'nventa', 'NVenta', 'NVENTA', 'NroTrans', 'nroTrans']))
   const ot = normalizeString(readValue(row, ['OrdenTrabajo', 'ordenTrabajo', 'OT', 'ot', 'NroOT', 'nroOT']))
   return {
     id,
+    nroTransaccion,
     ot,
     cliente: normalizeString(readValue(row, ['cliente_nro', 'Cliente_Nro', 'clienteNro', 'Cliente', 'cliente', 'CodigoCliente', 'codigoCliente'])),
     tecnico: normalizeString(readValue(row, ['Tecnico', 'tecnico', 'NombreTecnico', 'nombreTecnico', 'Usuario', 'usuario'])),

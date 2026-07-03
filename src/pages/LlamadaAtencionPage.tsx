@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDays, faCircleInfo, faClipboardCheck, faComments, faDownload, faFileLines, faFilter, faIdCard, faPrint, faSearch, faSignature, faTriangleExclamation, faUserGear, faUserGroup } from '@fortawesome/free-solid-svg-icons'
+import { faCalendarDays, faCircleInfo, faClipboardCheck, faComments, faDownload, faFileLines, faFilter, faPrint, faSearch, faSignature, faTriangleExclamation, faUserGear, faUserGroup } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import ImageLightbox from '../components/common/ImageLightbox'
@@ -22,7 +22,9 @@ import { getApiErrorMessage } from '../services/httpClient'
 
 type LlamadaAtencionForm = {
   idTecnico: string
+  tecnico: string
   codEmpleado: string
+  tabla: string
   idTipoComunicacion: string
   motivo: string
   descripcion: string
@@ -47,7 +49,9 @@ type TecnicoModalTarget = 'form' | 'filter'
 
 const createEmptyForm = (): LlamadaAtencionForm => ({
   idTecnico: '',
+  tecnico: '',
   codEmpleado: '',
+  tabla: '',
   idTipoComunicacion: '',
   motivo: '',
   descripcion: '',
@@ -242,10 +246,12 @@ const LlamadaAtencionPage = () => {
     const tecnicoId = normalizeId(idTecnico)
     const tecnico = tecnicoById.get(tecnicoId)
     const codEmpleado = tecnico?.codEmpleado?.trim() ?? ''
+    const tecnicoNombre = tecnico?.tecnico?.trim() ?? ''
+    const tabla = tecnico?.tabla?.trim() ?? ''
     if (tecnicoModalTarget === 'filter') {
       setFilterDraft((previous) => ({ ...previous, idTecnico: tecnicoId }))
     } else {
-      setForm((previous) => ({ ...previous, idTecnico: tecnicoId, codEmpleado }))
+      setForm((previous) => ({ ...previous, idTecnico: tecnicoId, tecnico: tecnicoNombre, codEmpleado, tabla }))
     }
     setTecnicoModalOpen(false)
   }
@@ -272,7 +278,7 @@ const LlamadaAtencionPage = () => {
     }
 
     if (!firmaTecnicoDraft.trim()) {
-      setFirmaModalError('La firma del tecnico es requerida.')
+      setFirmaModalError('La firma del tercero o empleado es requerida.')
       return
     }
 
@@ -293,15 +299,15 @@ const LlamadaAtencionPage = () => {
   }
 
   const validateForm = (): string | null => {
-    if (!form.idTecnico) return 'Selecciona un tecnico.'
-    if (!form.codEmpleado.trim()) return 'El tecnico seleccionado no tiene codigo de empleado.'
+    if (!form.idTecnico) return 'Selecciona un tercero o empleado.'
+    if (!form.codEmpleado.trim()) return 'El tercero o empleado seleccionado no tiene codigo de empleado.'
     if (!form.fechaSeguimiento.trim()) return 'Fecha de seguimiento es requerida.'
     if (!form.idTipoComunicacion) return 'Selecciona tipo de comunicacion.'
     if (!form.motivo.trim()) return 'Motivo es requerido.'
     if (form.fechaSeguimiento && Number.isNaN(new Date(form.fechaSeguimiento).getTime())) {
       return 'Fecha de seguimiento invalida.'
     }
-    if (!form.firmaTecnico.trim()) return 'Firma del tecnico es requerida.'
+    if (!form.firmaTecnico.trim()) return 'Firma del tercero o empleado es requerida.'
     return null
   }
 
@@ -315,7 +321,9 @@ const LlamadaAtencionPage = () => {
 
     const payload: LlamadaAtencionCreatePayload = {
       idTecnico: form.idTecnico,
+      tecnico: toOptionalText(form.tecnico),
       codEmpleado: form.codEmpleado.trim(),
+      tabla: toOptionalText(form.tabla),
       idTipoComunicacion: form.idTipoComunicacion,
       motivo: form.motivo.trim(),
       descripcion: toOptionalText(form.descripcion),
@@ -422,7 +430,7 @@ const LlamadaAtencionPage = () => {
           <h3 className="text-xl font-bold text-slate-900 sm:text-2xl">Filtros de Busqueda</h3>
         </div>
         <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} gap-4 md:grid md:grid-cols-[1.3fr_1fr] md:items-end`}>
-          <Field label="Tecnico">
+          <Field label="Tercero o empleado">
             <div className="flex flex-wrap items-center gap-2">
               {selectedFilterTecnico ? (
                 <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">
@@ -431,7 +439,7 @@ const LlamadaAtencionPage = () => {
                     type="button"
                     className="rounded-full border border-sky-300 px-1.5 leading-none text-sky-700 transition hover:bg-sky-100"
                     onClick={() => setFilterDraft((previous) => ({ ...previous, idTecnico: '' }))}
-                    aria-label="Deseleccionar tecnico"
+                    aria-label="Deseleccionar tercero o empleado"
                   >
                     x
                   </button>
@@ -443,7 +451,7 @@ const LlamadaAtencionPage = () => {
                   onClick={() => openTecnicoModal('filter')}
                   className="h-10 flex-1 rounded-lg px-3 text-left text-base text-slate-500"
                 >
-                  {selectedFilterTecnico ? selectedFilterTecnico.tecnico : 'ID o Nombre del tecnico...'}
+                  {selectedFilterTecnico ? selectedFilterTecnico.tecnico : 'ID o nombre del tercero o empleado...'}
                 </button>
                 <button
                   type="button"
@@ -521,12 +529,8 @@ const LlamadaAtencionPage = () => {
 
                   <div className="grid grid-cols-2 gap-3 px-4 py-3 text-sm">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tecnico</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tercero o empleado</p>
                       <p className="mt-1 font-semibold text-slate-900">{describeTecnico(registro)}</p>
-                    </div>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Cod. Empleado</p>
-                      <p className="mt-1 text-slate-800">{registro.codEmpleado || '-'}</p>
                     </div>
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo</p>
@@ -562,8 +566,7 @@ const LlamadaAtencionPage = () => {
                 <thead className="sticky top-0 z-10 bg-slate-100 text-slate-600">
                   <tr>
                     <th className="px-4 py-3 text-left">FECHA DE REGISTRO</th>
-                    <th className="px-4 py-3 text-left">TECNICO</th>
-                    <th className="px-4 py-3 text-left">COD. EMPLEADO</th>
+                    <th className="px-4 py-3 text-left">TERCERO O EMPLEADO</th>
                     <th className="px-4 py-3 text-left">TIPO</th>
                     <th className="px-4 py-3 text-left">MOTIVO</th>
                     <th className="px-4 py-3 text-left">FECHA DE EVENTO</th>
@@ -575,7 +578,6 @@ const LlamadaAtencionPage = () => {
                     <tr key={row.idLlamadaAtencion} className="border-t border-slate-200">
                       <td className="px-4 py-4 whitespace-nowrap">{formatDateOnly(row.fechaRegistro) || '-'}</td>
                       <td className="px-4 py-4 font-semibold text-slate-800">{describeTecnico(row)}</td>
-                      <td className="px-4 py-4">{row.codEmpleado || '-'}</td>
                       <td className="px-4 py-4">
                         <span className={`rounded-full px-2 py-1 text-xs font-bold ${String(row.tipoComunicacion || '').toLowerCase().includes('llamada') ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'}`}>
                           {row.tipoComunicacion || '-'}
@@ -629,8 +631,8 @@ const LlamadaAtencionPage = () => {
                       <button
                         type="button"
                         className="rounded-full border border-sky-300 px-1.5 leading-none text-sky-700 transition hover:bg-sky-100"
-                        onClick={() => setForm((previous) => ({ ...previous, idTecnico: '', codEmpleado: '' }))}
-                        aria-label="Quitar tecnico"
+                        onClick={() => setForm((previous) => ({ ...previous, idTecnico: '', tecnico: '', codEmpleado: '', tabla: '' }))}
+                        aria-label="Quitar tercero o empleado"
                       >
                         x
                       </button>
@@ -681,7 +683,7 @@ const LlamadaAtencionPage = () => {
                     className="input-base bg-slate-100"
                     value={form.codEmpleado}
                     readOnly
-                    placeholder="Se completa al seleccionar tecnico"
+                    placeholder="Se completa al seleccionar tercero o empleado"
                   />
                 </Field>
                 <Field label="Fecha seguimiento">
@@ -763,7 +765,7 @@ const LlamadaAtencionPage = () => {
                 {form.firmaTecnico && form.firmaTestigo ? 'Reingresar firmas' : 'Ingresar firmas'}
               </Button>
             </div>
-            <p className="text-xs text-slate-600">Ingresa primero firma del testigo y luego del tecnico.</p>
+            <p className="text-xs text-slate-600">Ingresa primero firma del testigo y luego del tercero o empleado.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
                 <span className="font-semibold text-slate-700">Testigo:</span>{' '}
@@ -772,7 +774,7 @@ const LlamadaAtencionPage = () => {
                 </span>
               </div>
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
-                <span className="font-semibold text-slate-700">Tecnico:</span>{' '}
+                <span className="font-semibold text-slate-700">Tercero o empleado:</span>{' '}
                 <span className={form.firmaTecnico ? 'text-emerald-700' : 'text-slate-500'}>
                   {form.firmaTecnico ? 'Firma cargada' : 'Pendiente'}
                 </span>
@@ -799,7 +801,7 @@ const LlamadaAtencionPage = () => {
 
       <Modal
         open={firmaModalOpen}
-        title={firmaStep === 'testigo' ? 'Ingrese firma del testigo' : 'Ingrese firma del tecnico'}
+        title={firmaStep === 'testigo' ? 'Ingrese firma del testigo' : 'Ingrese firma del tercero o empleado'}
         onClose={closeFirmaModal}
         actions={
           <>
@@ -812,7 +814,7 @@ const LlamadaAtencionPage = () => {
               </Button>
             ) : null}
             <Button type="button" onClick={handleConfirmFirmaStep}>
-              {firmaStep === 'testigo' ? 'Confirmar testigo' : 'Confirmar tecnico'}
+              {firmaStep === 'testigo' ? 'Confirmar testigo' : 'Confirmar tercero o empleado'}
             </Button>
           </>
         }
@@ -821,7 +823,7 @@ const LlamadaAtencionPage = () => {
           <p className="text-xs text-slate-600">
             {firmaStep === 'testigo'
               ? 'El testigo debe garabatear y luego presionar Confirmar testigo.'
-              : 'Ahora el tecnico debe garabatear y confirmar su firma.'}
+              : 'Ahora el tercero o empleado debe garabatear y confirmar su firma.'}
           </p>
 
           {firmaStep === 'testigo' ? (
@@ -850,7 +852,7 @@ const LlamadaAtencionPage = () => {
 
       <Modal
         open={tecnicoModalOpen}
-        title="Seleccionar tecnico"
+        title="Seleccionar tercero o empleado"
         onClose={() => setTecnicoModalOpen(false)}
         actions={
           <Button type="button" variant="secondary" onClick={() => setTecnicoModalOpen(false)}>
@@ -863,25 +865,25 @@ const LlamadaAtencionPage = () => {
             className="input-base"
             value={tecnicoSearch}
             onChange={(event) => setTecnicoSearch(event.target.value)}
-            placeholder="Buscar tecnico (nombre, cuenta, id)"
+            placeholder="Buscar tercero o empleado (nombre, cuenta, id)"
           />
 
           {tecnicosModalQuery.isLoading ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600">
-              Cargando tecnicos...
+              Cargando terceros o empleados...
             </div>
           ) : null}
 
           {tecnicosModalQuery.isError ? (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">
-              {getApiErrorMessage(tecnicosModalQuery.error, 'No se pudo cargar tecnicos.')}
+              {getApiErrorMessage(tecnicosModalQuery.error, 'No se pudo cargar terceros o empleados.')}
             </div>
           ) : null}
 
           {!tecnicosModalQuery.isLoading && !tecnicosModalQuery.isError ? (
             <div className="max-h-80 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
               {tecnicosModal.length === 0 ? (
-                <div className="px-2 py-3 text-xs text-slate-500">Sin tecnicos para mostrar.</div>
+                <div className="px-2 py-3 text-xs text-slate-500">Sin terceros o empleados para mostrar.</div>
               ) : (
                 tecnicosModal.map((tecnico) => (
                   <button
@@ -892,8 +894,8 @@ const LlamadaAtencionPage = () => {
                   >
                     <p className="font-semibold text-slate-900">{tecnico.tecnico}</p>
                     <p className="mt-1 text-slate-600">
-                      ID: {tecnico.idTecnico} | Cod: {tecnico.codEmpleado || '-'} | Cuenta: {tecnico.cuentaSf || '-'} | Habilidad:{' '}
-                      {tecnico.habilidad || '-'}
+                      ID: {tecnico.idTecnico} | Cod: {tecnico.codEmpleado || '-'} | Tabla: {tecnico.tabla || '-'} | Cuenta:{' '}
+                      {tecnico.cuentaSf || '-'} | Habilidad: {tecnico.habilidad || '-'}
                     </p>
                   </button>
                 ))
@@ -922,10 +924,9 @@ const LlamadaAtencionPage = () => {
             </div>
 
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGroup} className="mr-2 text-slate-700" />Tecnico</p><p className="mt-1 text-xl font-semibold leading-tight text-blue-800">{describeTecnico(detalleRegistro)}</p></div>
+              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGroup} className="mr-2 text-slate-700" />Tercero o empleado</p><p className="mt-1 text-xl font-semibold leading-tight text-blue-800">{describeTecnico(detalleRegistro)}</p></div>
               <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha registro</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaRegistro) || '-'}</p></div>
               <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faComments} className="mr-2 text-slate-700" />Tipo comunicacion</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{detalleRegistro.tipoComunicacion || '-'}</p></div>
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faIdCard} className="mr-2 text-slate-700" />Cod. empleado</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{detalleRegistro.codEmpleado || '-'}</p></div>
               <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGear} className="mr-2 text-slate-700" />Supervisor</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{detalleRegistro.supervisorNombre || detalleRegistro.idUsuarioSupervisor || '-'}</p></div>
               <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha seguimiento</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaSeguimiento) || '-'}</p></div>
             </div>
@@ -944,7 +945,7 @@ const LlamadaAtencionPage = () => {
 
             <div className="grid gap-3 md:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma testigo</p>{detalleFirmaTestigoSrc ? (<img src={detalleFirmaTestigoSrc} alt="Firma testigo" className="h-36 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTestigoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma tecnico</p>{detalleFirmaTecnicoSrc ? (<img src={detalleFirmaTecnicoSrc} alt="Firma tecnico" className="h-36 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTecnicoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma tercero o empleado</p>{detalleFirmaTecnicoSrc ? (<img src={detalleFirmaTecnicoSrc} alt="Firma tercero o empleado" className="h-36 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTecnicoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
             </div>
           </div>
         ) : null}
@@ -955,3 +956,4 @@ const LlamadaAtencionPage = () => {
 }
 
 export default LlamadaAtencionPage
+

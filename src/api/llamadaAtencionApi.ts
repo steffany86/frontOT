@@ -47,10 +47,14 @@ const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
 }
 
 const mapTecnico = (row: Record<string, unknown>): LlamadaAtencionTecnico => {
+  const codEmpleado = normalizeString(readValue(row, ['codEmpleado', 'cod_empleado', 'codempleado', 'codigoEmpleado', 'codigo_empleado', 'id_usuario', 'idUsuario', 'id_vendedor', 'idVendedor']))
+  const nombreEmpleado = normalizeString(readValue(row, ['nombreEmpleado', 'nombre_empleado', 'tecnico', 'nombre', 'nombrevendedor', 'vendedor']))
   return {
-    idTecnico: normalizeString(readValue(row, ['idTecnico', 'id_tecnico', 'idtecnico', 'id_vendedor', 'idvendedor'])),
-    tecnico: normalizeString(readValue(row, ['tecnico', 'nombre', 'nombrevendedor', 'vendedor'])),
-    codEmpleado: normalizeString(readValue(row, ['codEmpleado', 'cod_empleado', 'codempleado'])) || undefined,
+    idTecnico: normalizeString(readValue(row, ['idTecnico', 'id_tecnico', 'idtecnico', 'id_vendedor', 'idvendedor'])) || codEmpleado,
+    tecnico: nombreEmpleado,
+    codEmpleado: codEmpleado || undefined,
+    nombreEmpleado: nombreEmpleado || undefined,
+    tabla: normalizeString(readValue(row, ['tabla'])) || undefined,
     cuentaSf: normalizeString(readValue(row, ['cuentaSf', 'cuenta_sf', 'cuentasf'])) || undefined,
     salesforce: normalizeString(readValue(row, ['salesforce'])) || undefined,
     habilidad: normalizeString(readValue(row, ['habilidad'])) || undefined,
@@ -80,6 +84,7 @@ const mapRegistro = (row: Record<string, unknown>): LlamadaAtencionRegistro => {
     idTecnico: normalizeString(readValue(row, ['idTecnico', 'id_tecnico', 'idtecnico'])) || undefined,
     tecnico: normalizeString(readValue(row, ['tecnico', 'tecnicoNombre', 'tecniconombre'])) || undefined,
     codEmpleado: normalizeString(readValue(row, ['codEmpleado', 'cod_empleado', 'codempleado'])) || undefined,
+    tabla: normalizeString(readValue(row, ['tabla'])) || undefined,
     idUsuarioSupervisor: Number(readValue(row, ['idUsuarioSupervisor', 'id_usuariosupervisor', 'idsupervisor'])) || undefined,
     supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor_nombre', 'nombreSupervisor', 'nombresupervisor'])) || undefined,
     idTipoComunicacion: normalizeString(readValue(row, ['idTipoComunicacion', 'id_tipocomunicacion'])) || undefined,

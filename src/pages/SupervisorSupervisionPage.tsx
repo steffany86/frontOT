@@ -11,6 +11,8 @@ import Table, { type Column } from '../components/common/Table'
 import {
   aprobarInicioJornadaPendiente,
   createSupervision,
+  fetchHistoricoJornadaDetalle,
+  fetchInicioJornadaImagen,
   fetchIniciosJornadaConfirmadosHoySupervision,
   fetchSupervisionDetalle,
   fetchIniciosJornadaPendientesSupervision,
@@ -61,6 +63,8 @@ type SupervisionFiltro = {
   fechaDesde: string
   fechaHasta: string
 }
+
+type JornadaPendienteFiltro = 'hoy' | 'pasados'
 
 const emptyForm = (): SupervisionForm => ({
   idTecnicoPrincipal: '',
@@ -158,6 +162,30 @@ const formatDateParts = (value?: string): { date: string; time: string } => {
       minute: '2-digit',
     }).format(date),
   }
+}
+
+const startOfToday = (): Date => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return today
+}
+
+const getDateOnly = (value?: string): Date | null => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+const isJornadaToday = (row: SupervisionInicioPendiente): boolean => {
+  const date = getDateOnly(row.fechaRegistro)
+  return Boolean(date && date.getTime() === startOfToday().getTime())
+}
+
+const isJornadaPast = (row: SupervisionInicioPendiente): boolean => {
+  const date = getDateOnly(row.fechaRegistro)
+  return Boolean(date && date.getTime() < startOfToday().getTime())
 }
 
 const resolveImageSrc = (value?: string): string | null => {
@@ -265,6 +293,78 @@ const mergeTecnicosDisponibles = (
   return Array.from(byId.values()).sort((a, b) => (a.tecnico || '').localeCompare(b.tecnico || '', 'es'))
 }
 
+const JornadaTecnicoThumb = ({
+  idInicio,
+  nombre,
+  onOpen,
+}: {
+  idInicio: string
+  nombre: string
+  onOpen: (src: string) => void
+}) => {
+  const imagenQuery = useQuery({
+    queryKey: ['supervision', 'jornada-imagen-miniatura', idInicio],
+    queryFn: () => fetchInicioJornadaImagen(idInicio, 'supervisor', true),
+    enabled: Boolean(idInicio),
+    staleTime: 10 * 60_000,
+    retry: false,
+  })
+  const imagenCompletaQuery = useQuery({
+    queryKey: ['supervision', 'jornada-imagen-completa', idInicio],
+    queryFn: () => fetchInicioJornadaImagen(idInicio, 'supervisor', false),
+    enabled: false,
+    staleTime: 10 * 60_000,
+    retry: false,
+  })
+  const [objectUrl, setObjectUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!imagenQuery.data) {
+      setObjectUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(imagenQuery.data)
+    setObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [imagenQuery.data])
+
+  const handleOpen = async () => {
+    try {
+      const result = await imagenCompletaQuery.refetch()
+      if (result.data) {
+        onOpen(URL.createObjectURL(result.data))
+        return
+      }
+    } catch {
+      // Si falla la foto completa, al menos abre la miniatura visible.
+    }
+    if (imagenQuery.data) {
+      onOpen(URL.createObjectURL(imagenQuery.data))
+    }
+  }
+
+  return (
+    <div className="flex min-w-[190px] items-center gap-2">
+      <button
+        type="button"
+        className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-100 text-[10px] font-semibold uppercase text-slate-400 transition hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-default"
+        onClick={handleOpen}
+        disabled={!objectUrl || imagenCompletaQuery.isFetching}
+        title={objectUrl ? `Ver foto de ${nombre}` : 'Sin foto disponible'}
+      >
+        {objectUrl ? (
+          <img src={objectUrl} alt={`Foto ${nombre}`} className="h-full w-full object-cover" loading="lazy" />
+        ) : imagenQuery.isLoading ? (
+          '...'
+        ) : (
+          'SF'
+        )}
+      </button>
+      <span className="min-w-0 break-words font-semibold text-slate-800">{nombre}</span>
+    </div>
+  )
+}
+
 
 const toDataUrl = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -293,6 +393,15 @@ const SupervisorSupervisionPage = () => {
   const [inicioPendienteDetalle, setInicioPendienteDetalle] = useState<SupervisionInicioPendiente | null>(null)
   const [jornadaDetalleModo, setJornadaDetalleModo] = useState<'inicio' | 'cierre'>('inicio')
   const [realizandoPendienteId, setRealizandoPendienteId] = useState<string>('')
+  const [jornadaPendienteFiltro, setJornadaPendienteFiltro] = useState<JornadaPendienteFiltro>('hoy')
+
+  useEffect(() => {
+    return () => {
+      if (zoomImageSrc?.startsWith('blob:')) {
+        URL.revokeObjectURL(zoomImageSrc)
+      }
+    }
+  }, [zoomImageSrc])
 
   const tecnicosQuery = useQuery({
     queryKey: ['supervision', 'tecnicos', usuario?.idUsuario ?? 0],
@@ -357,6 +466,21 @@ const SupervisorSupervisionPage = () => {
     refetchInterval: 20_000,
     enabled: Boolean(usuario?.idUsuario),
   })
+  const jornadaDetalleQuery = useQuery({
+    queryKey: ['supervision', 'jornada-detalle', inicioPendienteDetalle?.idInicio ?? ''],
+    queryFn: () => fetchHistoricoJornadaDetalle(inicioPendienteDetalle?.idInicio ?? '', 'supervisor'),
+    enabled: Boolean(inicioPendienteDetalle?.idInicio),
+  })
+
+  useEffect(() => {
+    if (!jornadaDetalleQuery.data?.idInicio) return
+    setInicioPendienteDetalle((current) => {
+      if (!current || current.idInicio !== jornadaDetalleQuery.data?.idInicio) {
+        return current
+      }
+      return { ...current, ...jornadaDetalleQuery.data } as SupervisionInicioPendiente
+    })
+  }, [jornadaDetalleQuery.data])
 
   const createMutation = useMutation({
     mutationFn: (payload: SupervisionCreatePayload) => createSupervision(payload),
@@ -413,6 +537,15 @@ const SupervisorSupervisionPage = () => {
   const listados = listadoQuery.data ?? []
   const listadosPendientes = listadoPendientesQuery.data ?? []
   const iniciosPendientes = iniciosPendientesQuery.data ?? []
+  const iniciosPendientesHoy = useMemo(
+    () => iniciosPendientes.filter(isJornadaToday),
+    [iniciosPendientes]
+  )
+  const iniciosPendientesPasados = useMemo(
+    () => iniciosPendientes.filter(isJornadaPast),
+    [iniciosPendientes]
+  )
+  const iniciosPendientesFiltrados = jornadaPendienteFiltro === 'pasados' ? iniciosPendientesPasados : iniciosPendientesHoy
   const iniciosConfirmadosHoy = iniciosConfirmadosHoyQuery.data ?? []
   const tieneCierreJornada = (row: SupervisionInicioPendiente): boolean =>
     Boolean(row.fechaCierre) ||
@@ -455,7 +588,13 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'tecnicoNombre',
         header: 'Tecnico',
-        render: (row) => resolveTecnicoNombre(row.idTecnico, row.tecnicoNombre),
+        render: (row) => (
+          <JornadaTecnicoThumb
+            idInicio={row.idInicio}
+            nombre={resolveTecnicoNombre(row.idTecnico, row.tecnicoNombre)}
+            onOpen={setZoomImageSrc}
+          />
+        ),
       },
       {
         key: 'auxiliarNombre',
@@ -468,19 +607,6 @@ const SupervisorSupervisionPage = () => {
         render: (row) => row.supervisorNombre || row.idSupervisor || '-',
       },
       { key: 'estado', header: 'Estado', render: (row) => tieneCierreJornada(row) ? 'JORNADA FINALIZADA' : (row.estado || 'PENDIENTE') },
-      {
-        key: 'imagen',
-        header: 'Imagen inicio',
-        render: (row) => {
-          const src = resolveInicioImageSrc(row.imagen)
-          if (!src) return '-'
-          return (
-            <button type="button" onClick={() => setZoomImageSrc(src)} className="rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200">
-              <img src={src} alt="Inicio jornada" className="h-10 w-10 rounded-lg border border-slate-200 object-cover" />
-            </button>
-          )
-        },
-      },
       {
         key: 'acciones',
         header: 'Acciones',
@@ -554,7 +680,8 @@ const SupervisorSupervisionPage = () => {
     return map
   }, [tecnicos])
 
-  const camposBaseBloqueados = Boolean(realizandoPendienteId)
+  const esRevisionPenalizadaActiva = realizandoPendienteId.startsWith('REV_PENALIZADA:')
+  const camposBaseBloqueados = Boolean(realizandoPendienteId) && !esRevisionPenalizadaActiva
 
   const abrirRealizarPendiente = (row: SupervisionRegistro) => {
     setForm({
@@ -652,9 +779,16 @@ const SupervisorSupervisionPage = () => {
         key: 'tipoSupervision',
         header: 'Tipo Supervision',
         render: (row) => (
-          <span className="inline-flex items-center rounded-full bg-blue-200 px-3 py-1 text-xs font-bold text-[#0f2f63]">
-            {resolveTipoSupervision(row)}
-          </span>
+          <div className="flex flex-col gap-1">
+            <span className="inline-flex w-fit items-center rounded-full bg-blue-200 px-3 py-1 text-xs font-bold text-[#0f2f63]">
+              {resolveTipoSupervision(row)}
+            </span>
+            {row.origen === 'REV_PENALIZADA' || row.origenExterno ? (
+              <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+                Revision penalizada
+              </span>
+            ) : null}
+          </div>
         ),
       },
       {
@@ -849,9 +983,14 @@ const SupervisorSupervisionPage = () => {
           <FontAwesomeIcon icon={faClipboardList} />
           Agenda Supervisión
         </Button>
-        <Button type="button" className="min-w-[220px] justify-center" variant={vistaTopbar === 'aprobacion' ? 'primary' : 'secondary'} onClick={() => setVistaTopbar('aprobacion')}>
+        <Button type="button" className="relative min-w-[220px] justify-center" variant={vistaTopbar === 'aprobacion' ? 'primary' : 'secondary'} onClick={() => setVistaTopbar('aprobacion')}>
           <FontAwesomeIcon icon={faCheckCircle} />
           Aprobacion de jornada
+          {iniciosPendientesPasados.length > 0 ? (
+            <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-extrabold leading-none text-white shadow">
+              {iniciosPendientesPasados.length > 99 ? '99+' : iniciosPendientesPasados.length}
+            </span>
+          ) : null}
         </Button>
       </div>
 
@@ -913,18 +1052,48 @@ const SupervisorSupervisionPage = () => {
 
           <FormCard
             title="Pendientes de aprobacion"
-            description={`Pendientes: ${iniciosPendientes.length}. El tecnico no podra cerrar jornada hasta aprobar.`}
+            description={`Pendientes: ${iniciosPendientesFiltrados.length}. Hoy: ${iniciosPendientesHoy.length}. Pasados: ${iniciosPendientesPasados.length}. El tecnico no podra cerrar jornada hasta aprobar.`}
             actions={
-              <Button
-                type="button"
-                variant="secondary"
-                className="px-5"
-                onClick={() => iniciosPendientesQuery.refetch()}
-                disabled={iniciosPendientesQuery.isFetching}
-              >
-                <FontAwesomeIcon icon={faRotateRight} />
-                Recargar pendientes
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  type="button"
+                  variant={jornadaPendienteFiltro === 'hoy' ? 'primary' : 'secondary'}
+                  className="relative px-5"
+                  onClick={() => setJornadaPendienteFiltro('hoy')}
+                >
+                  Hoy
+                  <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/90 px-1.5 text-xs font-extrabold leading-none text-slate-800">
+                    {iniciosPendientesHoy.length}
+                  </span>
+                </Button>
+                <Button
+                  type="button"
+                  variant={jornadaPendienteFiltro === 'pasados' ? 'primary' : 'secondary'}
+                  className="relative px-5"
+                  onClick={() => setJornadaPendienteFiltro('pasados')}
+                >
+                  Pasados
+                  {iniciosPendientesPasados.length > 0 ? (
+                    <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-extrabold leading-none text-white shadow">
+                      {iniciosPendientesPasados.length > 99 ? '99+' : iniciosPendientesPasados.length}
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/90 px-1.5 text-xs font-extrabold leading-none text-slate-800">
+                      0
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="px-5"
+                  onClick={() => iniciosPendientesQuery.refetch()}
+                  disabled={iniciosPendientesQuery.isFetching}
+                >
+                  <FontAwesomeIcon icon={faRotateRight} />
+                  Recargar pendientes
+                </Button>
+              </div>
             }
           >
             <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
@@ -935,10 +1104,10 @@ const SupervisorSupervisionPage = () => {
               ) : null}
               <Table
                 columns={pendientesColumns}
-                data={iniciosPendientes}
+                data={iniciosPendientesFiltrados}
                 stickyHeader
                 desktopMinWidthClass="min-w-[760px]"
-                emptyLabel={iniciosPendientesQuery.isLoading ? 'Cargando pendientes...' : 'NO HAY DATOS PARA LA FECHA'}
+                emptyLabel={iniciosPendientesQuery.isLoading ? 'Cargando pendientes...' : jornadaPendienteFiltro === 'pasados' ? 'NO HAY PENDIENTES PASADOS' : 'NO HAY PENDIENTES PARA HOY'}
               />
             </div>
           </FormCard>

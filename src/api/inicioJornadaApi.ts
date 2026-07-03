@@ -45,10 +45,12 @@ export const fetchInicioJornadaEstado = async (sucursal?: string): Promise<Inici
     fechaServidor: normalizeString(readValue(row, ['fechaServidor', 'fecha_servidor'])) || undefined,
     idEncargado: normalizeString(readValue(row, ['idEncargado', 'id_encargado', 'idSupervisor', 'id_supervisor'])) || undefined,
     encargado: normalizeString(readValue(row, ['encargado', 'supervisor', 'nombreSupervisor', 'nombre'])) || undefined,
-    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
-    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
+    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierrePendiente', 'cierrePendiente', 'requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
+    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idUltimoInicioPendienteCierre', 'idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
     fechaInicioPendienteCierre:
-      normalizeString(readValue(row, ['fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
+      normalizeString(readValue(row, ['fechaUltimoInicioPendienteCierre', 'fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
+    supervisorPendienteCierre:
+      normalizeString(readValue(row, ['supervisorPendienteCierre', 'supervisor_pendiente_cierre', 'supervisorNombrePendienteCierre'])) || undefined,
   }
 }
 
@@ -77,10 +79,12 @@ export const fetchCierreJornadaEstado = async (): Promise<CierreJornadaEstado> =
     cerradoHoy: normalizeBoolean(readValue(row, ['cerradoHoy'])),
     requiereCierre: normalizeBoolean(readValue(row, ['requiereCierre'])),
     noMarcoCount: Number(readValue(row, ['noMarcoCount', 'no_marco_count']) ?? 0),
-    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
-    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
+    requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierrePendiente', 'cierrePendiente', 'requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
+    idInicioPendienteCierre: normalizeNumber(readValue(row, ['idUltimoInicioPendienteCierre', 'idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
     fechaInicioPendienteCierre:
-      normalizeString(readValue(row, ['fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
+      normalizeString(readValue(row, ['fechaUltimoInicioPendienteCierre', 'fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
+    supervisorPendienteCierre:
+      normalizeString(readValue(row, ['supervisorPendienteCierre', 'supervisor_pendiente_cierre', 'supervisorNombrePendienteCierre'])) || undefined,
   }
 }
 

@@ -88,6 +88,12 @@ const formatDateOnly = (value: unknown): string => {
   if (!date) return asText(value).split(' ')[0] || '-'
   return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`
 }
+const formatDateRangeText = (value: string): string => {
+  if (!value) return '-'
+  const parts = value.split('-')
+  if (parts.length !== 3) return value
+  return `${parts[2]}-${parts[1]}-${parts[0]}`
+}
 
 const pct = (value: number): string => `${value.toFixed(1)}%`
 const normalizeSucursalLabel = (value: string): string => {
@@ -193,12 +199,12 @@ const NpsDashboardPage = () => {
       fechaInicio,
       fechaFin,
       idSucursal,
-      idSupervisor: undefined,
+      idSupervisor,
       idTecnico: undefined,
       supervisorNombre,
       tecnicoNombre,
     }),
-    [modo, fechaInicio, fechaFin, idSucursal, supervisorNombre, tecnicoNombre]
+    [modo, fechaInicio, fechaFin, idSucursal, idSupervisor, supervisorNombre, tecnicoNombre]
   )
 
   const sucursalesQuery = useQuery({ queryKey: ['auth-sucursales-nps'], queryFn: fetchSucursales })
@@ -392,6 +398,7 @@ const NpsDashboardPage = () => {
     !dashboardQuery.isLoading &&
     !dashboardQuery.isError &&
     rows.length === 0
+  const noNpsMessage = `NO HAY DATOS NPS DEL ${formatDateRangeText(fechaInicio)} AL ${formatDateRangeText(fechaFin)}`
 
   const invitado = useMemo(() => {
     const vigentes = rows.map((row) => ({
@@ -593,6 +600,8 @@ const NpsDashboardPage = () => {
               } else {
                 setIdSupervisor(e.target.value ? Number(e.target.value) : undefined)
               }
+              setIdTecnico(undefined)
+              setTecnicoNombre(undefined)
             }}
             className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
             disabled={filtrosQuery.isLoading || isTecnico || isSupervisor}
@@ -612,40 +621,28 @@ const NpsDashboardPage = () => {
         <label className="text-sm text-slate-700">
           <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faScrewdriverWrench} className="text-slate-400" />Técnico</span>
           <select
-            value={isCentral ? (tecnicoNombre ?? '') : (idTecnico ? `ID:${idTecnico}` : (tecnicoNombre ? `NM:${tecnicoNombre}` : ''))}
+            value={tecnicoNombre ?? ''}
             onChange={(e) => {
               const raw = e.target.value
-              const selectedLabel = e.target.selectedOptions?.[0]?.text?.trim() || undefined
-              if (isCentral) {
-                setTecnicoNombre(raw || undefined)
-                setIdTecnico(undefined)
-              } else {
-                if (!raw) {
-                  setIdTecnico(undefined)
-                  setTecnicoNombre(undefined)
-                } else if (raw.startsWith('ID:')) {
-                  const id = Number(raw.slice(3))
-                  setIdTecnico(Number.isFinite(id) ? id : undefined)
-                  setTecnicoNombre(selectedLabel && selectedLabel !== 'Todos' ? selectedLabel : undefined)
-                } else if (raw.startsWith('NM:')) {
-                  setIdTecnico(undefined)
-                  setTecnicoNombre(raw.slice(3) || undefined)
-                } else {
-                  setIdTecnico(undefined)
-                  setTecnicoNombre(raw || undefined)
-                }
-              }
+              setIdTecnico(undefined)
+              setTecnicoNombre(raw || undefined)
             }}
             className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
             disabled={filtrosQuery.isLoading || isTecnico}
           >
             <option value="">Todos</option>
             {tecnicos.map((row, idx) => {
-              const nombre = asText(read(row, ['tecnico', 'nombre', 'idTecnico']))
+              const nombre = asText(read(row, ['tecnicoNombreOperativo', 'tecnico', 'nombre', 'idTecnico']))
+              const nombreNps = asText(read(row, ['nombreNps', 'NombreNPS', 'nombre_nps']))
               const id = asNumber(read(row, ['idTecnico', 'id_tecnico']))
-              if (isCentral) return nombre ? <option key={`tec-n-${idx}-${nombre}`} value={nombre}>{nombre}</option> : null
-              if (id) return <option key={`tec-${idx}-${id}`} value={`ID:${id}`}>{nombre || `Tecnico ${id}`}</option>
-              return nombre ? <option key={`tec-nm-${idx}-${nombre}`} value={`NM:${nombre}`}>{nombre}</option> : null
+              const label = nombreNps
+                ? `${nombre || `Tecnico ${id ?? idx + 1}`} - NPS: ${nombreNps}`
+                : `${nombre || `Tecnico ${id ?? idx + 1}`} - sin Nombre NPS`
+              return (
+                <option key={`tec-nps-${idx}-${id ?? (nombreNps || nombre)}`} value={nombreNps} disabled={!nombreNps}>
+                  {label}
+                </option>
+              )
             })}
           </select>
         </label>
@@ -667,13 +664,13 @@ const NpsDashboardPage = () => {
         )}
       >
         <p className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">
-          NO HAY DATOS NPS
+          {noNpsMessage}
         </p>
       </Modal>
       {shouldShowNpsEmpty ? (
         <div className="rounded-xl border border-slate-200 bg-white px-4 py-14 text-center">
           <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950 sm:text-4xl">
-            NO HAY DATOS NPS
+            {noNpsMessage}
           </p>
         </div>
       ) : null}
@@ -1178,7 +1175,7 @@ const NpsDashboardPage = () => {
           })}
           {filteredTableRows.length === 0 ? (
             <div className="px-4 py-10 text-center">
-              <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS NPS</p>
+              <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">{noNpsMessage}</p>
             </div>
           ) : null}
         </div>
@@ -1215,7 +1212,7 @@ const NpsDashboardPage = () => {
               {detractoresRows.length === 0 ? (
                 <tr>
                   <td className="px-4 py-10 text-center" colSpan={6}>
-                    <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS NPS</p>
+                    <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">{noNpsMessage}</p>
                   </td>
                 </tr>
               ) : null}

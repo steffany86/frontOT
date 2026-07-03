@@ -31,6 +31,7 @@ import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
 import RegistroTorPage from '../pages/RegistroTorPage'
 import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPage'
 import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
+import NombresNpsPage from '../pages/NombresNpsPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -80,6 +81,7 @@ const AppRoutes = () => {
           <Route path="/supervisor/llamada-atencion" element={<LlamadaAtencionPage />} />
           <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
           <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
+          <Route path="/backoffice/nombres-nps" element={<NombresNpsPage />} />
           <Route path="/jornadas/historico" element={<HistoricoJornadasPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />

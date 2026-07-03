@@ -20,7 +20,6 @@ import { getApiErrorMessage } from '../../services/httpClient'
 type SiNo = 'SI' | 'NO'
 
 type InicioJornadaChecklistFormProps = {
-  sucursal?: string
   nombreTecnico?: string
   nombreSupervisor?: string
   onRegistered?: () => void
@@ -50,7 +49,7 @@ const declaracionJuradaInicioJornada = [
   'Asimismo, declaro conocer que la incorporación de personal no registrado, la omisión de información o la falsedad de los datos consignados constituye un incumplimiento a las normas de seguridad y podrá dar lugar a responsabilidades penales, civiles, administrativas, contractuales y legales. Así mismo, Declaro que no permitiré la participación en las actividades de ejecución de órdenes de trabajo, de ninguna persona distinta a las registradas en este sistema (Tigo Hogar Operaciones Técnicas Makiro).',
 ]
 
-const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor, onRegistered }: InicioJornadaChecklistFormProps) => {
+const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegistered }: InicioJornadaChecklistFormProps) => {
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [capacitado, setCapacitado] = useState<SiNo>('NO')
   const [charla, setCharla] = useState<SiNo>('NO')
@@ -93,7 +92,6 @@ const InicioJornadaChecklistForm = ({ sucursal, nombreTecnico, nombreSupervisor,
         imagen,
         ubicacionGeoRef,
         aceptoInicioJornada: declaracionAceptada ? 'SI' : 'NO',
-        sucursal,
       }),
     onSuccess: () => {
       setError(null)

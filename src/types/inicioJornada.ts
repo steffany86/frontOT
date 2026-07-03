@@ -7,6 +7,7 @@ export type InicioJornadaEstado = {
   requiereCierreAyer?: boolean
   idInicioPendienteCierre?: number
   fechaInicioPendienteCierre?: string
+  supervisorPendienteCierre?: string
 }
 
 export type CierreJornadaEstado = {
@@ -18,6 +19,7 @@ export type CierreJornadaEstado = {
   requiereCierreAyer?: boolean
   idInicioPendienteCierre?: number
   fechaInicioPendienteCierre?: string
+  supervisorPendienteCierre?: string
 }
 
 export type InicioJornadaEncargado = {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownload, faEye, faFilePdf, faRotateRight, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faEye, faFileExcel, faFilePdf, faRotateRight, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import Modal from '../components/common/Modal'
@@ -35,6 +35,7 @@ const matchesSearch = (row: BoletaDigitalOt, query: string): boolean => {
   if (!normalizedQuery) return true
   return (
     normalizeText(row.ot).includes(normalizedQuery) ||
+    normalizeText(row.nroTransaccion).includes(normalizedQuery) ||
     normalizeText(row.otFisica).includes(normalizedQuery) ||
     normalizeText(row.cliente).includes(normalizedQuery) ||
     normalizeText(row.estado).includes(normalizedQuery)
@@ -92,6 +93,16 @@ const formatBoletaFecha = (value: string): string => {
   return `${day}/${month}/${year} ${hours}:${minutes}`
 }
 
+const formatBoletaDateTitle = (value: string): string => {
+  if (!value) return '-'
+  const [year, month, day] = value.split('-').map(Number)
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleDateString('es-BO', { day: 'numeric', month: 'long' })
+}
+
+const boletaText = (value: string): string => value || '-'
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -126,9 +137,11 @@ const VerificacionBoletaDigitalPage = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf'>('all')
   const [fechaInicio, setFechaInicio] = useState('')
   const [fechaFin, setFechaFin] = useState('')
+  const [fechaRangeError, setFechaRangeError] = useState(false)
   const [page, setPage] = useState(1)
   const [actionError, setActionError] = useState<string | null>(null)
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
+  const [exportandoExcel, setExportandoExcel] = useState(false)
   const [selectedUploadRow, setSelectedUploadRow] = useState<BoletaDigitalOt | null>(null)
   const [uploadModal, setUploadModal] = useState<{
     open: boolean
@@ -175,6 +188,89 @@ const VerificacionBoletaDigitalPage = () => {
   useEffect(() => {
     setPage(1)
   }, [search, statusFilter, fechaInicio, fechaFin])
+
+  useEffect(() => {
+    if (fechaInicio && fechaFin) {
+      setFechaRangeError(false)
+    }
+  }, [fechaInicio, fechaFin])
+
+  const canExportExcel = statusFilter === 'diferentes' || statusFilter === 'sin_pdf'
+
+  const exportarExcel = async () => {
+    if (!fechaInicio || !fechaFin) {
+      setFechaRangeError(true)
+      setActionError('Seleccione el rango de fechas para exportar a Excel.')
+      return
+    }
+
+    setExportandoExcel(true)
+    setActionError(null)
+    try {
+      const ExcelJS = await import('exceljs')
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'TigoStar'
+      workbook.created = new Date()
+
+      const sheet = workbook.addWorksheet(statusFilter === 'sin_pdf' ? 'Sin PDF' : 'Diferentes', {
+        pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+      })
+      sheet.views = [{ state: 'frozen', ySplit: 2 }]
+      sheet.columns = [
+        { header: 'OT', key: 'ot', width: 15 },
+        { header: 'Nro transaccion', key: 'nroTransaccion', width: 18 },
+        { header: 'Cliente', key: 'cliente', width: 16 },
+        { header: 'Tecnico', key: 'tecnico', width: 28 },
+        { header: 'Fecha', key: 'fecha', width: 20 },
+        { header: 'Estado', key: 'estado', width: 18 },
+        { header: 'OT Fisica', key: 'otFisica', width: 18 },
+        { header: 'Comparacion', key: 'comparacion', width: 18 },
+      ]
+
+      const title = `${statusFilter === 'sin_pdf' ? 'Boletas sin PDF' : 'Boletas diferentes'} de ${formatBoletaDateTitle(fechaInicio)} a ${formatBoletaDateTitle(fechaFin)}`
+      sheet.insertRow(1, [title])
+      sheet.mergeCells('A1:H1')
+      sheet.getRow(1).height = 32
+      sheet.getCell('A1').font = { bold: true, size: 18, color: { argb: 'FF0F172A' } }
+      sheet.getCell('A1').alignment = { horizontal: 'center', vertical: 'middle' }
+      sheet.getCell('A1').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } }
+
+      sheet.getRow(2).font = { bold: true, color: { argb: 'FFFFFFFF' } }
+      sheet.getRow(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: statusFilter === 'sin_pdf' ? 'FFF59E0B' : 'FFE11D48' } }
+      sheet.getRow(2).alignment = { vertical: 'middle', wrapText: true }
+
+      filteredRows.forEach((row) => {
+        sheet.addRow({
+          ot: boletaText(row.ot),
+          nroTransaccion: boletaText(row.nroTransaccion),
+          cliente: boletaText(row.cliente),
+          tecnico: boletaText(row.tecnico),
+          fecha: formatBoletaFecha(row.fecha),
+          estado: boletaText(row.estado),
+          otFisica: boletaText(row.otFisica),
+          comparacion: boletaText(row.comparacion),
+        })
+      })
+      sheet.eachRow((row) => {
+        row.alignment = { vertical: 'top', wrapText: true }
+      })
+
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `boleta-digital-${statusFilter}-${fechaInicio}-a-${fechaFin}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, 'No se pudo exportar el Excel.'))
+    } finally {
+      setExportandoExcel(false)
+    }
+  }
 
   const openPdf = async (row: BoletaDigitalOt) => {
     if (!row.rutaPdf) {
@@ -393,10 +489,25 @@ const VerificacionBoletaDigitalPage = () => {
               <p className="text-xs text-slate-500">Registros encontrados: {filteredRows.length}</p>
             </div>
           </div>
-          <div className="grid min-w-0 max-w-full gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto] lg:items-end">
+          <div className={`grid min-w-0 max-w-full gap-2 sm:grid-cols-2 ${
+            canExportExcel
+              ? 'lg:grid-cols-[auto_minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto]'
+              : 'lg:grid-cols-[minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto]'
+          } lg:items-end`}>
+            {canExportExcel ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => void exportarExcel()}
+                disabled={exportandoExcel}
+              >
+                <FontAwesomeIcon icon={faFileExcel} />
+                <span>{exportandoExcel ? 'Exportando...' : 'Exportar Excel'}</span>
+              </Button>
+            ) : null}
             <Field label="Desde" compact>
               <input
-                className="input-base rounded-lg py-2 text-xs"
+                className={`input-base rounded-lg py-2 text-xs ${fechaRangeError && !fechaInicio ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
                 type="date"
                 value={fechaInicio}
                 onChange={(event) => setFechaInicio(event.target.value)}
@@ -404,7 +515,7 @@ const VerificacionBoletaDigitalPage = () => {
             </Field>
             <Field label="Hasta" compact>
               <input
-                className="input-base rounded-lg py-2 text-xs"
+                className={`input-base rounded-lg py-2 text-xs ${fechaRangeError && !fechaFin ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
                 type="date"
                 value={fechaFin}
                 onChange={(event) => setFechaFin(event.target.value)}
@@ -441,21 +552,23 @@ const VerificacionBoletaDigitalPage = () => {
         ) : null}
 
         <div className="hidden max-h-[68vh] max-w-full overflow-auto md:block">
-          <table className="w-full min-w-[1060px] table-fixed divide-y divide-slate-200 text-sm">
+          <table className="w-full min-w-[1160px] table-fixed divide-y divide-slate-200 text-sm">
             <colgroup>
+              <col className="w-[8%]" />
               <col className="w-[9%]" />
-              <col className="w-[9%]" />
+              <col className="w-[8%]" />
               <col className="w-[10%]" />
-              <col className="w-[15%]" />
-              <col className="w-[13%]" />
-              <col className="w-[11%]" />
+              <col className="w-[14%]" />
+              <col className="w-[10%]" />
+              <col className="w-[10%]" />
               <col className="w-[12%]" />
               <col className="w-[11%]" />
-              <col className="w-[10%]" />
+              <col className="w-[8%]" />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 text-xs uppercase text-slate-500 shadow-sm">
               <tr>
                 <th className="px-3 py-2 text-left font-semibold">OT</th>
+                <th className="px-3 py-2 text-left font-semibold">Nro transaccion</th>
                 <th className="px-3 py-2 text-left font-semibold">Cliente</th>
                 <th className="px-3 py-2 text-left font-semibold">Tecnico</th>
                 <th className="px-3 py-2 text-left font-semibold">Fecha</th>
@@ -469,11 +582,11 @@ const VerificacionBoletaDigitalPage = () => {
             <tbody className="divide-y divide-slate-100">
               {otsQuery.isLoading ? (
                 <tr>
-                  <td className="px-3 py-4 text-slate-500" colSpan={9}>Cargando boletas...</td>
+                  <td className="px-3 py-4 text-slate-500" colSpan={10}>Cargando boletas...</td>
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={9}>
+                  <td className="px-4 py-12 text-center" colSpan={10}>
                     <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
                   </td>
                 </tr>
@@ -485,6 +598,7 @@ const VerificacionBoletaDigitalPage = () => {
                   return (
                   <tr key={`${row.id || row.ot || row.rutaPdf}-${index}`} className={`align-top ${isDifferent ? 'bg-rose-50' : ''}`}>
                     <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-900">{row.ot || '-'}</td>
+                    <td className="whitespace-nowrap px-3 py-2 font-semibold text-slate-700">{row.nroTransaccion || '-'}</td>
                     <td className="truncate px-3 py-2 text-slate-700" title={row.cliente}>{row.cliente || '-'}</td>
                     <td className="truncate px-3 py-2 text-slate-700" title={row.tecnico}>{row.tecnico || '-'}</td>
                     <td className="whitespace-nowrap px-3 py-2 text-slate-700">{formatBoletaFecha(row.fecha)}</td>
@@ -576,6 +690,7 @@ const VerificacionBoletaDigitalPage = () => {
                 <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
                   <p className="font-semibold text-slate-900">OT: {row.ot || '-'}</p>
                   <div className="mt-3 grid gap-2 text-xs text-slate-600">
+                    <p><span className="font-semibold uppercase text-slate-500">Nro transaccion:</span> {row.nroTransaccion || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">OT Fisica:</span> {row.otFisica || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Cliente:</span> {row.cliente || '-'}</p>
                     <p><span className="font-semibold uppercase text-slate-500">Tecnico:</span> {row.tecnico || '-'}</p>

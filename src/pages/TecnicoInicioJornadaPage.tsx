@@ -6,7 +6,6 @@ import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
 import { cerrarJornada, fetchCierreJornadaEstado, fetchInicioJornadaEstado, registrarInicioJornada } from '../api/inicioJornadaApi'
 import { useAuth } from '../context/AuthContext'
-import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage } from '../services/httpClient'
 
 type SiNo = 'SI' | 'NO'
@@ -49,23 +48,9 @@ const TecnicoInicioJornadaPage = () => {
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
 
-  const sucursalesQuery = useQuery({
-    queryKey: ['auth-sucursales-tecnico-inicio-jornada-page'],
-    queryFn: fetchSucursales,
-    staleTime: 5 * 60 * 1000,
-  })
-
-  const loginSucursal = useMemo(() => {
-    const idSucursal = usuario?.idSucursal
-    const sucursales = sucursalesQuery.data?.data ?? []
-    if (!idSucursal || sucursales.length === 0) return undefined
-    const found = sucursales.find((item) => Number(item.idSucursal) === Number(idSucursal))
-    return found?.sucursal?.trim() || undefined
-  }, [sucursalesQuery.data, usuario?.idSucursal])
-
   const estadoQuery = useQuery({
-    queryKey: ['tecnico-inicio-jornada', 'estado', loginSucursal || 'auto'],
-    queryFn: () => fetchInicioJornadaEstado(loginSucursal),
+    queryKey: ['tecnico-inicio-jornada', 'estado', usuario?.idSucursal || 'sesion'],
+    queryFn: () => fetchInicioJornadaEstado(),
   })
 
   const encargadoLabel = useMemo(() => {
@@ -92,7 +77,6 @@ const TecnicoInicioJornadaPage = () => {
         anclaje,
         imagen,
         ubicacionGeoRef,
-        sucursal: loginSucursal,
       }),
     onSuccess: () => {
       setError(null)
