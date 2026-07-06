@@ -22,6 +22,8 @@ type SiNo = 'SI' | 'NO'
 type InicioJornadaChecklistFormProps = {
   nombreTecnico?: string
   nombreSupervisor?: string
+  idAuxiliar?: number
+  nombreAuxiliar?: string
   onRegistered?: () => void
 }
 
@@ -49,7 +51,7 @@ const declaracionJuradaInicioJornada = [
   'Asimismo, declaro conocer que la incorporación de personal no registrado, la omisión de información o la falsedad de los datos consignados constituye un incumplimiento a las normas de seguridad y podrá dar lugar a responsabilidades penales, civiles, administrativas, contractuales y legales. Así mismo, Declaro que no permitiré la participación en las actividades de ejecución de órdenes de trabajo, de ninguna persona distinta a las registradas en este sistema (Tigo Hogar Operaciones Técnicas Makiro).',
 ]
 
-const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegistered }: InicioJornadaChecklistFormProps) => {
+const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxiliar, nombreAuxiliar, onRegistered }: InicioJornadaChecklistFormProps) => {
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [capacitado, setCapacitado] = useState<SiNo>('NO')
   const [charla, setCharla] = useState<SiNo>('NO')
@@ -63,6 +65,8 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
   const [declaracionAceptada, setDeclaracionAceptada] = useState(false)
   const [imagen, setImagen] = useState('')
   const [nombreImagen, setNombreImagen] = useState('')
+  const [imagenAuxiliar, setImagenAuxiliar] = useState('')
+  const [nombreImagenAuxiliar, setNombreImagenAuxiliar] = useState('')
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
@@ -71,9 +75,14 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
   const [intentoRegistrar, setIntentoRegistrar] = useState(false)
   const elegirImagenInputRef = useRef<HTMLInputElement | null>(null)
   const tomarFotoInputRef = useRef<HTMLInputElement | null>(null)
+  const elegirImagenAuxiliarInputRef = useRef<HTMLInputElement | null>(null)
+  const tomarFotoAuxiliarInputRef = useRef<HTMLInputElement | null>(null)
 
+  const auxiliarDisplay = nombreAuxiliar?.trim() || (idAuxiliar ? `ID ${idAuxiliar}` : '')
+  const requiereImagenAuxiliar = Boolean(idAuxiliar || nombreAuxiliar?.trim())
   const mostrarErrorFecha = intentoRegistrar && !fechaVencimiento
   const mostrarErrorImagen = intentoRegistrar && !imagen
+  const mostrarErrorImagenAuxiliar = intentoRegistrar && requiereImagenAuxiliar && !imagenAuxiliar
   const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
 
   const registrarMutation = useMutation({
@@ -90,7 +99,9 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
         escalera,
         anclaje,
         imagen,
+        imagenAuxiliar: requiereImagenAuxiliar ? imagenAuxiliar : undefined,
         ubicacionGeoRef,
+        idAuxiliar: idAuxiliar ?? null,
         aceptoInicioJornada: declaracionAceptada ? 'SI' : 'NO',
       }),
     onSuccess: () => {
@@ -116,11 +127,28 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
     }
   }
 
+  const handleAuxiliarImageChange = async (file: File | null) => {
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setImagenAuxiliar(dataUrl)
+      setNombreImagenAuxiliar(file.name || 'imagen_auxiliar.jpg')
+      setError(null)
+    } catch {
+      setError('No se pudo leer la imagen del auxiliar.')
+    }
+  }
+
   const handleSubmit = () => {
     setIntentoRegistrar(true)
     if (!fechaVencimiento || !imagen) {
       setFeedback(null)
       setError('Fecha de vencimiento e imagen son obligatorios.')
+      return
+    }
+    if (requiereImagenAuxiliar && !imagenAuxiliar) {
+      setFeedback(null)
+      setError('Debe cargar o tomar una foto del auxiliar asignado.')
       return
     }
     if (!declaracionAceptada) {
@@ -174,6 +202,11 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
         <h3 className="text-3xl font-extrabold text-slate-900">Registro de Jornada</h3>
         <p className="mt-1 text-sm text-slate-600">Complete los requisitos de seguridad antes de iniciar.</p>
         <p className="mt-3 text-sm font-semibold text-slate-700">Nombre tecnico: {nombreTecnico?.trim() || '-'}</p>
+        {auxiliarDisplay ? (
+          <p className="mt-1 text-sm font-semibold text-slate-700">
+            Auxiliar: {auxiliarDisplay} {idAuxiliar && nombreAuxiliar?.trim() ? `(ID: ${idAuxiliar})` : ''}
+          </p>
+        ) : null}
       </div>
 
       {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
@@ -185,6 +218,15 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
           <Field label="Encargado (Supervisor)">
             <input className="input-base bg-slate-100" value={nombreSupervisor?.trim() || 'Supervisor no encontrado'} readOnly />
           </Field>
+          {auxiliarDisplay ? (
+            <Field label="Auxiliar">
+              <input
+                className="input-base bg-slate-100"
+                value={`Tiene auxiliar: ${auxiliarDisplay}${idAuxiliar && nombreAuxiliar?.trim() ? ` - ID ${idAuxiliar}` : ''}`}
+                readOnly
+              />
+            </Field>
+          ) : null}
           <Field label="Fecha de vencimiento extintor" error={mostrarErrorFecha ? 'La fecha de vencimiento es obligatoria.' : undefined}>
             <div className="relative max-w-full overflow-hidden">
               <input
@@ -272,6 +314,53 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, onRegiste
             onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
           />
         </Field>
+        {requiereImagenAuxiliar ? (
+          <Field label={`Foto del auxiliar ${auxiliarDisplay}`} error={mostrarErrorImagenAuxiliar ? 'Debe cargar o tomar una foto del auxiliar.' : undefined}>
+            <div className="mt-4 grid gap-3">
+              <div className={`flex min-h-48 items-center justify-center rounded-2xl border p-3 ${mostrarErrorImagenAuxiliar ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-slate-100/80'}`}>
+                {imagenAuxiliar ? (
+                  <img
+                    src={imagenAuxiliar}
+                    alt="Foto auxiliar seleccionada"
+                    className="h-44 w-full cursor-zoom-in rounded-xl object-cover"
+                    onClick={() => setZoomImageSrc(imagenAuxiliar)}
+                  />
+                ) : (
+                  <div className={`text-center ${mostrarErrorImagenAuxiliar ? 'text-rose-600' : 'text-slate-500'}`}>
+                    <FontAwesomeIcon icon={faImage} className="mb-2 text-3xl" />
+                    <p>Sin imagen del auxiliar.</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button type="button" variant="secondary" onClick={() => elegirImagenAuxiliarInputRef.current?.click()}>
+                  Elegir
+                </Button>
+                <Button type="button" variant="secondary" onClick={() => tomarFotoAuxiliarInputRef.current?.click()}>
+                  Tomar foto
+                </Button>
+              </div>
+              <div className={`text-xs ${mostrarErrorImagenAuxiliar ? 'font-semibold text-rose-600' : 'text-slate-500'}`}>
+                {nombreImagenAuxiliar ? `Imagen auxiliar cargada: ${nombreImagenAuxiliar}` : 'Sin imagen del auxiliar.'}
+              </div>
+            </div>
+            <input
+              ref={elegirImagenAuxiliarInputRef}
+              className="hidden"
+              type="file"
+              accept="image/*"
+              onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)}
+            />
+            <input
+              ref={tomarFotoAuxiliarInputRef}
+              className="hidden"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)}
+            />
+          </Field>
+        ) : null}
       </div>
 
       <div className={cardClass}>

@@ -304,6 +304,7 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
   fechaRegistro: normalizeString(readValue(row, ['fechaRegistro', 'fecha_registro'])) || undefined,
   fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
   imagen: normalizeString(readValue(row, ['imagen', 'Imagen'])) || undefined,
+  imagenAuxiliar: normalizeString(readValue(row, ['imagenAuxiliar', 'imagen_auxiliar', 'ImagenAuxiliar'])) || undefined,
   estado: normalizeString(readValue(row, ['estado', 'Estado'])) || undefined,
   capacitado: normalizeString(readValue(row, ['capacitado', 'Capacitado'])) || undefined,
   charla: normalizeString(readValue(row, ['charla', 'Charla'])) || undefined,
@@ -432,6 +433,19 @@ export const fetchInicioJornadaImagen = async (
 ): Promise<Blob> => {
   const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen`, {
+    params: { miniatura },
+    responseType: 'blob',
+  })
+  return data
+}
+
+export const fetchInicioJornadaImagenAuxiliar = async (
+  idInicio: string,
+  scope: 'supervisor' | 'backoffice' = 'supervisor',
+  miniatura = true
+): Promise<Blob> => {
+  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen-auxiliar`, {
     params: { miniatura },
     responseType: 'blob',
   })

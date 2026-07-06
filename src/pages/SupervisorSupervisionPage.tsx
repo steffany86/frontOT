@@ -1679,6 +1679,22 @@ const SupervisorSupervisionPage = () => {
                     <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
                   )}
                 </div>
+                {resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar) ? (
+                  <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
+                    <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Imagen auxiliar</p>
+                    <button
+                      type="button"
+                      className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar))}
+                    >
+                      <img
+                        src={resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar) ?? ''}
+                        alt="Auxiliar inicio jornada"
+                        className="h-48 w-full rounded-xl border border-slate-300 object-cover"
+                      />
+                    </button>
+                  </div>
+                ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { label: 'Tecnico', value: inicioPendienteDetalle.tecnicoNombre || inicioPendienteDetalle.idTecnico || '-' },

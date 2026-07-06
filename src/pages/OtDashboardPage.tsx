@@ -6,6 +6,7 @@ import Modal from '../components/common/Modal'
 import {
   fetchOtByNumero,
   fetchOtFinalizadas,
+  fetchOtPendientesMaterial,
   fetchOtRegistroCompleto,
   fetchSupervisorUltimoEstadoDia,
   validateCuadreRuta,
@@ -265,11 +266,12 @@ const getTieneDetalleEsperado = (row: OtSummary): boolean => {
 }
 
 const getExisteVentaFromRow = (row: OtSummary): boolean => {
+  const idVenta = Number(getIdVenta(row).trim())
+  if (Number.isFinite(idVenta) && idVenta > 0) return true
   const raw = readValue(row, ['existeVenta', 'ExisteVenta', 'ventaExiste', 'VentaExiste', 'registrado', 'Registrado'])
   const parsed = parseBooleanLikeValue(raw)
   if (parsed !== null) return parsed
-  const idVenta = Number(getIdVenta(row).trim())
-  return Number.isFinite(idVenta) && idVenta > 0
+  return false
 }
 
 const getTieneDetalleEnCodigoVentaFromRow = (row: OtSummary): boolean => {
@@ -284,6 +286,49 @@ const getTieneDetalleEnCodigoVentaFromRow = (row: OtSummary): boolean => {
   const cantidadDetallesRaw = readValue(row, ['cantidadDetalles', 'CantidadDetalles', 'countDetalles', 'CountDetalles'])
   const cantidadDetalles = Number(String(cantidadDetallesRaw ?? '').trim())
   return Number.isFinite(cantidadDetalles) && cantidadDetalles > 0
+}
+
+const getCantidadVentasFromRow = (row: OtSummary): number => {
+  const raw = readValue(row, ['cantidadVentas', 'CantidadVentas', 'countVentas', 'CountVentas'])
+  const parsed = Number(String(raw ?? '').trim())
+  if (Number.isFinite(parsed) && parsed > 0) return Math.trunc(parsed)
+  return getExisteVentaFromRow(row) ? 1 : 0
+}
+
+const getCantidadDetallesFromRow = (row: OtSummary): number => {
+  const raw = readValue(row, ['cantidadDetalles', 'CantidadDetalles', 'countDetalles', 'CountDetalles'])
+  const parsed = Number(String(raw ?? '').trim())
+  if (Number.isFinite(parsed) && parsed > 0) return Math.trunc(parsed)
+  return getTieneDetalleEnCodigoVentaFromRow(row) ? 1 : 0
+}
+
+const getAddMaterialOCargoUsuarioFromRow = (row: OtSummary): boolean => {
+  const raw = readValue(row, [
+    'addMaterialOCargoUsuario',
+    'AddMaterialOCargoUsuario',
+    'addMaterial_o_CargoUsuario',
+    'AddMaterial_o_CargoUsuario',
+    'addmaterial_o_cargousuario',
+  ])
+  return parseBooleanLikeValue(raw) ?? false
+}
+
+const getHabilitarCargarMaterialFromRow = (
+  row: OtSummary,
+  ventaYaRegistrada: boolean,
+  detalleYaRegistrado: boolean,
+  tieneDetalleEsperado: boolean
+): boolean => {
+  const raw = readValue(row, [
+    'habilitarCargarMaterial',
+    'HabilitarCargarMaterial',
+    'puedeCargarMaterial',
+    'PuedeCargarMaterial',
+  ])
+  const parsed = parseBooleanLikeValue(raw)
+  if (parsed !== null) return parsed
+  if (ventaYaRegistrada && tieneDetalleEsperado && !detalleYaRegistrado) return true
+  return getAddMaterialOCargoUsuarioFromRow(row) && ventaYaRegistrada && !detalleYaRegistrado
 }
 
 const hasVentaValidationFromRow = (row: OtSummary): boolean => {
@@ -459,8 +504,10 @@ type OtCardUiStateArgs = {
   hasCuadre: boolean
   isValidatingVenta: boolean
   validationError: boolean
+  ventaYaRegistrada: boolean
   cantidadVentas: number
   isValidatingDetalle: boolean
+  detalleYaRegistrado: boolean
   cantidadDetalles: number
   addMaterialOCargoUsuario: boolean
   habilitarCargarMaterial: boolean
@@ -481,8 +528,8 @@ type OtCardUiState = {
 }
 
 const buildOtCardUiState = (args: OtCardUiStateArgs): OtCardUiState => {
-  const ventaYaRegistrada = args.cantidadVentas > 0
-  const detalleYaRegistrado = args.cantidadDetalles > 0
+  const ventaYaRegistrada = args.ventaYaRegistrada || args.cantidadVentas > 0
+  const detalleYaRegistrado = args.detalleYaRegistrado || args.cantidadDetalles > 0
   const requiereMaterial = args.addMaterialOCargoUsuario
   const onlyFinalizar = !ventaYaRegistrada && !detalleYaRegistrado
   const onlyMaterial = ventaYaRegistrada && !detalleYaRegistrado
@@ -685,9 +732,9 @@ const OtDashboardPage = () => {
   })
 
   const manualPendientesQuery = useQuery({
-    queryKey: ['ot-dashboard-lista-manuales-pendientes', fecha, usuario?.idUsuario ?? 0, refreshToken],
+    queryKey: ['ot-dashboard-lista-pendientes-material', fecha, usuario?.idUsuario ?? 0, refreshToken],
     queryFn: () =>
-      fetchOtFinalizadas({
+      fetchOtPendientesMaterial({
         fecha,
         usuario: usuario?.idUsuario,
       }),
@@ -714,6 +761,7 @@ const OtDashboardPage = () => {
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'] }),
+        queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-pendientes-material'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'] }),
@@ -743,12 +791,31 @@ const OtDashboardPage = () => {
   const rows = useMemo(() => {
     const baseRows = query.data ?? []
     const finalizadasRows = finalizadasQuery.data ?? []
-    const manualRows = (manualPendientesQuery.data ?? []).filter((row) => normalizeEstado(getOrigen(row)).includes('manual'))
+    if (isFinalizadasTab) {
+      return finalizadasRows
+    }
+    const manualRows = manualPendientesQuery.data ?? []
     if (finalizadasRows.length === 0 && manualRows.length === 0) {
       return baseRows
     }
 
     const merged = new Map<string, OtSummary>()
+    const mergeRow = (row: OtSummary) => {
+      const key = buildMergeKey(row)
+      const previous = merged.get(key)
+      if (!previous) {
+        merged.set(key, row)
+        return
+      }
+      const next: OtSummary = { ...row }
+      for (const [field, value] of Object.entries(previous)) {
+        if (next[field] === undefined || next[field] === null || next[field] === '') {
+          next[field] = value
+        }
+      }
+      merged.set(key, next)
+    }
+
     const buildMergeKey = (row: OtSummary): string => {
       const ot = getOtCodigo(row).trim()
       const cliente = getClienteNro(row).trim()
@@ -770,10 +837,10 @@ const OtDashboardPage = () => {
     }
 
     for (const row of baseRows) {
-      merged.set(buildMergeKey(row), row)
+      mergeRow(row)
     }
     for (const row of finalizadasRows) {
-      merged.set(buildMergeKey(row), row)
+      mergeRow(row)
     }
     for (const row of manualRows) {
       const key = buildMergeKey(row)
@@ -782,7 +849,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(merged.values())
-  }, [finalizadasQuery.data, manualPendientesQuery.data, query.data])
+  }, [finalizadasQuery.data, isFinalizadasTab, manualPendientesQuery.data, query.data])
 
   // No descartar filas por aliases de columnas: algunos SPs devuelven nombres
   // distintos y el filtro estricto puede ocultar todo el listado.
@@ -791,11 +858,11 @@ const OtDashboardPage = () => {
   const validationTargets = useMemo(() => {
     const unique = new Map<string, { key: string; fecha: string; ot: string; clienteNro: string; desdeAgenda: boolean }>()
     for (const row of allRows) {
-      if (hasVentaValidationFromRow(row)) continue
+      if (hasVentaValidationFromRow(row) && !getIdVenta(row).trim()) continue
       const ot = getOtCodigo(row).trim()
       const clienteNro = getClienteNro(row).trim()
       if (!ot || !clienteNro) continue
-      const fechaFila = getFecha(row).trim() || fecha
+      const fechaFila = fecha
       const key = buildVentaValidationKey(fechaFila, ot, clienteNro)
       const agendaSource = isAgendaRow(row)
       if (!unique.has(key)) {
@@ -828,13 +895,13 @@ const OtDashboardPage = () => {
     const map = new Map<
       string,
       {
-        exists: boolean
-        hasDetalle: boolean
-        tieneDetalle: boolean
-        cantidadVentas: number
-        cantidadDetalles: number
-        addMaterialOCargoUsuario: boolean
-        habilitarCargarMaterial: boolean
+        exists?: boolean
+        hasDetalle?: boolean
+        tieneDetalle?: boolean
+        cantidadVentas?: number
+        cantidadDetalles?: number
+        addMaterialOCargoUsuario?: boolean
+        habilitarCargarMaterial?: boolean
         isLoading: boolean
         isError: boolean
       }
@@ -843,13 +910,13 @@ const OtDashboardPage = () => {
       const target = validationTargets[index]
       const queryState = ventaValidationQueries[index]
       map.set(target.key, {
-        exists: queryState.data?.existeVenta ?? false,
-        hasDetalle: queryState.data?.tieneDetalleEnCodigoVenta ?? false,
-        tieneDetalle: queryState.data?.tieneDetalle ?? false,
-        cantidadVentas: queryState.data?.cantidadVentas ?? 0,
-        cantidadDetalles: queryState.data?.cantidadDetalles ?? 0,
-        addMaterialOCargoUsuario: queryState.data?.addMaterialOCargoUsuario ?? false,
-        habilitarCargarMaterial: queryState.data?.habilitarCargarMaterial ?? false,
+        exists: queryState.data?.existeVenta,
+        hasDetalle: queryState.data?.tieneDetalleEnCodigoVenta,
+        tieneDetalle: queryState.data?.tieneDetalle,
+        cantidadVentas: queryState.data?.cantidadVentas,
+        cantidadDetalles: queryState.data?.cantidadDetalles,
+        addMaterialOCargoUsuario: queryState.data?.addMaterialOCargoUsuario,
+        habilitarCargarMaterial: queryState.data?.habilitarCargarMaterial,
         isLoading: queryState.isLoading || queryState.isFetching,
         isError: queryState.isError,
       })
@@ -1038,7 +1105,6 @@ const OtDashboardPage = () => {
         const agendaBasedRow = isAgendaRow(row)
         const fechaFila = fechaAgenda
         const fechaEjecucion = agendaBasedRow ? (fechaAgenda || fechaEjecucionRaw) : (fechaEjecucionRaw || fechaAgenda)
-        const fechaTrabajoCard = fechaFila || fechaEjecucion
         const idVenta = getIdVenta(row).trim()
         const idTipoServicio = getIdTipoServicio(row).trim()
         const finalizadasMeta = isFinalizadasTab ? finalizadasEstadoByVenta.get(idVenta) : undefined
@@ -1051,18 +1117,24 @@ const OtDashboardPage = () => {
         const estado = estadoFromTblEstado || estadoFromRow || (isFinalizadasTab ? 'SIN ESTADO' : 'pendiente')
         const origen = getOrigen(row).trim()
         const isManual = normalizeEstado(origen).includes('manual')
-        const validationKey = buildVentaValidationKey(fechaTrabajoCard, ot, clienteNro)
+        const fechaValidacionCard = fecha
+        const validationKey = buildVentaValidationKey(fechaValidacionCard, ot, clienteNro)
         const validationState = ventaValidationByKey.get(validationKey)
         const tieneDetalleEsperado = validationState?.tieneDetalle ?? getTieneDetalleEsperado(row)
-        const cantidadVentas = validationState?.cantidadVentas ?? (validationState?.exists ? 1 : 0)
-        const cantidadDetalles = validationState?.cantidadDetalles ?? (validationState?.hasDetalle ? 1 : 0)
-        const ventaYaRegistrada = validationState?.exists ?? getExisteVentaFromRow(row) ?? cantidadVentas > 0
+        const ventaDesdeFila = getExisteVentaFromRow(row)
+        const ventaYaRegistrada = (validationState?.exists ?? false) || ventaDesdeFila
+        const cantidadVentas = validationState?.cantidadVentas ?? getCantidadVentasFromRow(row)
         const isValidatingVenta = validationState?.isLoading ?? false
         const validationError = validationState?.isError ?? false
         const isValidatingDetalle = validationState?.isLoading ?? false
-        const detalleYaRegistrado = validationState?.hasDetalle ?? getTieneDetalleEnCodigoVentaFromRow(row) ?? cantidadDetalles > 0
-        const addMaterialOCargoUsuario = validationState?.addMaterialOCargoUsuario ?? false
-        const habilitarCargarMaterial = validationState?.habilitarCargarMaterial ?? (ventaYaRegistrada && !detalleYaRegistrado)
+        const detalleYaRegistrado = validationState?.hasDetalle ?? getTieneDetalleEnCodigoVentaFromRow(row)
+        const cantidadDetalles = validationState?.cantidadDetalles ?? getCantidadDetallesFromRow(row)
+        const addMaterialOCargoUsuario = validationState?.addMaterialOCargoUsuario ?? getAddMaterialOCargoUsuarioFromRow(row)
+        const habilitarCargarMaterialDesdeRegla = ventaYaRegistrada && tieneDetalleEsperado && !detalleYaRegistrado
+        const habilitarCargarMaterial =
+          (validationState?.habilitarCargarMaterial ?? false) ||
+          habilitarCargarMaterialDesdeRegla ||
+          getHabilitarCargarMaterialFromRow(row, ventaYaRegistrada, detalleYaRegistrado, tieneDetalleEsperado)
         // Reglas funcionales de cartillas:
         // existeVenta=1 && TieneDetalle=0 && tieneDetalleEnCodigoVenta=0 => finalizada
         // existeVenta=1 && TieneDetalle=1 && tieneDetalleEnCodigoVenta=1 => finalizada
@@ -1076,7 +1148,7 @@ const OtDashboardPage = () => {
         const estadoBadgeClass = getEstadoBadgeClass(estadoVisual)
         const idRuta = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
         const idSucursal = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
-        const bloqueoKey = buildRegistroBloqueoKey(fechaTrabajoCard, idRuta, idSucursal)
+        const bloqueoKey = buildRegistroBloqueoKey(fechaValidacionCard, idRuta, idSucursal)
         const bloqueoState = bloqueoByKey.get(bloqueoKey)
         const isCheckingBloqueo = isFinalizadasTab ? false : bloqueoState?.isLoading ?? false
         const bloqueoError = isFinalizadasTab ? false : bloqueoState?.isError ?? false
@@ -1112,8 +1184,10 @@ const OtDashboardPage = () => {
               hasCuadre,
               isValidatingVenta,
               validationError,
+              ventaYaRegistrada,
               cantidadVentas,
               isValidatingDetalle,
+              detalleYaRegistrado,
               cantidadDetalles,
               addMaterialOCargoUsuario,
               habilitarCargarMaterial,
@@ -1129,6 +1203,7 @@ const OtDashboardPage = () => {
           tipoServicioNombre,
           clienteNro,
           fechaFila,
+          fechaValidacion: fechaValidacionCard,
           fechaEjecucion,
           tor,
           origen,
@@ -1837,6 +1912,11 @@ const OtDashboardPage = () => {
                         <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 [&>button]:w-full">
                           <Button
                             type="button"
+                            className={
+                              card.ui.finalizarDisabled
+                                ? 'disabled:!cursor-not-allowed disabled:!border-slate-400 disabled:!bg-slate-500 disabled:!text-white disabled:!opacity-100'
+                                : ''
+                            }
                             disabled={card.ui.finalizarDisabled}
                             title={card.ui.finalizarTitle}
                             onClick={() => {
@@ -1891,7 +1971,7 @@ const OtDashboardPage = () => {
                               setNavError(null)
 
                               try {
-                                const fechaValidacion = card.fechaFila || card.fechaEjecucion || fecha
+                                const fechaValidacion = card.fechaValidacion || fecha
                                 const idRutaValue = Number(
                                   card.idRuta || getNumericString(card.row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta'])
                                 )
@@ -1911,12 +1991,30 @@ const OtDashboardPage = () => {
                                   }
                                 }
 
-                                const ventaDetalle = await validateVentaYDetalle({
-                                  fecha: fechaValidacion,
-                                  ot: card.ot,
-                                  clienteNro: card.clienteNro,
-                                  incluirManual: true,
-                                })
+                                let ventaDetalle: Awaited<ReturnType<typeof validateVentaYDetalle>>
+                                try {
+                                  ventaDetalle = await validateVentaYDetalle({
+                                    fecha: fechaValidacion,
+                                    ot: card.ot,
+                                    clienteNro: card.clienteNro,
+                                    incluirManual: true,
+                                  })
+                                } catch (error) {
+                                  if (card.ui.materialDisabled) {
+                                    throw error
+                                  }
+                                  ventaDetalle = {
+                                    existeVenta: card.ventaYaRegistrada,
+                                    tieneDetalle: true,
+                                    tieneDetalleEnCodigoVenta: card.detalleYaRegistrado,
+                                    cantidadVentas: card.cantidadVentas,
+                                    cantidadDetalles: card.cantidadDetalles,
+                                    addMaterialOCargoUsuario: true,
+                                    habilitarCargarMaterial: true,
+                                    idVenta: Number(card.idVenta) || undefined,
+                                    idRuta: Number(card.idRuta) || undefined,
+                                  }
+                                }
                                 if (!ventaDetalle.habilitarCargarMaterial) {
                                   if (ventaDetalle.tieneDetalleEnCodigoVenta) {
                                     setNavError('Esta OT ya tiene material registrado y no permite nueva carga.')

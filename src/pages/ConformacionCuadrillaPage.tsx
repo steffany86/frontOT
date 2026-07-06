@@ -338,6 +338,20 @@ const ALMACEN_KEYS = ['almacen', 'Almacen']
 const GRUPO_DIGITACION_KEYS = ['grupoDigitacion', 'GrupoDigitacion', 'grupo_digitacion', 'Grupo_Digitacion', 'almacenTigo', 'AlmacenTigo']
 const ACTIVIDAD_VALUE_KEYS = ['idActividad', 'IdActividad', 'actividad', 'Actividad', 'codigo', 'Codigo', 'id', 'Id']
 const ACTIVIDAD_LABEL_KEYS = ['actividad', 'Actividad', 'nombre', 'Nombre', 'descripcion', 'Descripcion', 'codigo', 'Codigo']
+const AUXILIAR_TIPO_SOLICITANTE_KEYS = [
+  'idTipoSolicitante',
+  'IdTipoSolicitante',
+  'id_TipoSolicitante',
+  'Id_TipoSolicitante',
+  'id_tipo_solicitante',
+  'Id_Tipo_Solicitante',
+  'idtiposolicitante',
+  'idTipoSolicitanto',
+  'IdTipoSolicitanto',
+  'id_tipo_solicitanto',
+  'Id_Tipo_Solicitanto',
+  'idtiposolicitanto',
+]
 const AUXILIAR_ID_KEYS = [
   'idTecnicoAuxiliar',
   'IdTecnicoAuxiliar',
@@ -371,6 +385,11 @@ const AUXILIAR_LABEL_KEYS = [
   'nombre',
   'Nombre',
 ]
+const isAuxiliarCatalogItem = (item: CatalogItem): boolean => {
+  const parsed = Number(readValue(item, AUXILIAR_TIPO_SOLICITANTE_KEYS))
+  return Number.isFinite(parsed) && Math.trunc(parsed) === 6
+}
+const isTecnicoCatalogItem = (item: CatalogItem): boolean => !isAuxiliarCatalogItem(item)
 const DIGITADOR_ID_KEYS = [
   'idUsuarioDigitador',
   'IdUsuarioDigitador',
@@ -1155,7 +1174,7 @@ const ConformacionCuadrillaPage = () => {
     enabled: canViewCuadrillas,
   })
   const tecnicos = useMemo(() => tecnicosQuery.data ?? [], [tecnicosQuery.data])
-  const tecnicoOptions = useMemo(() => mapIdOptions(tecnicos, TECNICO_ID_KEYS, TECNICO_LABEL_KEYS), [tecnicos])
+  const tecnicoOptions = useMemo(() => mapIdOptions(tecnicos.filter(isTecnicoCatalogItem), TECNICO_ID_KEYS, TECNICO_LABEL_KEYS), [tecnicos])
   const salesforceOptions = useMemo(() => {
     const byKey = new Map<string, { salesforce: string; cuentaSf: string }>()
     for (const item of salesforceCatalog) {
@@ -1220,7 +1239,7 @@ const ConformacionCuadrillaPage = () => {
   }, [salesforceByCuentaSf])
   const auxiliarOptions = useMemo(
     () =>
-      mapIdOptions(auxiliares, AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS).filter(
+      mapIdOptions(auxiliares.filter(isAuxiliarCatalogItem), AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS).filter(
         (option) => normalizeAuxiliarComparableId(option.value) !== '' && !isAuxiliarNoneLabel(option.label)
       ),
     [auxiliares]
@@ -3684,6 +3703,39 @@ const findVehiculoConflictRecord = (
                             ))}
                           </select>
                         </label>
+                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800 sm:col-span-2">
+                          <span>Auxiliar</span>
+                          <select
+                            className={
+                              'input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200 ' +
+                              (issue?.idConflict ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-200' : '')
+                            }
+                            value={row.idTecnicoAuxiliar}
+                            onChange={(event) => handleAuxiliarSelect(index, event.target.value)}
+                            disabled={tecnicosQuery.isLoading || isReadOnlyMode}
+                          >
+                            <option value="">
+                              {tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Ninguno'}
+                            </option>
+                            {normalizeAuxiliarComparableId(row.idTecnicoAuxiliar) !== '' && !auxiliarById.has(row.idTecnicoAuxiliar) ? (
+                              <option value={row.idTecnicoAuxiliar}>{sanitizeAuxiliarLabel(row.auxiliar) || 'Ninguno'}</option>
+                            ) : null}
+                            {auxiliarOptions.map((option) => (
+                              <option
+                                key={'auxiliar-' + option.value}
+                                value={option.value}
+                                disabled={option.value === row.idTecnico || tecnicoActivoIdSet.has(option.value)}
+                              >
+                                {option.label}
+                                {option.value === row.idTecnico
+                                  ? ' (mismo tecnico)'
+                                  : tecnicoActivoIdSet.has(option.value)
+                                    ? ' (tecnico activo)'
+                                    : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         {!isCompactEditMode ? (
                           <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
                             <span>Cuenta</span>
@@ -3864,39 +3916,6 @@ const findVehiculoConflictRecord = (
                             {digitadorOptions.map((option) => (
                               <option key={'digitador-' + option.value} value={option.value}>
                                 {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
-                          <span>Auxiliar</span>
-                          <select
-                            className={
-                              'input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200 ' +
-                              (issue?.idConflict ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-200' : '')
-                            }
-                            value={row.idTecnicoAuxiliar}
-                            onChange={(event) => handleAuxiliarSelect(index, event.target.value)}
-                            disabled={tecnicosQuery.isLoading || isReadOnlyMode}
-                          >
-                            <option value="">
-                              {tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Ninguno'}
-                            </option>
-                            {normalizeAuxiliarComparableId(row.idTecnicoAuxiliar) !== '' && !auxiliarById.has(row.idTecnicoAuxiliar) ? (
-                              <option value={row.idTecnicoAuxiliar}>{sanitizeAuxiliarLabel(row.auxiliar) || 'Ninguno'}</option>
-                            ) : null}
-                            {auxiliarOptions.map((option) => (
-                              <option
-                                key={'auxiliar-' + option.value}
-                                value={option.value}
-                                disabled={option.value === row.idTecnico || tecnicoActivoIdSet.has(option.value)}
-                              >
-                                {option.label}
-                                {option.value === row.idTecnico
-                                  ? ' (mismo tecnico)'
-                                  : tecnicoActivoIdSet.has(option.value)
-                                    ? ' (tecnico activo)'
-                                    : ''}
                               </option>
                             ))}
                           </select>

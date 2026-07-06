@@ -45,6 +45,12 @@ export const fetchInicioJornadaEstado = async (sucursal?: string): Promise<Inici
     fechaServidor: normalizeString(readValue(row, ['fechaServidor', 'fecha_servidor'])) || undefined,
     idEncargado: normalizeString(readValue(row, ['idEncargado', 'id_encargado', 'idSupervisor', 'id_supervisor'])) || undefined,
     encargado: normalizeString(readValue(row, ['encargado', 'supervisor', 'nombreSupervisor', 'nombre'])) || undefined,
+    idAuxiliar: normalizeNumber(readValue(row, ['idAuxiliar', 'id_auxiliar', 'idTecnicoAuxiliar', 'id_tecnico_auxiliar'])),
+    auxiliar:
+      normalizeString(readValue(row, ['auxiliar', 'auxiliarNombre', 'nombreAuxiliar', 'tecnicoAuxiliar', 'tecnico_auxiliar'])) || undefined,
+    auxiliarNombre:
+      normalizeString(readValue(row, ['auxiliarNombre', 'auxiliar', 'nombreAuxiliar', 'tecnicoAuxiliar', 'tecnico_auxiliar'])) || undefined,
+    tieneAuxiliar: normalizeBoolean(readValue(row, ['tieneAuxiliar', 'tiene_auxiliar'])),
     requiereCierreAyer: normalizeBoolean(readValue(row, ['requiereCierrePendiente', 'cierrePendiente', 'requiereCierreAyer', 'cierreAyerPendiente', 'cierre_ayer_pendiente'])),
     idInicioPendienteCierre: normalizeNumber(readValue(row, ['idUltimoInicioPendienteCierre', 'idInicioPendienteCierre', 'id_inicio_pendiente_cierre'])),
     fechaInicioPendienteCierre:

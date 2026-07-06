@@ -36,6 +36,7 @@ const TecnicoInicioJornadaPage = () => {
   const [escalera, setEscalera] = useState<SiNo>('NO')
   const [anclaje, setAnclaje] = useState<SiNo>('NO')
   const [imagen, setImagen] = useState('')
+  const [imagenAuxiliar, setImagenAuxiliar] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [codigoCliente, setCodigoCliente] = useState('')
@@ -62,6 +63,16 @@ const TecnicoInicioJornadaPage = () => {
     return 'No se encontró supervisor asignado en conformación diaria.'
   }, [estadoQuery.data?.encargado, estadoQuery.data?.idEncargado])
 
+  const auxiliarLabel = useMemo(() => {
+    const nombre = estadoQuery.data?.auxiliarNombre?.trim() || estadoQuery.data?.auxiliar?.trim()
+    const id = estadoQuery.data?.idAuxiliar
+    if (nombre && id) return `${nombre} (ID: ${id})`
+    if (nombre) return nombre
+    if (id) return `Auxiliar ID: ${id}`
+    return ''
+  }, [estadoQuery.data?.auxiliar, estadoQuery.data?.auxiliarNombre, estadoQuery.data?.idAuxiliar])
+  const requiereImagenAuxiliar = Boolean(estadoQuery.data?.idAuxiliar && auxiliarLabel)
+
   const registrarMutation = useMutation({
     mutationFn: () =>
       registrarInicioJornada({
@@ -76,6 +87,8 @@ const TecnicoInicioJornadaPage = () => {
         escalera,
         anclaje,
         imagen,
+        imagenAuxiliar: requiereImagenAuxiliar ? imagenAuxiliar : undefined,
+        idAuxiliar: estadoQuery.data?.idAuxiliar ?? null,
         ubicacionGeoRef,
       }),
     onSuccess: () => {
@@ -129,10 +142,25 @@ const TecnicoInicioJornadaPage = () => {
     }
   }
 
+  const handleAuxiliarImageChange = async (file: File | null) => {
+    if (!file) return
+    try {
+      const dataUrl = await readFileAsDataUrl(file)
+      setImagenAuxiliar(dataUrl)
+    } catch {
+      setError('No se pudo leer la imagen del auxiliar.')
+    }
+  }
+
   const handleSubmit = () => {
     if (!fechaVencimiento || !imagen) {
       setFeedback(null)
       setError('Fecha de vencimiento e imagen son obligatorios.')
+      return
+    }
+    if (requiereImagenAuxiliar && !imagenAuxiliar) {
+      setFeedback(null)
+      setError('Debe cargar la foto del auxiliar asignado.')
       return
     }
     registrarMutation.mutate()
@@ -188,6 +216,11 @@ const TecnicoInicioJornadaPage = () => {
           <Field label="Encargado (Supervisor)">
             <input className="input-base bg-slate-100" value={encargadoLabel} readOnly />
           </Field>
+          {auxiliarLabel ? (
+            <Field label="Auxiliar">
+              <input className="input-base bg-slate-100" value={auxiliarLabel} readOnly />
+            </Field>
+          ) : null}
           <Field label="Fecha de vencimiento extintor">
             <input className="input-base" type="date" value={fechaVencimiento} onChange={(event) => setFechaVencimiento(event.target.value)} />
           </Field>
@@ -254,6 +287,12 @@ const TecnicoInicioJornadaPage = () => {
             <input className="input-base" type="file" accept="image/*" onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)} />
             {imagen ? <p className="mt-2 text-xs text-emerald-700">Imagen cargada.</p> : null}
           </Field>
+          {requiereImagenAuxiliar ? (
+            <Field label="Foto del auxiliar">
+              <input className="input-base" type="file" accept="image/*" onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)} />
+              {imagenAuxiliar ? <p className="mt-2 text-xs text-emerald-700">Imagen auxiliar cargada.</p> : null}
+            </Field>
+          ) : null}
         </div>
         <div className="mt-4">
           <Button type="button" onClick={handleSubmit} disabled={registrarMutation.isPending}>

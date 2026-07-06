@@ -109,6 +109,30 @@ const parseGeoCoords = (value?: string): { lat: number; lng: number } | null => 
 const isSiValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'SI'
 const isNoValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'NO'
 
+const inicioChecklistKeys: Array<keyof SupervisionJornadaHistorico> = [
+  'capacitado',
+  'charla',
+  'botiquin',
+  'extintor',
+  'equipoEpp',
+  'estadoEpp',
+  'apr',
+  'escalera',
+  'anclaje',
+]
+
+const countInicioObservaciones = (row: SupervisionJornadaHistorico): number => {
+  const camposEnNo = inicioChecklistKeys.filter((key) => isNoValue(row[key] as string | undefined)).length
+  const sinUbicacion = parseGeoCoords(row.ubicacionGeoref) ? 0 : 1
+  const sinImagen = resolveInicioImageSrc(row.imagen) ? 0 : 1
+  return camposEnNo + sinUbicacion + sinImagen
+}
+
+const cierreChecklistKeys: Array<keyof SupervisionJornadaHistorico> = ['danoMaterial', 'danoPersona', 'novedadesTrabajo']
+
+const countCierreObservaciones = (row: SupervisionJornadaHistorico): number =>
+  cierreChecklistKeys.filter((key) => isSiValue(row[key] as string | undefined)).length
+
 const tieneCierreJornada = (row: SupervisionJornadaHistorico): boolean =>
   Boolean(row.fechaCierre) ||
   Boolean(row.codigoClienteCierre) ||
@@ -499,28 +523,44 @@ const HistoricoJornadasPage = () => {
       {
         key: 'acciones',
         header: 'Acciones',
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={noInicio(row)}
-              onClick={() => abrirDetalleJornada(row, 'inicio')}
-            >
-              Inicio
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={!tieneCierreJornada(row)}
-              onClick={() => abrirDetalleJornada(row, 'cierre')}
-            >
-              Cierre
-            </Button>
-          </div>
-        ),
+        render: (row) => {
+          const inicioObservaciones = noInicio(row) ? 0 : countInicioObservaciones(row)
+          const cierreObservaciones = tieneCierreJornada(row) ? countCierreObservaciones(row) : 0
+          return (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="relative overflow-visible px-3 py-1.5 text-xs"
+                disabled={noInicio(row)}
+                title={inicioObservaciones > 0 ? `${inicioObservaciones} campo(s) incompleto(s) o con NO` : undefined}
+                onClick={() => abrirDetalleJornada(row, 'inicio')}
+              >
+                Inicio
+                {inicioObservaciones > 0 ? (
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                    {inicioObservaciones}
+                  </span>
+                ) : null}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="relative overflow-visible px-3 py-1.5 text-xs"
+                disabled={!tieneCierreJornada(row)}
+                title={cierreObservaciones > 0 ? `${cierreObservaciones} campo(s) de cierre en SI` : undefined}
+                onClick={() => abrirDetalleJornada(row, 'cierre')}
+              >
+                Cierre
+                {cierreObservaciones > 0 ? (
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                    {cierreObservaciones}
+                  </span>
+                ) : null}
+              </Button>
+            </div>
+          )
+        },
       },
     ],
     []
@@ -730,6 +770,22 @@ const HistoricoJornadasPage = () => {
                     <p className="mt-3 text-2xl font-bold text-slate-900">-</p>
                   )}
                 </div>
+                {resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
+                  <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4">
+                    <p className="text-xs font-bold tracking-[0.35em] text-slate-700">Imagen auxiliar</p>
+                    <button
+                      type="button"
+                      className="mt-4 block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(detalle.imagenAuxiliar))}
+                    >
+                      <img
+                        src={resolveInicioImageSrc(detalle.imagenAuxiliar) ?? ''}
+                        alt="Auxiliar inicio jornada"
+                        className="h-48 w-36 rounded-xl border border-slate-300 object-cover"
+                      />
+                    </button>
+                  </div>
+                ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
                   <DetailCard label="Auxiliar" value={detalle.auxiliarNombre || detalle.idAuxiliar} />

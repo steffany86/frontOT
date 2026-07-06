@@ -105,6 +105,7 @@ export type SupervisionInicioPendiente = {
   fechaRegistro?: string
   fechaCierre?: string
   imagen?: string
+  imagenAuxiliar?: string
   estado?: string
   capacitado?: string
   charla?: string
@@ -138,6 +139,7 @@ export type SupervisionJornadaHistorico = {
   fechaInicio?: string
   fechaCierre?: string
   imagen?: string
+  imagenAuxiliar?: string
   sucursal?: string
   grupo?: string
   idSupervisor?: string

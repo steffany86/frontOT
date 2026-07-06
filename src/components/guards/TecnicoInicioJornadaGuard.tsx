@@ -111,6 +111,8 @@ const TecnicoInicioJornadaGuard = () => {
         <InicioJornadaChecklistForm
           nombreTecnico={usuario?.nombre}
           nombreSupervisor={estadoQuery.data?.encargado}
+          idAuxiliar={estadoQuery.data?.idAuxiliar}
+          nombreAuxiliar={estadoQuery.data?.auxiliarNombre || estadoQuery.data?.auxiliar}
           onRegistered={() => {
             estadoQuery.refetch()
           }}

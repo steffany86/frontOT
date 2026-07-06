@@ -4,6 +4,10 @@ export type InicioJornadaEstado = {
   fechaServidor?: string
   idEncargado?: string
   encargado?: string
+  idAuxiliar?: number
+  auxiliar?: string
+  auxiliarNombre?: string
+  tieneAuxiliar?: boolean
   requiereCierreAyer?: boolean
   idInicioPendienteCierre?: number
   fechaInicioPendienteCierre?: string
@@ -41,6 +45,7 @@ export type InicioJornadaCreatePayload = {
   escalera: 'SI' | 'NO'
   anclaje: 'SI' | 'NO'
   imagen: string
+  imagenAuxiliar?: string
   ubicacionGeoRef?: string
   aceptoInicioJornada?: 'SI' | 'NO'
   sucursal?: string

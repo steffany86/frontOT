@@ -208,6 +208,14 @@ export const fetchOtFinalizadas = async (params?: { fecha?: string; usuario?: nu
   return rows.map(mapOtSummary)
 }
 
+export const fetchOtPendientesMaterial = async (params?: { fecha?: string; usuario?: number }): Promise<OtSummary[]> => {
+  const { data } = await api.get('/ot/pendientes-material', {
+    params: sanitizeParams(params),
+  })
+  const rows = normalizeArrayResponse<UnknownRecord>(data)
+  return rows.map(mapOtSummary)
+}
+
 const buildListaOtQuery = (params: ListaOtParams): string => {
   const searchParams = new URLSearchParams()
   searchParams.set('fecha', params.fecha)
