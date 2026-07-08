@@ -53,6 +53,7 @@ const declaracionJuradaInicioJornada = [
 
 const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxiliar, nombreAuxiliar, onRegistered }: InicioJornadaChecklistFormProps) => {
   const [fechaVencimiento, setFechaVencimiento] = useState('')
+  const [estoyTrabajandoSolo, setEstoyTrabajandoSolo] = useState(false)
   const [capacitado, setCapacitado] = useState<SiNo>('NO')
   const [charla, setCharla] = useState<SiNo>('NO')
   const [botiquin, setBotiquin] = useState<SiNo>('NO')
@@ -89,6 +90,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
     mutationFn: () =>
       registrarInicioJornada({
         fechaVencimiento,
+        estoyTrabajandoSolo: estoyTrabajandoSolo ? true : undefined,
         capacitado,
         charla,
         botiquin,
@@ -257,6 +259,15 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               </Button>
             </div>
           </Field>
+          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+              checked={estoyTrabajandoSolo}
+              onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
+            />
+            <span>ESTOY TRABAJANDO SOLO</span>
+          </label>
         </div>
       </div>
 

@@ -556,7 +556,6 @@ const tipoMaterialLabelByIdFallback: Record<number, string> = {
 }
 
 const tipoServicioIdKeys = ['idTipoServicio', 'Id_TipoServicio', 'id_tiposervicio', 'IdTipoServicio', 'id_tipo_servicio', 'id', 'Id']
-const tipoServicioTipoMaterialKeys = ['tipomaterial', 'TipoMaterial', 'tipoMaterial', 'idTipoMaterial', 'Id_TipoMaterial', 'id_tipo_material']
 const tipoServicioNomencladoresKeys = [
   'nomencladores',
   'Nomencladores',
@@ -938,17 +937,8 @@ const OtRealizadaPage = () => {
   })
   const tipoMaterialParam = useMemo(() => {
     if (!tipoServicioId || tipoServicioId <= 0) return null
-    const tipoServicioRow = (tiposServicioQuery.data ?? []).find((item) => {
-      const id = readNumber(item, tipoServicioIdKeys)
-      return id !== null && id === tipoServicioId
-    })
-    if (!tipoServicioRow) return tipoServicioId
-    const tipoMaterialFromTipoServicio = readNumber(tipoServicioRow, tipoServicioTipoMaterialKeys)
-    if (tipoMaterialFromTipoServicio !== null && tipoMaterialFromTipoServicio > 0) {
-      return tipoMaterialFromTipoServicio
-    }
     return tipoServicioId
-  }, [tipoServicioId, tiposServicioQuery.data])
+  }, [tipoServicioId])
   const tipoMaterialQuery = useQuery({
     queryKey: ['catalogos-tipo-material-ot-detalle', tipoMaterialParam],
     queryFn: () => fetchTipoMaterial(tipoMaterialParam as number),

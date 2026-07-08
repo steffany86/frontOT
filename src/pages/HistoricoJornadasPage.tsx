@@ -48,32 +48,48 @@ const dateKeyFromRow = (row: SupervisionJornadaHistorico): string => {
 
 const normalizeRole = (role?: string): string => (role ?? '').trim().toLowerCase().replace(/[\s_]+/g, '')
 
-type FiltroInicio = 'todos' | 'iniciaron' | 'no-iniciaron'
+type FiltroInicio = 'todos' | 'iniciaron' | 'rechazados' | 'no-iniciaron'
 type ModalJornadaModo = 'inicio' | 'cierre'
 
-const noInicio = (row: SupervisionJornadaHistorico): boolean => row.estadoJornada === 'NO_INICIO' || row.sinInicio === true
+const normalizeEstadoJornada = (value?: string): string => (value ?? '').trim().toUpperCase().replace(/[\s-]+/g, '_')
+const booleanLike = (value: unknown): boolean => {
+  const text = String(value ?? '').trim().toLowerCase()
+  return text === 'true' || text === '1' || text === 'si' || text === 'sí'
+}
+
+const noInicio = (row: SupervisionJornadaHistorico): boolean => normalizeEstadoJornada(row.estadoJornada) === 'NO_INICIO' || row.sinInicio === true
+
+const esRechazado = (row: SupervisionJornadaHistorico): boolean =>
+  normalizeEstadoJornada(row.estadoJornada) === 'RECHAZADO' || row.rechazado === true || booleanLike(row.eEliminado)
 
 const inicioJornada = (row: SupervisionJornadaHistorico): boolean => !noInicio(row)
 
 const noMarcoCierre = (row: SupervisionJornadaHistorico): boolean =>
-  row.estadoJornada === 'NO_REALIZO_CIERRE' || row.estadoJornada === 'SIN_CIERRE' || row.sinCierre === true || row.noMarcoCierre === '1' || !row.fechaCierre
+  !esRechazado(row) &&
+  (normalizeEstadoJornada(row.estadoJornada) === 'NO_REALIZO_CIERRE' ||
+    normalizeEstadoJornada(row.estadoJornada) === 'SIN_CIERRE' ||
+    row.sinCierre === true ||
+    booleanLike(row.noMarcoCierre) ||
+    !row.fechaCierre)
 
 const estadoLabel = (row: SupervisionJornadaHistorico): string => {
+  if (esRechazado(row)) return 'Estado rechazado'
   if (noInicio(row)) return 'Estado no inicio'
-  if (row.estadoJornada === 'NO_APROBADO_SUPERVISOR') return 'Estado no aprobado por supervisor'
+  if (normalizeEstadoJornada(row.estadoJornada) === 'NO_APROBADO_SUPERVISOR') return 'Estado no aprobado por supervisor'
   if (noMarcoCierre(row)) return 'Estado no marco cierre'
   return 'Estado jornada completa'
 }
 
 const estadoClass = (row: SupervisionJornadaHistorico): string => {
+  if (esRechazado(row)) return 'bg-fuchsia-700 text-white ring-1 ring-fuchsia-800'
   if (noInicio(row)) return 'bg-red-600 text-white ring-1 ring-red-700'
-  if (row.estadoJornada === 'NO_APROBADO_SUPERVISOR') return 'bg-amber-500 text-white ring-1 ring-amber-600'
+  if (normalizeEstadoJornada(row.estadoJornada) === 'NO_APROBADO_SUPERVISOR') return 'bg-amber-500 text-white ring-1 ring-amber-600'
   if (noMarcoCierre(row)) return 'bg-yellow-400 text-slate-950 ring-1 ring-yellow-500'
   return 'bg-green-600 text-white ring-1 ring-green-700'
 }
 
 const jornadaRowClass = (row: SupervisionJornadaHistorico): string =>
-  noInicio(row) ? 'bg-red-100/90' : 'bg-green-50/90'
+  esRechazado(row) ? 'bg-fuchsia-50/90' : noInicio(row) ? 'bg-red-100/90' : 'bg-green-50/90'
 
 const resolveInicioImageSrc = (value?: string): string | null => {
   const raw = value?.trim()
@@ -238,6 +254,7 @@ const HistoricoJornadasPage = () => {
       .filter((row) => {
         if (tecnico && row.idTecnico !== tecnico) return false
         if (filtroInicio === 'iniciaron') return inicioJornada(row)
+        if (filtroInicio === 'rechazados') return esRechazado(row)
         if (filtroInicio === 'no-iniciaron') return noInicio(row)
         return true
       })
@@ -247,22 +264,6 @@ const HistoricoJornadasPage = () => {
         return (a.tecnicoNombre || '').localeCompare(b.tecnicoNombre || '', 'es', { sensitivity: 'base' })
       })
   }, [rows, idTecnico, filtroInicio])
-
-  const resumen = useMemo(() => {
-    return filteredRows.reduce(
-      (acc, row) => {
-        if (noInicio(row)) acc.noInicio += 1
-        else {
-          acc.iniciaron += 1
-          if (row.estadoJornada === 'NO_APROBADO_SUPERVISOR') acc.noAprobado += 1
-          else if (noMarcoCierre(row)) acc.sinCierre += 1
-          else acc.completas += 1
-        }
-        return acc
-      },
-      { total: filteredRows.length, iniciaron: 0, completas: 0, sinCierre: 0, noAprobado: 0, noInicio: 0 }
-    )
-  }, [filteredRows])
 
   const abrirDetalleJornada = async (row: SupervisionJornadaHistorico, modo: ModalJornadaModo) => {
     setDetalleJornada({ row, modo })
@@ -350,11 +351,11 @@ const HistoricoJornadasPage = () => {
     const addStatusCell = (sheet: Worksheet, address: string, row: SupervisionJornadaHistorico) => {
       const cell = sheet.getCell(address)
       cell.value = estadoLabel(row)
-      cell.font = { bold: true, color: { argb: noInicio(row) ? 'FFFFFFFF' : noMarcoCierre(row) ? 'FF111827' : 'FFFFFFFF' } }
+      cell.font = { bold: true, color: { argb: noInicio(row) || esRechazado(row) ? 'FFFFFFFF' : noMarcoCierre(row) ? 'FF111827' : 'FFFFFFFF' } }
       cell.fill = {
         type: 'pattern',
         pattern: 'solid',
-        fgColor: { argb: noInicio(row) ? 'FFDC2626' : noMarcoCierre(row) ? 'FFFACC15' : 'FF16A34A' },
+        fgColor: { argb: esRechazado(row) ? 'FFA21CAF' : noInicio(row) ? 'FFDC2626' : noMarcoCierre(row) ? 'FFFACC15' : 'FF16A34A' },
       }
       cell.border = { top: border, left: border, bottom: border, right: border }
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }
@@ -439,6 +440,7 @@ const HistoricoJornadasPage = () => {
           ['Botiquin', row.botiquin || '-'],
           ['Extintor', row.extintor || '-'],
           ['Fecha vencimiento', row.fechaVencimiento || '-'],
+          ['ESTOY TRABAJANDO SOLO', String(row.estoyTrabajandoSolo || '')],
           ['Equipo EPP', row.equipoEpp || '-'],
           ['Estado EPP', row.estadoEpp || '-'],
           ['APR', row.apr || '-'],
@@ -652,6 +654,7 @@ const HistoricoJornadasPage = () => {
             <select className="input-base" value={filtroInicio} onChange={(event) => setFiltroInicio(event.target.value as FiltroInicio)}>
               <option value="todos">Todos</option>
               <option value="iniciaron">Solo iniciaron</option>
+              <option value="rechazados">Solo rechazados</option>
               <option value="no-iniciaron">Solo no iniciaron</option>
             </select>
           </Field>
@@ -671,33 +674,6 @@ const HistoricoJornadasPage = () => {
           </div>
         </div>
       </FormCard>
-
-      <div className="grid gap-3 sm:grid-cols-6">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-soft">
-          <p className="text-xs font-semibold uppercase text-slate-500">Total</p>
-          <p className="mt-1 text-2xl font-bold text-slate-900">{resumen.total}</p>
-        </div>
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-xs font-semibold uppercase text-emerald-700">Iniciaron</p>
-          <p className="mt-1 text-2xl font-bold text-emerald-800">{resumen.iniciaron}</p>
-        </div>
-        <div className="rounded-2xl border border-green-200 bg-green-50 p-4">
-          <p className="text-xs font-semibold uppercase text-green-700">Jornada completa</p>
-          <p className="mt-1 text-2xl font-bold text-green-800">{resumen.completas}</p>
-        </div>
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs font-semibold uppercase text-amber-700">No aprobado</p>
-          <p className="mt-1 text-2xl font-bold text-amber-800">{resumen.noAprobado}</p>
-        </div>
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-4">
-          <p className="text-xs font-semibold uppercase text-red-700">No marco cierre</p>
-          <p className="mt-1 text-2xl font-bold text-red-800">{resumen.sinCierre}</p>
-        </div>
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
-          <p className="text-xs font-semibold uppercase text-rose-700">No iniciaron</p>
-          <p className="mt-1 text-2xl font-bold text-rose-800">{resumen.noInicio}</p>
-        </div>
-      </div>
 
       {jornadasQuery.isError ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -789,11 +765,13 @@ const HistoricoJornadasPage = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
                   <DetailCard label="Auxiliar" value={detalle.auxiliarNombre || detalle.idAuxiliar} />
+                  {esRechazado(detalle) ? <DetailCard label="Motivo rechazo" value={detalle.observacionRechazado} wide /> : null}
                   <DetailCard label="Capacitado" value={detalle.capacitado} />
                   <DetailCard label="Charla" value={detalle.charla} />
                   <DetailCard label="Botiquin" value={detalle.botiquin} />
                   <DetailCard label="Extintor" value={detalle.extintor} />
                   <DetailCard label="Fecha vencimiento" value={detalle.fechaVencimiento} />
+                  <DetailCard label="ESTOY TRABAJANDO SOLO" value={String(detalle.estoyTrabajandoSolo || '')} />
                   <DetailCard label="Equipo EPP" value={detalle.equipoEpp} />
                   <DetailCard label="Estado EPP" value={detalle.estadoEpp} />
                   <DetailCard label="APR" value={detalle.apr} />

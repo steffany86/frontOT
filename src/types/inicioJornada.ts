@@ -12,6 +12,10 @@ export type InicioJornadaEstado = {
   idInicioPendienteCierre?: number
   fechaInicioPendienteCierre?: string
   supervisorPendienteCierre?: string
+  inicioRechazadoHoy?: boolean
+  idInicioRechazado?: number
+  fechaInicioRechazado?: string
+  observacionRechazado?: string
 }
 
 export type CierreJornadaEstado = {
@@ -34,6 +38,7 @@ export type InicioJornadaEncargado = {
 export type InicioJornadaCreatePayload = {
   idAuxiliar?: number | null
   idEncargado?: number
+  estoyTrabajandoSolo?: boolean
   capacitado: 'SI' | 'NO'
   charla: 'SI' | 'NO'
   botiquin: 'SI' | 'NO'

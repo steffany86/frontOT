@@ -1,0 +1,15 @@
+
+> tigostarpage@0.0.0 dev
+> vite --host 0.0.0.0 --port 5173
+
+11:12:47 AM [vite] (client) Re-optimizing dependencies because vite config has changed
+
+  VITE v7.3.1  ready in 506 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.212.134.116:5173/
+  ➜  Network: http://192.168.56.13:5173/
+  ➜  Network: http://192.168.0.21:5173/
+  ➜  Network: http://172.16.0.170:5173/
+  ➜  press h + enter to show help
+11:16:13 AM [vite] (client) hmr update /src/pages/VerificacionBoletaDigitalPage.tsx, /src/index.css

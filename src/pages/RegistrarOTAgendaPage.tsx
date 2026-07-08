@@ -1315,6 +1315,9 @@ const RegistrarOTAgendaPage = () => {
       if (!nombreFinal) {
         throw new Error('No se pudo resolver el nombre del tecnico desde la sesion actual.')
       }
+      if (!nodoValid || !ramalValid || parsedTap === null || !tapValid || parsedBoca === null || !bocaValid || !tipoTecnologia.trim()) {
+        throw new Error('Faltan datos tecnicos requeridos: nodo, ramal, tap, boca o tipo tecnologia.')
+      }
 
       const ordenTrabajo = parsedOrdenTrabajo ?? 0
       const codigoCliente = parsedCodigoCliente ?? 0
@@ -1342,10 +1345,10 @@ const RegistrarOTAgendaPage = () => {
         longitud: coordinates?.longitud ?? longitud ?? 0,
         nodo: nodoUpper,
         ramal: ramal.trim(),
-        tap: parsedTap ?? 0,
-        boca: parsedBoca ?? 0,
-        checkPlantaExterna,
-        tieneDetalle,
+        tap: parsedTap,
+        boca: parsedBoca,
+        checkPlantaExterna: Boolean(checkPlantaExterna),
+        tieneDetalle: Boolean(tieneDetalle),
         tipoTecnologia: tipoTecnologia.trim().toUpperCase(),
       }
       return await registrarVentaParaRegistroOtWb(payload, pdfFile)

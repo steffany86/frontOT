@@ -19,6 +19,15 @@ const normalizeString = (value: unknown): string => {
   return String(value).trim()
 }
 
+const normalizeSiNoValue = (value: unknown): string | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  if (typeof value === 'boolean') return value ? 'SI' : 'NO'
+  const text = normalizeString(value).toLowerCase()
+  if (text === 'true' || text === '1' || text === 'si' || text === 'sí') return 'SI'
+  if (text === 'false' || text === '0' || text === 'no') return 'NO'
+  return normalizeString(value) || undefined
+}
+
 const readValue = (row: Record<string, unknown>, keys: string[]): unknown => {
   for (const key of keys) {
     if (Object.prototype.hasOwnProperty.call(row, key)) {
@@ -311,6 +320,7 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
   botiquin: normalizeString(readValue(row, ['botiquin', 'Botiquin'])) || undefined,
   extintor: normalizeString(readValue(row, ['extintor', 'Extintor'])) || undefined,
   fechaVencimiento: normalizeString(readValue(row, ['fechaVencimiento', 'fecha_vencimiento'])) || undefined,
+  estoyTrabajandoSolo: normalizeSiNoValue(readValue(row, ['estoyTrabajandoSolo', 'estoy_trabajando_solo', 'ESTOY TRABAJANDO SOLO', 'trabajandoSolo', 'trabajando_solo'])),
   equipoEpp: normalizeString(readValue(row, ['equipoEpp', 'equipo_epp'])) || undefined,
   estadoEpp: normalizeString(readValue(row, ['estadoEpp', 'estado_epp'])) || undefined,
   apr: normalizeString(readValue(row, ['apr', 'APR'])) || undefined,
@@ -357,13 +367,19 @@ const readBooleanLike = (value: unknown): boolean => {
   return text === 'true' || text === '1' || text === 'si' || text === 'sí'
 }
 
+const normalizeEstadoJornada = (value: unknown): string => {
+  return normalizeString(value).trim().toUpperCase().replace(/[\s-]+/g, '_')
+}
+
 const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHistorico => {
   const inicio = mapInicioPendiente(row)
   const noMarcoCierre = readValue(row, ['noMarcoCierre', 'no_marco_cierre'])
   const noMarcoCierreText = normalizeString(noMarcoCierre)
+  const eEliminado = normalizeString(readValue(row, ['eEliminado', 'e_eliminado', 'E_Eliminado', 'eliminado']))
+  const estadoRaw = normalizeEstadoJornada(readValue(row, ['estadoJornada', 'estado_jornada', 'estado']))
+  const rechazado = estadoRaw === 'RECHAZADO' || readBooleanLike(readValue(row, ['rechazado'])) || eEliminado === '1'
   const fechaCierre = normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || inicio.fechaCierre
-  const sinCierre = readBooleanLike(readValue(row, ['sinCierre', 'sin_cierre'])) || noMarcoCierreText === '1' || !fechaCierre
-  const estadoRaw = normalizeString(readValue(row, ['estadoJornada', 'estado_jornada', 'estado']))
+  const sinCierre = !rechazado && (readBooleanLike(readValue(row, ['sinCierre', 'sin_cierre'])) || noMarcoCierreText === '1' || !fechaCierre)
   return {
     ...inicio,
     idInicio: inicio.idInicio || undefined,
@@ -383,9 +399,12 @@ const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHi
     grupo: normalizeString(readValue(row, ['grupo', 'Grupo', 'cuadrilla'])) || undefined,
     idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'idUsuarioSupervisor'])) || inicio.idSupervisor,
     supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'supervisorACargo'])) || inicio.supervisorNombre,
-    estadoJornada: estadoRaw || (sinCierre ? 'NO_REALIZO_CIERRE' : 'NO_INICIO'),
+    estadoJornada: rechazado ? 'RECHAZADO' : estadoRaw || (sinCierre ? 'NO_REALIZO_CIERRE' : 'NO_INICIO'),
     sinInicio: readBooleanLike(readValue(row, ['sinInicio', 'sin_inicio'])),
     sinCierre,
+    rechazado,
+    observacionRechazado: normalizeString(readValue(row, ['observacionRechazado', 'ObservacionRechazado', 'observacion_rechazado'])) || undefined,
+    eEliminado: eEliminado || undefined,
     noMarcoCierre: noMarcoCierreText || undefined,
     usuarioRetirado: readBooleanLike(readValue(row, ['usuarioRetirado', 'usuario_retirado'])),
   }
@@ -456,8 +475,8 @@ export const aprobarInicioJornadaPendiente = async (idInicio: string): Promise<v
   await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/aprobar`)
 }
 
-export const rechazarInicioJornadaPendiente = async (idInicio: string): Promise<void> => {
-  await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/rechazar`)
+export const rechazarInicioJornadaPendiente = async (idInicio: string, observacionRechazado: string): Promise<void> => {
+  await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/rechazar`, { observacionRechazado })
 }
 
 export const fetchSupervisores = async (sucursal?: string): Promise<Array<{ idSupervisor: string; nombre: string }>> => {

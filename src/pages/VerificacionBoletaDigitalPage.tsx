@@ -23,6 +23,25 @@ const getFileName = (rutaPdf: string, ot: string): string => {
   return ot ? `OT_${ot}.pdf` : 'boleta-digital.pdf'
 }
 
+const getExpectedPdfFileName = (row: BoletaDigitalOt | null): string => {
+  const otFisica = row?.otFisica?.trim()
+  return otFisica ? `${otFisica}.pdf` : ''
+}
+
+const ensurePdfExtension = (fileName: string): string => {
+  const trimmed = fileName.trim()
+  if (!trimmed) return ''
+  return trimmed.toLowerCase().endsWith('.pdf') ? trimmed : `${trimmed}.pdf`
+}
+
+const renamePdfFile = (file: File, fileName: string): File => {
+  if (file.name === fileName) return file
+  return new File([file], fileName, {
+    type: file.type || 'application/pdf',
+    lastModified: file.lastModified,
+  })
+}
+
 const normalizeText = (value: string): string =>
   value
     .trim()
@@ -143,9 +162,12 @@ const VerificacionBoletaDigitalPage = () => {
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [exportandoExcel, setExportandoExcel] = useState(false)
   const [selectedUploadRow, setSelectedUploadRow] = useState<BoletaDigitalOt | null>(null)
+  const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
+  const [uploadFileName, setUploadFileName] = useState('')
+  const [uploadRenameError, setUploadRenameError] = useState<string | null>(null)
   const [uploadModal, setUploadModal] = useState<{
     open: boolean
-    status: 'loading' | 'error'
+    status: 'confirm' | 'loading' | 'error'
     message: string
   }>({ open: false, status: 'loading', message: '' })
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -357,6 +379,9 @@ const VerificacionBoletaDigitalPage = () => {
     } finally {
       setLoadingKey((current) => (current === key ? null : current))
       setSelectedUploadRow(null)
+      setPendingUploadFile(null)
+      setUploadFileName('')
+      setUploadRenameError(null)
     }
   }
 
@@ -365,7 +390,42 @@ const VerificacionBoletaDigitalPage = () => {
     const row = selectedUploadRow
     event.target.value = ''
     if (!file || !row) return
-    void uploadReplacementPdf(file, row)
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      setActionError('Solo se permite subir archivos PDF.')
+      setSelectedUploadRow(null)
+      return
+    }
+    setActionError(null)
+    setPendingUploadFile(file)
+    setUploadFileName(file.name)
+    setUploadRenameError(null)
+    setUploadModal({ open: true, status: 'confirm', message: '' })
+  }
+
+  const closeUploadModal = () => {
+    setUploadModal({ open: false, status: 'loading', message: '' })
+    setPendingUploadFile(null)
+    setUploadFileName('')
+    setUploadRenameError(null)
+    setSelectedUploadRow(null)
+  }
+
+  const confirmReplacementUpload = () => {
+    if (!selectedUploadRow || !pendingUploadFile) {
+      closeUploadModal()
+      return
+    }
+    const finalName = ensurePdfExtension(uploadFileName)
+    if (!finalName) {
+      setUploadRenameError('Ingrese el nombre del archivo.')
+      return
+    }
+    if (finalName.includes('/') || finalName.includes('\\')) {
+      setUploadRenameError('El nombre no debe incluir carpetas ni barras.')
+      return
+    }
+    setUploadRenameError(null)
+    void uploadReplacementPdf(renamePdfFile(pendingUploadFile, finalName), selectedUploadRow)
   }
 
   return (
@@ -379,24 +439,77 @@ const VerificacionBoletaDigitalPage = () => {
       />
       <Modal
         open={uploadModal.open}
-        title={uploadModal.status === 'loading' ? 'Subiendo boleta' : 'No se pudo subir'}
+        title={
+          uploadModal.status === 'confirm'
+            ? 'Cambiar archivo'
+            : uploadModal.status === 'loading'
+              ? 'Subiendo boleta'
+              : 'No se pudo subir'
+        }
         onClose={() => {
           if (uploadModal.status !== 'loading') {
-            setUploadModal({ open: false, status: 'loading', message: '' })
+            closeUploadModal()
           }
         }}
         actions={
-          uploadModal.status === 'error' ? (
+          uploadModal.status === 'confirm' ? (
+            <>
+              <Button type="button" variant="secondary" onClick={closeUploadModal}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={confirmReplacementUpload}>
+                <FontAwesomeIcon icon={faUpload} />
+                <span>Subir archivo</span>
+              </Button>
+            </>
+          ) : uploadModal.status === 'error' ? (
             <Button
               type="button"
-              onClick={() => setUploadModal({ open: false, status: 'loading', message: '' })}
+              onClick={closeUploadModal}
             >
               Entendido
             </Button>
           ) : null
         }
       >
-        {uploadModal.status === 'loading' ? (
+        {uploadModal.status === 'confirm' ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+              <p className="text-xs font-semibold uppercase text-slate-500">Nombre de archivo esperado:</p>
+              <p className="mt-1 break-all text-base font-bold text-slate-900">
+                {getExpectedPdfFileName(selectedUploadRow) || '-'}
+              </p>
+            </div>
+            <div className="grid gap-3 text-sm sm:grid-cols-2">
+              <p className="min-w-0">
+                <span className="block text-xs font-semibold uppercase text-slate-500">OT</span>
+                <span className="break-words font-semibold text-slate-800">{selectedUploadRow?.ot || '-'}</span>
+              </p>
+              <p className="min-w-0">
+                <span className="block text-xs font-semibold uppercase text-slate-500">Archivo seleccionado</span>
+                <span className="break-all font-semibold text-slate-800">{pendingUploadFile?.name || '-'}</span>
+              </p>
+            </div>
+            <Field label="Nombre del archivo que se subira">
+              <input
+                className={`input-base ${uploadRenameError ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
+                value={uploadFileName}
+                onChange={(event) => {
+                  setUploadFileName(event.target.value)
+                  setUploadRenameError(null)
+                }}
+                placeholder="SA-00000000.pdf"
+              />
+            </Field>
+            {uploadRenameError ? (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
+                {uploadRenameError}
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">Si no escribe .pdf, se agrega automaticamente al subir.</p>
+            )}
+          </div>
+        ) : uploadModal.status === 'loading' ? (
           <div className="flex items-center gap-3">
             <span className="h-8 w-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
             <span>{uploadModal.message}</span>
@@ -673,7 +786,7 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         </div>
 
-        <div className="space-y-3 p-4 md:hidden">
+        <div className="space-y-3 px-3 py-4 sm:px-4 md:hidden">
           {otsQuery.isLoading ? (
             <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
               Cargando boletas...
@@ -687,36 +800,57 @@ const VerificacionBoletaDigitalPage = () => {
               const canReplace = canReplacePdf(row)
               const comparisonBadge = getComparisonBadge(row)
               return (
-                <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                  <p className="font-semibold text-slate-900">OT: {row.ot || '-'}</p>
-                  <div className="mt-3 grid gap-2 text-xs text-slate-600">
-                    <p><span className="font-semibold uppercase text-slate-500">Nro transaccion:</span> {row.nroTransaccion || '-'}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">OT Fisica:</span> {row.otFisica || '-'}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">Cliente:</span> {row.cliente || '-'}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">Tecnico:</span> {row.tecnico || '-'}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">Fecha:</span> {formatBoletaFecha(row.fecha)}</p>
-                    <p><span className="font-semibold uppercase text-slate-500">Estado:</span> {row.estado || '-'}</p>
-                    <p>
-                      <span className="font-semibold uppercase text-slate-500">Comparacion:</span>{' '}
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${comparisonBadge.className}`}>
+                <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm">
+                  <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
+                    <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+                      <p className="min-w-0 break-words text-base font-extrabold text-slate-900">OT: {row.ot || '-'}</p>
+                      <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${comparisonBadge.className}`}>
                         {comparisonBadge.label}
                       </span>
-                    </p>
-                    <p className="break-all"><span className="font-semibold uppercase text-slate-500">RutaPDF:</span> {row.rutaPdf || '-'}</p>
+                    </div>
+                    <p className="mt-1 break-words text-xs font-semibold text-slate-500">{row.tecnico || '-'}</p>
                   </div>
-                  <div className={`mt-4 grid gap-2 ${canReplace ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                    <Button type="button" variant="secondary" onClick={() => void openPdf(row)} disabled={!row.rutaPdf}>
+                  <div className="grid gap-2 px-4 py-3 text-xs text-slate-700">
+                    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                      <span className="font-semibold uppercase text-slate-500">Nro transaccion</span>
+                      <span className="min-w-0 break-words">{row.nroTransaccion || '-'}</span>
+                    </div>
+                    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                      <span className="font-semibold uppercase text-slate-500">OT Fisica</span>
+                      <span className="min-w-0 break-words">{row.otFisica || '-'}</span>
+                    </div>
+                    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                      <span className="font-semibold uppercase text-slate-500">Cliente</span>
+                      <span className="min-w-0 break-words">{row.cliente || '-'}</span>
+                    </div>
+                    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                      <span className="font-semibold uppercase text-slate-500">Fecha</span>
+                      <span className="min-w-0 break-words">{formatBoletaFecha(row.fecha)}</span>
+                    </div>
+                    <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                      <span className="font-semibold uppercase text-slate-500">Estado</span>
+                      <span className="min-w-0 break-words">{row.estado || '-'}</span>
+                    </div>
+                    <div>
+                      <span className="font-semibold uppercase text-slate-500">RutaPDF</span>
+                      <p className="mt-1 max-h-20 overflow-y-auto break-all rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] leading-4 text-slate-600">
+                        {row.rutaPdf || '-'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-4 py-3">
+                    <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => void openPdf(row)} disabled={!row.rutaPdf}>
                       <FontAwesomeIcon icon={faEye} />
                       <span>Ver</span>
                     </Button>
-                    <Button type="button" onClick={() => void downloadPdf(row)} disabled={!row.rutaPdf}>
+                    <Button type="button" className="min-h-11 px-3" onClick={() => void downloadPdf(row)} disabled={!row.rutaPdf}>
                       <FontAwesomeIcon icon={faDownload} />
                       <span>Descargar</span>
                     </Button>
                     {canReplace ? (
-                      <Button type="button" variant="secondary" onClick={() => selectReplacementPdf(row)} disabled={!row.id || loadingKey === `${row.id || row.ot}-upload`}>
+                      <Button type="button" variant="secondary" className="col-span-2 min-h-11 px-3" onClick={() => selectReplacementPdf(row)} disabled={!row.id || loadingKey === `${row.id || row.ot}-upload`}>
                         <FontAwesomeIcon icon={faUpload} />
-                        <span>Cambiar</span>
+                        <span>Cambiar archivo</span>
                       </Button>
                     ) : null}
                   </div>

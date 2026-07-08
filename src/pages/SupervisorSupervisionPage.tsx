@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCamera, faCameraRetro, faCheckCircle, faClipboardList, faCloudArrowUp, faComments, faFilter, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUserGear } from '@fortawesome/free-solid-svg-icons'
+import { faBriefcase, faCalendarCheck, faCalendarDays, faCamera, faCameraRetro, faCheckCircle, faClipboardList, faClock, faCloudArrowUp, faComments, faEllipsisVertical, faEye, faFilter, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUser, faUserGear } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
@@ -96,6 +96,14 @@ const emptyFiltro = (): SupervisionFiltro => ({
   fechaHasta: '',
 })
 
+const getTodayIsoDate = (): string => {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 const requiredFields: Array<keyof SupervisionForm> = [
   'idTecnicoPrincipal',
   'idTipoSupervision',
@@ -162,6 +170,13 @@ const formatDateParts = (value?: string): { date: string; time: string } => {
       minute: '2-digit',
     }).format(date),
   }
+}
+
+const formatIsoDateDisplay = (value?: string): string => {
+  if (!value) return '-'
+  const [year, month, day] = value.split('-')
+  if (!year || !month || !day) return value
+  return `${day}/${month}/${year}`
 }
 
 const startOfToday = (): Date => {
@@ -394,6 +409,10 @@ const SupervisorSupervisionPage = () => {
   const [jornadaDetalleModo, setJornadaDetalleModo] = useState<'inicio' | 'cierre'>('inicio')
   const [realizandoPendienteId, setRealizandoPendienteId] = useState<string>('')
   const [jornadaPendienteFiltro, setJornadaPendienteFiltro] = useState<JornadaPendienteFiltro>('hoy')
+  const [rechazoInicioId, setRechazoInicioId] = useState<string>('')
+  const [rechazoInicioTecnico, setRechazoInicioTecnico] = useState<string>('')
+  const [observacionRechazo, setObservacionRechazo] = useState('')
+  const [observacionRechazoError, setObservacionRechazoError] = useState<string | null>(null)
 
   useEffect(() => {
     return () => {
@@ -522,20 +541,35 @@ const SupervisorSupervisionPage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supervision', 'jornada-pendiente-aprobacion'] })
       queryClient.invalidateQueries({ queryKey: ['supervision', 'jornada-confirmada-hoy'] })
+      queryClient.invalidateQueries({ queryKey: ['historico-jornadas'] })
     },
   })
 
   const rechazarInicioMutation = useMutation({
-    mutationFn: (idInicio: string) => rechazarInicioJornadaPendiente(idInicio),
+    mutationFn: ({ idInicio, observacionRechazado }: { idInicio: string; observacionRechazado: string }) =>
+      rechazarInicioJornadaPendiente(idInicio, observacionRechazado),
     onSuccess: () => {
+      setRechazoInicioId('')
+      setRechazoInicioTecnico('')
+      setObservacionRechazo('')
+      setObservacionRechazoError(null)
       queryClient.invalidateQueries({ queryKey: ['supervision', 'jornada-pendiente-aprobacion'] })
       queryClient.invalidateQueries({ queryKey: ['supervision', 'jornada-confirmada-hoy'] })
+      queryClient.invalidateQueries({ queryKey: ['historico-jornadas'] })
+    },
+    onError: (error) => {
+      setObservacionRechazoError(getApiErrorMessage(error, 'No se pudo rechazar el inicio de jornada.'))
     },
   })
 
   const catalogoTecnicos = tecnicosQuery.data ?? []
   const listados = listadoQuery.data ?? []
   const listadosPendientes = listadoPendientesQuery.data ?? []
+  const agendaFechaSeleccionada = filtroActivo.fechaDesde || filtroDraft.fechaDesde || getTodayIsoDate()
+  const supervisionesCompletadasAgenda = useMemo(
+    () => listados.filter((row) => String(row.estadoSup ?? '').trim().toLowerCase().includes('complet')).length,
+    [listados]
+  )
   const iniciosPendientes = iniciosPendientesQuery.data ?? []
   const iniciosPendientesHoy = useMemo(
     () => iniciosPendientes.filter(isJornadaToday),
@@ -574,6 +608,30 @@ const SupervisorSupervisionPage = () => {
   const abrirDetalleJornada = (row: SupervisionInicioPendiente, modo: 'inicio' | 'cierre') => {
     setInicioPendienteDetalle(row)
     setJornadaDetalleModo(modo)
+  }
+
+  const abrirRechazoInicioModal = (row: SupervisionInicioPendiente) => {
+    setRechazoInicioId(row.idInicio)
+    setRechazoInicioTecnico(row.tecnicoNombre || row.idTecnico || '')
+    setObservacionRechazo('')
+    setObservacionRechazoError(null)
+  }
+
+  const cerrarRechazoInicioModal = () => {
+    if (rechazarInicioMutation.isPending) return
+    setRechazoInicioId('')
+    setRechazoInicioTecnico('')
+    setObservacionRechazo('')
+    setObservacionRechazoError(null)
+  }
+
+  const confirmarRechazoInicio = () => {
+    const observacion = observacionRechazo.trim()
+    if (!observacion) {
+      setObservacionRechazoError('Debes ingresar la observacion del rechazo.')
+      return
+    }
+    rechazarInicioMutation.mutate({ idInicio: rechazoInicioId, observacionRechazado: observacion })
   }
 
   const pendientesColumns = useMemo<Column<SupervisionInicioPendiente>[]>(() => {
@@ -635,7 +693,7 @@ const SupervisorSupervisionPage = () => {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={() => rechazarInicioMutation.mutate(row.idInicio)}
+                    onClick={() => abrirRechazoInicioModal(row)}
                     disabled={aprobarInicioMutation.isPending || rechazarInicioMutation.isPending}
                   >
                     Rechazar
@@ -1113,63 +1171,240 @@ const SupervisorSupervisionPage = () => {
           </FormCard>
         </>
       ) : vistaTopbar === 'agenda' ? (
-        <>
-          <FormCard
-            title="Filtros"
-            description="Filtra supervisiones pendientes por rango de fechas."
-            actions={
-              <>
-                <Button type="button" variant="secondary" className="px-5" onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}>
-                  Limpiar
-                </Button>
-                <Button type="button" className="px-5" onClick={() => setFiltroActivo(filtroDraft)}>
-                  <FontAwesomeIcon icon={faMagnifyingGlass} />
-                  Buscar
-                </Button>
-              </>
-            }
-          >
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <FontAwesomeIcon icon={faFilter} className="text-brand-600" />
-              Busqueda por rango de fechas
+        <div className="grid gap-4">
+          <section className="relative overflow-hidden rounded-2xl border border-blue-200 bg-gradient-to-br from-white via-blue-50/50 to-white px-4 py-5 shadow-sm sm:px-5">
+            <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-4">
+                <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-brand-600">
+                  <FontAwesomeIcon icon={faCalendarCheck} className="text-2xl" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-extrabold text-[#081a4b]">Supervisiones pendientes</h3>
+                  <p className="mt-1 text-sm font-medium text-slate-500">Gestiona las supervisiones agendadas para supervisores.</p>
+                  <Button
+                    type="button"
+                    className="mt-4 px-5"
+                    onClick={() => {
+                      setRealizandoPendienteId('')
+                      setForm(emptyForm())
+                      setErrorForm(null)
+                      setTecnicoFilter('')
+                      setRegistroModalOpen(true)
+                    }}
+                  >
+                    <FontAwesomeIcon icon={faCalendarDays} />
+                    Agendar supervision
+                  </Button>
+                </div>
+              </div>
+              <div className="hidden h-28 w-32 shrink-0 items-center justify-center sm:flex">
+                <div className="relative h-24 w-24 rotate-6 rounded-2xl border border-blue-100 bg-white shadow-sm">
+                  <div className="h-7 rounded-t-2xl bg-blue-100" />
+                  <div className="grid grid-cols-3 gap-2 p-3">
+                    {Array.from({ length: 9 }).map((_, index) => (
+                      <span key={index} className="h-3 rounded bg-blue-100" />
+                    ))}
+                  </div>
+                  <span className="absolute -bottom-2 -right-2 flex h-11 w-11 items-center justify-center rounded-full bg-blue-500 text-white shadow-lg">
+                    <FontAwesomeIcon icon={faCheckCircle} />
+                  </span>
+                </div>
+              </div>
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Fecha desde">
-                <input
-                  className="input-base"
-                  type="date"
-                  value={filtroDraft.fechaDesde}
-                  onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaDesde: event.target.value }))}
-                />
-              </Field>
-              <Field label="Fecha hasta">
-                <input
-                  className="input-base"
-                  type="date"
-                  value={filtroDraft.fechaHasta}
-                  onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaHasta: event.target.value }))}
-                />
-              </Field>
-            </div>
-          </FormCard>
+          </section>
 
-          <FormCard title="Supervisiones Pendientes" description={`Total: ${listadosPendientes.length}`}>
+          <section className="grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.15fr]">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-brand-600">
+                  <FontAwesomeIcon icon={faBriefcase} />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Total</p>
+                  <p className="text-2xl font-extrabold leading-none text-brand-600">{listadosPendientes.length}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Supervisiones</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                  <FontAwesomeIcon icon={faClock} />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Pendientes</p>
+                  <p className="text-2xl font-extrabold leading-none text-amber-600">{listadosPendientes.length}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Supervisiones</p>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-500">Completadas</p>
+                  <p className="text-2xl font-extrabold leading-none text-emerald-600">{supervisionesCompletadasAgenda}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">Supervisiones</p>
+                </div>
+              </div>
+            </div>
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-brand-600">
+                <FontAwesomeIcon icon={faCalendarDays} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs font-semibold text-slate-500">Fecha</span>
+                <input
+                  className="mt-1 w-full border-0 bg-transparent p-0 text-base font-extrabold text-slate-900 outline-none"
+                  type="date"
+                  value={agendaFechaSeleccionada}
+                  onChange={(event) => {
+                    const nextFiltro = { fechaDesde: event.target.value, fechaHasta: event.target.value }
+                    setFiltroDraft(nextFiltro)
+                    setFiltroActivo(nextFiltro)
+                  }}
+                />
+              </span>
+            </label>
+          </section>
+
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-extrabold text-[#081a4b]">Supervisiones pendientes agendadas</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Total: {listadosPendientes.length} supervisiones pendientes del {formatIsoDateDisplay(agendaFechaSeleccionada)}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                  <FontAwesomeIcon icon={faClock} />
+                  Pendientes
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">{listadosPendientes.length}</span>
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                  <FontAwesomeIcon icon={faCheckCircle} />
+                  Completadas
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">{supervisionesCompletadasAgenda}</span>
+                </span>
+              </div>
+            </div>
+
             {listadoPendientesQuery.isError ? (
-              <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {getApiErrorMessage(listadoPendientesQuery.error, 'No se pudo cargar las supervisiones pendientes.')}
               </div>
             ) : null}
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
-              <Table
-                columns={columns}
-                data={listadosPendientes}
-                stickyHeader
-                desktopMinWidthClass="min-w-[960px]"
-                emptyLabel={listadoPendientesQuery.isLoading ? 'Cargando pendientes...' : 'NO HAY DATOS PARA LA FECHA'}
-              />
+
+            <div className="mt-4 space-y-3">
+              {listadoPendientesQuery.isLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">Cargando pendientes...</div>
+              ) : listadosPendientes.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">NO HAY DATOS PARA LA FECHA</div>
+              ) : (
+                listadosPendientes.map((row) => {
+                  const { date, time } = formatDateParts(row.fechaRegistro)
+                  const supervisor = row.supervisor || row.idSupervisor || '-'
+                  const tecnico = row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || row.idTecnicoPrincipal || '-'
+                  const auxiliar = row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || row.idTecnicoAuxiliar || '-'
+                  return (
+                    <article key={row.idSupervision} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+                      <div className="border-l-4 border-amber-400 p-4">
+                        <div className="mb-3">
+                          <span className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700">
+                            <FontAwesomeIcon icon={faClock} />
+                            Pendiente
+                          </span>
+                        </div>
+                        <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr_1.4fr_1fr_1fr]">
+                          <div>
+                            <p className="text-xs font-bold text-slate-500">ID Supervision</p>
+                            <p className="mt-1 text-xl font-extrabold text-[#081a4b]">{row.idSupervision}</p>
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faUser} />
+                              Supervisor
+                            </p>
+                            <p className="mt-1 text-sm font-extrabold uppercase text-slate-900">{supervisor}</p>
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faScrewdriverWrench} />
+                              Tecnico
+                            </p>
+                            <p className="mt-1 text-sm font-extrabold uppercase text-slate-900">{tecnico}</p>
+                            {auxiliar !== '-' ? <p className="mt-0.5 text-xs font-semibold uppercase text-slate-500">{auxiliar}</p> : null}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faBriefcase} />
+                              Orden de Trabajo
+                            </p>
+                            <p className="mt-1 text-sm font-extrabold text-slate-900">{row.ordenTrabajo || '-'}</p>
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faCalendarDays} />
+                              Fecha
+                            </p>
+                            <p className="mt-1 text-sm font-extrabold text-slate-900">{date}</p>
+                            <p className="text-xs font-semibold text-slate-700">{time}</p>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" className="px-4" onClick={() => abrirRealizarPendiente(row)}>
+                              <FontAwesomeIcon icon={faEye} />
+                              Ver detalle
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              className="px-4"
+                              onClick={() => {
+                                setRealizandoPendienteId('')
+                                setForm((prev) => ({
+                                  ...prev,
+                                  idTecnicoPrincipal: normalizeId(row.idTecnicoPrincipal),
+                                  idTecnicoAuxiliar: normalizeId(row.idTecnicoAuxiliar),
+                                  idTipoSupervision: normalizeId(row.idTipoSupervision),
+                                  idTipoTrabajo: normalizeId(row.idTipoTrabajo),
+                                  idTipoPenalizacion: normalizeId(row.idTipoPenalizacion),
+                                  supervisionPor: row.supervisionPor || '',
+                                  tecnologia: row.tecnologia || '',
+                                  codigo: row.codigo || '',
+                                  ordenTrabajo: row.ordenTrabajo || '',
+                                  tipoRevision: row.tipoRevision || '',
+                                  ubicacion: row.ubicacion || '',
+                                }))
+                                setErrorForm(null)
+                                setTecnicoFilter('')
+                                setRegistroModalOpen(true)
+                              }}
+                            >
+                              <FontAwesomeIcon icon={faCalendarDays} />
+                              Reagendar
+                            </Button>
+                          </div>
+                          <button
+                            type="button"
+                            className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-brand-300 hover:text-brand-600"
+                            aria-label="Mas opciones"
+                          >
+                            <FontAwesomeIcon icon={faEllipsisVertical} />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  )
+                })
+              )}
             </div>
-          </FormCard>
-        </>
+          </section>
+        </div>
       ) : (
         <>
           <FormCard
@@ -1306,6 +1541,45 @@ const SupervisorSupervisionPage = () => {
           </FormCard>
         </>
       )}
+
+      <Modal
+        open={Boolean(rechazoInicioId)}
+        title="Rechazar inicio de jornada"
+        onClose={cerrarRechazoInicioModal}
+        actions={
+          <>
+            <Button type="button" variant="secondary" onClick={cerrarRechazoInicioModal} disabled={rechazarInicioMutation.isPending}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={confirmarRechazoInicio} disabled={rechazarInicioMutation.isPending}>
+              {rechazarInicioMutation.isPending ? 'Rechazando...' : 'Confirmar rechazo'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            {rechazoInicioTecnico ? `Tecnico: ${rechazoInicioTecnico}` : 'Ingresa el motivo para rechazar este inicio de jornada.'}
+          </p>
+          <Field label="Observacion de rechazo">
+            <textarea
+              className="input-base min-h-32 resize-y"
+              value={observacionRechazo}
+              onChange={(event) => {
+                setObservacionRechazo(event.target.value)
+                if (observacionRechazoError) setObservacionRechazoError(null)
+              }}
+              placeholder="Escribe por que se rechaza"
+              disabled={rechazarInicioMutation.isPending}
+            />
+          </Field>
+          {observacionRechazoError ? (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+              {observacionRechazoError}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
 
       <Modal
         open={registroModalOpen}
@@ -1704,6 +1978,7 @@ const SupervisorSupervisionPage = () => {
                     { label: 'Botiquin', value: inicioPendienteDetalle.botiquin || '-' },
                     { label: 'Extintor', value: inicioPendienteDetalle.extintor || '-' },
                     { label: 'Fecha vencimiento', value: inicioPendienteDetalle.fechaVencimiento || '-' },
+                    { label: 'ESTOY TRABAJANDO SOLO', value: inicioPendienteDetalle.estoyTrabajandoSolo ? String(inicioPendienteDetalle.estoyTrabajandoSolo) : '-' },
                     { label: 'Equipo EPP', value: inicioPendienteDetalle.equipoEpp || '-' },
                     { label: 'Estado EPP', value: inicioPendienteDetalle.estadoEpp || '-' },
                     { label: 'APR', value: inicioPendienteDetalle.apr || '-' },

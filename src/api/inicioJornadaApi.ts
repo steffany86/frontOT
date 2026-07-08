@@ -57,6 +57,12 @@ export const fetchInicioJornadaEstado = async (sucursal?: string): Promise<Inici
       normalizeString(readValue(row, ['fechaUltimoInicioPendienteCierre', 'fechaInicioPendienteCierre', 'fecha_inicio_pendiente_cierre'])) || undefined,
     supervisorPendienteCierre:
       normalizeString(readValue(row, ['supervisorPendienteCierre', 'supervisor_pendiente_cierre', 'supervisorNombrePendienteCierre'])) || undefined,
+    inicioRechazadoHoy: normalizeBoolean(readValue(row, ['inicioRechazadoHoy', 'inicio_rechazado_hoy'])),
+    idInicioRechazado: normalizeNumber(readValue(row, ['idInicioRechazado', 'id_inicio_rechazado'])),
+    fechaInicioRechazado:
+      normalizeString(readValue(row, ['fechaInicioRechazado', 'fecha_inicio_rechazado'])) || undefined,
+    observacionRechazado:
+      normalizeString(readValue(row, ['observacionRechazado', 'ObservacionRechazado', 'observacion_rechazado'])) || undefined,
   }
 }
 

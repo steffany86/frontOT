@@ -356,14 +356,38 @@ const AUXILIAR_ID_KEYS = [
   'idTecnicoAuxiliar',
   'IdTecnicoAuxiliar',
   'Id_TecnicoAuxiliar',
+  'idTecnicoAuxiliarDefault',
+  'IdTecnicoAuxiliarDefault',
+  'idTecnicoAuxiliarDefecto',
+  'IdTecnicoAuxiliarDefecto',
+  'idTecnicoAuxiliarPorDefecto',
+  'IdTecnicoAuxiliarPorDefecto',
   'id_tecnico_auxiliar',
   'id_tecnicoAuxiliar',
   'id_tecnicoauxiliar',
+  'id_tecnico_auxiliar_default',
+  'id_tecnico_auxiliar_defecto',
+  'id_tecnico_auxiliar_por_defecto',
   'idAuxiliar',
   'IdAuxiliar',
+  'idAuxiliarDefault',
+  'IdAuxiliarDefault',
+  'idAuxiliarDefecto',
+  'IdAuxiliarDefecto',
+  'idAuxiliarPorDefecto',
+  'IdAuxiliarPorDefecto',
   'id_auxiliar',
+  'id_auxiliar_default',
+  'id_auxiliar_defecto',
+  'id_auxiliar_por_defecto',
   'idauxiliar',
+  'idauxiliardefault',
+  'idauxiliardefecto',
+  'idauxiliarpordefecto',
   'idtecnicoauxiliar',
+  'idtecnicoauxiliardefault',
+  'idtecnicoauxiliardefecto',
+  'idtecnicoauxiliarpordefecto',
   'idTecnico',
   'IdTecnico',
   'id_tecnico',
@@ -374,12 +398,36 @@ const AUXILIAR_ID_KEYS = [
 const AUXILIAR_LABEL_KEYS = [
   'auxiliar',
   'Auxiliar',
+  'auxiliarDefault',
+  'AuxiliarDefault',
+  'auxiliarDefecto',
+  'AuxiliarDefecto',
+  'auxiliarPorDefecto',
+  'AuxiliarPorDefecto',
   'tecnicoAuxiliar',
   'TecnicoAuxiliar',
+  'tecnicoAuxiliarDefault',
+  'TecnicoAuxiliarDefault',
+  'tecnicoAuxiliarDefecto',
+  'TecnicoAuxiliarDefecto',
+  'tecnicoAuxiliarPorDefecto',
+  'TecnicoAuxiliarPorDefecto',
   'nombreTecnicoAuxiliar',
   'NombreTecnicoAuxiliar',
+  'nombreTecnicoAuxiliarDefault',
+  'NombreTecnicoAuxiliarDefault',
+  'nombreTecnicoAuxiliarDefecto',
+  'NombreTecnicoAuxiliarDefecto',
+  'nombreTecnicoAuxiliarPorDefecto',
+  'NombreTecnicoAuxiliarPorDefecto',
   'nombreAuxiliar',
   'NombreAuxiliar',
+  'nombreAuxiliarDefault',
+  'NombreAuxiliarDefault',
+  'nombreAuxiliarDefecto',
+  'NombreAuxiliarDefecto',
+  'nombreAuxiliarPorDefecto',
+  'NombreAuxiliarPorDefecto',
   'tecnico',
   'Tecnico',
   'nombre',
@@ -471,14 +519,38 @@ const RECORD_ID_AUXILIAR_KEYS = [
   'idTecnicoAuxiliar',
   'IdTecnicoAuxiliar',
   'Id_TecnicoAuxiliar',
+  'idTecnicoAuxiliarDefault',
+  'IdTecnicoAuxiliarDefault',
+  'idTecnicoAuxiliarDefecto',
+  'IdTecnicoAuxiliarDefecto',
+  'idTecnicoAuxiliarPorDefecto',
+  'IdTecnicoAuxiliarPorDefecto',
   'id_tecnicoAuxiliar',
   'id_tecnicoauxiliar',
   'id_tecnico_auxiliar',
+  'id_tecnico_auxiliar_default',
+  'id_tecnico_auxiliar_defecto',
+  'id_tecnico_auxiliar_por_defecto',
   'id_auxiliar',
+  'id_auxiliar_default',
+  'id_auxiliar_defecto',
+  'id_auxiliar_por_defecto',
   'idauxiliar',
+  'idauxiliardefault',
+  'idauxiliardefecto',
+  'idauxiliarpordefecto',
   'idtecnicoauxiliar',
+  'idtecnicoauxiliardefault',
+  'idtecnicoauxiliardefecto',
+  'idtecnicoauxiliarpordefecto',
   'idAuxiliar',
   'IdAuxiliar',
+  'idAuxiliarDefault',
+  'IdAuxiliarDefault',
+  'idAuxiliarDefecto',
+  'IdAuxiliarDefecto',
+  'idAuxiliarPorDefecto',
+  'IdAuxiliarPorDefecto',
 ]
 const RECORD_ID_SUPERVISOR_KEYS = [
   'idUsuarioSupervisor',
@@ -511,12 +583,36 @@ const RECORD_TECNICO_LABEL_KEYS = [
 const RECORD_AUXILIAR_LABEL_KEYS = [
   'auxiliar',
   'Auxiliar',
+  'auxiliarDefault',
+  'AuxiliarDefault',
+  'auxiliarDefecto',
+  'AuxiliarDefecto',
+  'auxiliarPorDefecto',
+  'AuxiliarPorDefecto',
   'tecnicoauxiliar',
   'TecnicoAuxiliar',
+  'tecnicoAuxiliarDefault',
+  'TecnicoAuxiliarDefault',
+  'tecnicoAuxiliarDefecto',
+  'TecnicoAuxiliarDefecto',
+  'tecnicoAuxiliarPorDefecto',
+  'TecnicoAuxiliarPorDefecto',
   'nombretecnicoauxiliar',
   'NombreTecnicoAuxiliar',
+  'nombreTecnicoAuxiliarDefault',
+  'NombreTecnicoAuxiliarDefault',
+  'nombreTecnicoAuxiliarDefecto',
+  'NombreTecnicoAuxiliarDefecto',
+  'nombreTecnicoAuxiliarPorDefecto',
+  'NombreTecnicoAuxiliarPorDefecto',
   'nombreAuxiliar',
   'NombreAuxiliar',
+  'nombreAuxiliarDefault',
+  'NombreAuxiliarDefault',
+  'nombreAuxiliarDefecto',
+  'NombreAuxiliarDefecto',
+  'nombreAuxiliarPorDefecto',
+  'NombreAuxiliarPorDefecto',
   'auxiliarNombre',
   'AuxiliarNombre',
 ]
@@ -1237,12 +1333,16 @@ const ConformacionCuadrillaPage = () => {
       return changed ? nextRows : rows
     })
   }, [salesforceByCuentaSf])
+  const auxiliarCatalogItems = useMemo(() => {
+    const filtered = auxiliares.filter(isAuxiliarCatalogItem)
+    return filtered.length ? filtered : auxiliares
+  }, [auxiliares])
   const auxiliarOptions = useMemo(
     () =>
-      mapIdOptions(auxiliares.filter(isAuxiliarCatalogItem), AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS).filter(
+      mapIdOptions(auxiliarCatalogItems, AUXILIAR_ID_KEYS, AUXILIAR_LABEL_KEYS).filter(
         (option) => normalizeAuxiliarComparableId(option.value) !== '' && !isAuxiliarNoneLabel(option.label)
       ),
-    [auxiliares]
+    [auxiliarCatalogItems]
   )
   const digitadorOptions = useMemo(
     () =>
@@ -3718,7 +3818,9 @@ const findVehiculoConflictRecord = (
                               {tecnicosQuery.isLoading ? 'Cargando tecnicos...' : 'Ninguno'}
                             </option>
                             {normalizeAuxiliarComparableId(row.idTecnicoAuxiliar) !== '' && !auxiliarById.has(row.idTecnicoAuxiliar) ? (
-                              <option value={row.idTecnicoAuxiliar}>{sanitizeAuxiliarLabel(row.auxiliar) || 'Ninguno'}</option>
+                              <option value={row.idTecnicoAuxiliar}>
+                                {sanitizeAuxiliarLabel(row.auxiliar) || `Auxiliar ID ${row.idTecnicoAuxiliar}`}
+                              </option>
                             ) : null}
                             {auxiliarOptions.map((option) => (
                               <option

@@ -112,6 +112,7 @@ export type SupervisionInicioPendiente = {
   botiquin?: string
   extintor?: string
   fechaVencimiento?: string
+  estoyTrabajandoSolo?: boolean | string
   equipoEpp?: string
   estadoEpp?: string
   apr?: string
@@ -149,6 +150,7 @@ export type SupervisionJornadaHistorico = {
   botiquin?: string
   extintor?: string
   fechaVencimiento?: string
+  estoyTrabajandoSolo?: boolean | string
   equipoEpp?: string
   estadoEpp?: string
   apr?: string
@@ -166,6 +168,9 @@ export type SupervisionJornadaHistorico = {
   estadoJornada: 'CERRADA' | 'SIN_CIERRE' | 'NO_INICIO' | string
   sinInicio?: boolean
   sinCierre?: boolean
+  rechazado?: boolean
+  observacionRechazado?: string
+  eEliminado?: string
   noMarcoCierre?: string
   usuarioRetirado?: boolean
 }
