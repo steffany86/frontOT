@@ -12,7 +12,9 @@ import {
   aprobarInicioJornadaPendiente,
   createSupervision,
   fetchHistoricoJornadaDetalle,
+  fetchInicioJornadaFirma,
   fetchInicioJornadaImagen,
+  fetchInicioJornadaImagenAuxiliar,
   fetchIniciosJornadaConfirmadosHoySupervision,
   fetchSupervisionDetalle,
   fetchIniciosJornadaPendientesSupervision,
@@ -209,16 +211,68 @@ const resolveImageSrc = (value?: string): string | null => {
   if (raw.startsWith('data:image')) return raw
   if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) return raw
   if (raw.startsWith('C:/') || raw.startsWith('C:\\')) return null
-  if (raw.includes('/') || raw.includes('\\')) return null
+  if (raw.includes('\\')) return null
+  const compact = raw.replace(/\s+/g, '')
+  const looksLikeBase64 = compact.length > 80 && /^[A-Za-z0-9+/]+={0,2}$/.test(compact)
+  if (raw.includes('/') && !looksLikeBase64) return null
   return `data:image/jpeg;base64,${raw}`
 }
 
-const resolveInicioImageSrc = (value?: string): string | null => {
-  const raw = value?.trim()
-  if (!raw) return null
-  if (raw.startsWith('data:image')) return raw
-  if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) return raw
-  return `data:image/jpeg;base64,${raw}`
+const JornadaRemoteImageCard = ({
+  queryKey,
+  queryFn,
+  label,
+  alt,
+  className = 'h-48 w-full object-cover',
+  fallbackValue,
+  enabled = true,
+  onZoom,
+}: {
+  queryKey: Array<string | number | boolean>
+  queryFn: () => Promise<Blob>
+  label: string
+  alt: string
+  className?: string
+  fallbackValue?: string
+  enabled?: boolean
+  onZoom: (src: string) => void
+}) => {
+  const fallbackSrc = resolveImageSrc(fallbackValue)
+  const imageQuery = useQuery({
+    queryKey,
+    queryFn,
+    staleTime: 10 * 60_000,
+    retry: false,
+    enabled: enabled && !fallbackSrc,
+  })
+  const [objectUrl, setObjectUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!imageQuery.data) {
+      setObjectUrl(null)
+      return
+    }
+    const url = URL.createObjectURL(imageQuery.data)
+    setObjectUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [imageQuery.data])
+
+  const src = fallbackSrc || objectUrl
+
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
+      <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{label}</p>
+      {imageQuery.isLoading ? (
+        <p className="mt-2 text-sm font-semibold text-slate-500">Cargando...</p>
+      ) : src ? (
+        <button type="button" className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200" onClick={() => onZoom(src)}>
+          <img src={src} alt={alt} className={`rounded-xl border border-slate-300 ${className}`} />
+        </button>
+      ) : (
+        <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
+      )}
+    </div>
+  )
 }
 
 const parseGeoCoords = (value?: string): { lat: number; lng: number } | null => {
@@ -642,10 +696,10 @@ const SupervisorSupervisionPage = () => {
       return id || '-'
     }
     return [
-      { key: 'fechaRegistro', header: 'Fecha', render: (row) => formatDateTime(row.fechaRegistro) },
+      { key: 'fechaRegistro', header: 'Fec.', render: (row) => formatDateTime(row.fechaRegistro) },
       {
         key: 'tecnicoNombre',
-        header: 'Tecnico',
+        header: 'Tec.',
         render: (row) => (
           <JornadaTecnicoThumb
             idInicio={row.idInicio}
@@ -656,18 +710,18 @@ const SupervisorSupervisionPage = () => {
       },
       {
         key: 'auxiliarNombre',
-        header: 'Tecnico Auxiliar',
+        header: 'Aux.',
         render: (row) => resolveTecnicoNombre(row.idAuxiliar, row.auxiliarNombre),
       },
       {
         key: 'supervisorNombre',
-        header: 'Supervisor',
+        header: 'Sup.',
         render: (row) => row.supervisorNombre || row.idSupervisor || '-',
       },
-      { key: 'estado', header: 'Estado', render: (row) => tieneCierreJornada(row) ? 'JORNADA FINALIZADA' : (row.estado || 'PENDIENTE') },
+      { key: 'estado', header: 'Est.', render: (row) => tieneCierreJornada(row) ? 'JORNADA FINALIZADA' : (row.estado || 'PENDIENTE') },
       {
         key: 'acciones',
-        header: 'Acciones',
+        header: 'Acc.',
         render: (row) => {
           const isAprobada = String(row.estado ?? '').toUpperCase().includes('APROBAD')
           const isCerrada = tieneCierreJornada(row)
@@ -1070,10 +1124,15 @@ const SupervisorSupervisionPage = () => {
               </Button>
             }
           >
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-3">
+            <div className="rounded-none border-0 bg-transparent p-0 md:rounded-2xl md:border md:border-emerald-200 md:bg-emerald-50/60 md:p-3">
               <Table
                 columns={confirmadasColumns}
                 data={iniciosConfirmadosAbiertosHoy}
+                pageSize={10}
+                variant="row-block"
+                mobileRowBlockMode="cards"
+                mobilePlainCards
+                density="compact"
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
                 emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'NO HAY DATOS PARA LA FECHA'}
@@ -1097,10 +1156,15 @@ const SupervisorSupervisionPage = () => {
               </Button>
             }
           >
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/60 p-3">
+            <div className="rounded-none border-0 bg-transparent p-0 md:rounded-2xl md:border md:border-blue-200 md:bg-blue-50/60 md:p-3">
               <Table
                 columns={confirmadasColumns}
                 data={cierresJornadaHoy}
+                pageSize={10}
+                variant="row-block"
+                mobileRowBlockMode="cards"
+                mobilePlainCards
+                density="compact"
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
                 emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando cierres...' : 'NO HAY DATOS PARA LA FECHA'}
@@ -1154,7 +1218,7 @@ const SupervisorSupervisionPage = () => {
               </div>
             }
           >
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+            <div className="rounded-none border-0 bg-transparent p-0 md:rounded-2xl md:border md:border-amber-200 md:bg-amber-50/60 md:p-3">
               {iniciosPendientesQuery.isError ? (
                 <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                   {getApiErrorMessage(iniciosPendientesQuery.error, 'No se pudo cargar pendientes de jornada.')}
@@ -1163,6 +1227,11 @@ const SupervisorSupervisionPage = () => {
               <Table
                 columns={pendientesColumns}
                 data={iniciosPendientesFiltrados}
+                pageSize={10}
+                variant="row-block"
+                mobileRowBlockMode="cards"
+                mobilePlainCards
+                density="compact"
                 stickyHeader
                 desktopMinWidthClass="min-w-[760px]"
                 emptyLabel={iniciosPendientesQuery.isLoading ? 'Cargando pendientes...' : jornadaPendienteFiltro === 'pasados' ? 'NO HAY PENDIENTES PASADOS' : 'NO HAY PENDIENTES PARA HOY'}
@@ -1935,40 +2004,32 @@ const SupervisorSupervisionPage = () => {
           <div className="space-y-4">
             {jornadaDetalleModo === 'inicio' ? (
               <>
-                <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
-                  <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Imagen inicio</p>
-                  {resolveInicioImageSrc(inicioPendienteDetalle.imagen) ? (
-                    <button
-                      type="button"
-                      className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(inicioPendienteDetalle.imagen))}
-                    >
-                      <img
-                        src={resolveInicioImageSrc(inicioPendienteDetalle.imagen) ?? ''}
-                        alt="Inicio jornada"
-                        className="h-48 w-full rounded-xl border border-slate-300 object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <p className="mt-2 text-2xl font-semibold text-slate-900">-</p>
-                  )}
-                </div>
-                {resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar) ? (
-                  <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
-                    <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Imagen auxiliar</p>
-                    <button
-                      type="button"
-                      className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar))}
-                    >
-                      <img
-                        src={resolveInicioImageSrc(inicioPendienteDetalle.imagenAuxiliar) ?? ''}
-                        alt="Auxiliar inicio jornada"
-                        className="h-48 w-full rounded-xl border border-slate-300 object-cover"
-                      />
-                    </button>
-                  </div>
-                ) : null}
+                <JornadaRemoteImageCard
+                  queryKey={['supervision', 'jornada-imagen-modal', inicioPendienteDetalle.idInicio]}
+                  queryFn={() => fetchInicioJornadaImagen(inicioPendienteDetalle.idInicio, 'supervisor', true)}
+                  label="Imagen inicio"
+                  alt="Inicio jornada"
+                  onZoom={setZoomImageSrc}
+                />
+                <JornadaRemoteImageCard
+                  queryKey={['supervision', 'jornada-firma-inicio', inicioPendienteDetalle.idInicio]}
+                  queryFn={() => fetchInicioJornadaFirma(inicioPendienteDetalle.idInicio, 'inicio', 'supervisor')}
+                  label="Firma inicio"
+                  alt="Firma inicio"
+                  className="h-36 w-64 bg-white object-contain"
+                  fallbackValue={inicioPendienteDetalle.firmaInicio}
+                  enabled={!jornadaDetalleQuery.isLoading}
+                  onZoom={setZoomImageSrc}
+                />
+                <JornadaRemoteImageCard
+                  queryKey={['supervision', 'jornada-imagen-auxiliar-modal', inicioPendienteDetalle.idInicio]}
+                  queryFn={() => fetchInicioJornadaImagenAuxiliar(inicioPendienteDetalle.idInicio, 'supervisor', true)}
+                  label="Imagen auxiliar"
+                  alt="Auxiliar inicio jornada"
+                  fallbackValue={inicioPendienteDetalle.imagenAuxiliar}
+                  enabled={!jornadaDetalleQuery.isLoading}
+                  onZoom={setZoomImageSrc}
+                />
                 <div className="grid gap-4 sm:grid-cols-2">
                   {[
                     { label: 'Tecnico', value: inicioPendienteDetalle.tecnicoNombre || inicioPendienteDetalle.idTecnico || '-' },
@@ -2046,6 +2107,18 @@ const SupervisorSupervisionPage = () => {
                           </div>
                         )
                       })}
+                      <div className="sm:col-span-2">
+                        <JornadaRemoteImageCard
+                          queryKey={['supervision', 'jornada-firma-cierre', inicioPendienteDetalle.idInicio]}
+                          queryFn={() => fetchInicioJornadaFirma(inicioPendienteDetalle.idInicio, 'cierre', 'supervisor')}
+                          label="Firma cierre"
+                          alt="Firma cierre"
+                          className="h-36 w-64 bg-white object-contain"
+                          fallbackValue={inicioPendienteDetalle.firmaCierre}
+                          enabled={!jornadaDetalleQuery.isLoading}
+                          onZoom={setZoomImageSrc}
+                        />
+                      </div>
                       <div className="rounded-3xl border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
                         <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">Ubicacion cierre georef</p>
                         <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{inicioPendienteDetalle.ubicacionCierreGeoref || '-'}</p>

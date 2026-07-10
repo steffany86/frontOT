@@ -18,6 +18,7 @@ import { fetchRutas, fetchTiposServicio } from '../api/catalogApi'
 import { useAuth } from '../context/AuthContext'
 import type { OtSummary } from '../types/ot'
 import { todayISO } from '../utils/dates'
+import { translateCode } from '../utils/translator'
 
 const readValue = (row: OtSummary, keys: string[]): unknown => {
   const record = row as Record<string, unknown>
@@ -443,6 +444,13 @@ const shouldFormatDetailDateField = (key: string): boolean => {
 }
 
 const toDetailLabel = (key: string): string => {
+  // Primero intentar traducir el código directo
+  const translated = translateCode(key, 'field')
+  if (translated !== key) {
+    return translated
+  }
+  
+  // Si no hay traducción, hacer el formato humanizado
   return key
     .replace(/_/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
@@ -1839,22 +1847,22 @@ const OtDashboardPage = () => {
                         {estadoTab === 'finalizadas' ? (
                           <>
                             <p>
-                              <span className="font-semibold">OT:</span> {card.ot || 'Sin OT'}
+                              <span className="font-semibold">{translateCode('ot', 'field')}:</span> {card.ot || 'Sin OT'}
                             </p>
                             <p>
-                              <span className="font-semibold">Tipo servicio:</span>{' '}
+                              <span className="font-semibold">{translateCode('tipoServicio', 'field')}:</span>{' '}
                               {card.tipoServicioNombre || card.idTipoServicio || 'Sin tipo'}
                             </p>
                             <p>
-                              <span className="font-semibold">Fecha_Ejecucion:</span>{' '}
+                              <span className="font-semibold">{translateCode('fechaEjecucion', 'field')}:</span>{' '}
                               {formatDateTimeDisplay(card.fechaEjecucion || '') || 'Sin fecha'}
                             </p>
                             <p>
-                              <span className="font-semibold">NroTrans.:</span> {card.idVenta || 'Sin NroTrans.'}
+                              <span className="font-semibold">{translateCode('idVenta', 'field')}:</span> {card.idVenta || 'Sin Nro Trans.'}
                             </p>
                             {String(card.origen ?? '').trim() ? (
                               <p>
-                                <span className="font-semibold">Origen:</span> {card.origen}
+                                <span className="font-semibold">{translateCode('origen', 'field')}:</span> {card.origen}
                               </p>
                             ) : null}
                           </>
@@ -1862,21 +1870,21 @@ const OtDashboardPage = () => {
                           <>
                             <p>
                               <span className="mr-1 text-slate-400">📄</span>
-                              <span className="font-semibold">OT:</span> {card.ot || 'Sin OT'}
+                              <span className="font-semibold">{translateCode('ot', 'field')}:</span> {card.ot || 'Sin OT'}
                             </p>
                             <p>
                               <span className="mr-1 text-slate-400">🕘</span>
-                              <span className="font-semibold">Agendado:</span>{' '}
+                              <span className="font-semibold">{translateCode('inicioAgendado', 'field')}:</span>{' '}
                               {formatDateTimeDisplay(card.fechaEjecucion || card.fechaFila || '') || 'Sin fecha'}
                             </p>
                             {isManualCard ? (
                               <>
                                 <p>
-                                  <span className="font-semibold">Tipo servicio:</span>{' '}
+                                  <span className="font-semibold">{translateCode('tipoServicio', 'field')}:</span>{' '}
                                   {card.tipoServicioNombre || card.idTipoServicio || 'Sin tipo'}
                                 </p>
                                 <p>
-                                  <span className="font-semibold">Nro Trans.:</span> {card.idVenta || 'Sin NroTrans.'}
+                                  <span className="font-semibold">{translateCode('idVenta', 'field')}:</span> {card.idVenta || 'Sin Nro Trans.'}
                                 </p>
                               </>
                             ) : null}
@@ -1885,7 +1893,7 @@ const OtDashboardPage = () => {
                         {estadoTab === 'finalizadas' || isManualCard ? null : (
                           <p>
                             <span className="mr-1 text-slate-400">📍</span>
-                            <span className="font-semibold">Tor:</span> {card.tor || 'Sin TOR'}
+                            <span className="font-semibold">{translateCode('tor', 'field')}:</span> {card.tor || 'Sin TOR'}
                           </p>
                         )}
                         {isManualCard && String(card.origen ?? '').trim() ? (

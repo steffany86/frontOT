@@ -99,6 +99,38 @@ const resolveInicioImageSrc = (value?: string): string | null => {
   return `data:image/jpeg;base64,${raw}`
 }
 
+const JornadaImageCard = ({
+  label,
+  value,
+  alt,
+  className = 'h-48 w-36 object-cover',
+  onZoom,
+}: {
+  label: string
+  value?: string
+  alt: string
+  className?: string
+  onZoom: (src: string) => void
+}) => {
+  const src = resolveInicioImageSrc(value)
+  return (
+    <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4">
+      <p className="text-xs font-bold tracking-[0.35em] text-slate-700">{label}</p>
+      {src ? (
+        <button
+          type="button"
+          className="mt-4 block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+          onClick={() => onZoom(src)}
+        >
+          <img src={src} alt={alt} className={`rounded-xl border border-slate-300 ${className}`} />
+        </button>
+      ) : (
+        <p className="mt-3 text-2xl font-bold text-slate-900">-</p>
+      )}
+    </div>
+  )
+}
+
 const getExcelImagePayload = (value?: string): { base64: string; extension: 'jpeg' | 'png' } | null => {
   const raw = value?.trim()
   if (!raw) return null
@@ -728,39 +760,16 @@ const HistoricoJornadasPage = () => {
             ) : null}
             {detalleModo === 'inicio' ? (
               <>
-                <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4">
-                  <p className="text-xs font-bold tracking-[0.35em] text-slate-700">Imagen inicio</p>
-                  {resolveInicioImageSrc(detalle.imagen) ? (
-                    <button
-                      type="button"
-                      className="mt-4 block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(detalle.imagen))}
-                    >
-                      <img
-                        src={resolveInicioImageSrc(detalle.imagen) ?? ''}
-                        alt="Inicio jornada"
-                        className="h-48 w-36 rounded-xl border border-slate-300 object-cover"
-                      />
-                    </button>
-                  ) : (
-                    <p className="mt-3 text-2xl font-bold text-slate-900">-</p>
-                  )}
-                </div>
+                <JornadaImageCard label="Imagen inicio" value={detalle.imagen} alt="Inicio jornada" onZoom={setZoomImageSrc} />
+                <JornadaImageCard
+                  label="Firma inicio"
+                  value={detalle.firmaInicio}
+                  alt="Firma inicio"
+                  className="h-36 w-64 bg-white object-contain"
+                  onZoom={setZoomImageSrc}
+                />
                 {resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
-                  <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4">
-                    <p className="text-xs font-bold tracking-[0.35em] text-slate-700">Imagen auxiliar</p>
-                    <button
-                      type="button"
-                      className="mt-4 block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
-                      onClick={() => setZoomImageSrc(resolveInicioImageSrc(detalle.imagenAuxiliar))}
-                    >
-                      <img
-                        src={resolveInicioImageSrc(detalle.imagenAuxiliar) ?? ''}
-                        alt="Auxiliar inicio jornada"
-                        className="h-48 w-36 rounded-xl border border-slate-300 object-cover"
-                      />
-                    </button>
-                  </div>
+                  <JornadaImageCard label="Imagen auxiliar" value={detalle.imagenAuxiliar} alt="Auxiliar inicio jornada" onZoom={setZoomImageSrc} />
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
@@ -790,6 +799,15 @@ const HistoricoJornadasPage = () => {
                 <DetailCard label="Observacion material" value={detalle.observacionMaterial} />
                 <DetailCard label="Observacion persona" value={detalle.observacionPersona} />
                 <DetailCard label="Observacion novedades" value={detalle.observacionNovedades} />
+                <div className="sm:col-span-2">
+                  <JornadaImageCard
+                    label="Firma cierre"
+                    value={detalle.firmaCierre}
+                    alt="Firma cierre"
+                    className="h-36 w-64 bg-white object-contain"
+                    onZoom={setZoomImageSrc}
+                  />
+                </div>
                 <GeoCard label="Ubicacion cierre georef" value={detalle.ubicacionCierreGeoref} />
               </div>
             ) : (

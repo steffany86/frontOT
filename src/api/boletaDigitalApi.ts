@@ -101,7 +101,7 @@ export const downloadBoletaDigitalArchivo = async (rutaPdf: string): Promise<Blo
 export const uploadBoletaDigitalArchivo = async (idVenta: string, archivo: File): Promise<unknown> => {
   const formData = new FormData()
   formData.append('id_venta', idVenta)
-  formData.append('archivo', archivo)
+  formData.append('archivo', archivo, archivo.name)
 
   const { data } = await api.post('/boleta-digital/archivo-digital', formData)
   return data

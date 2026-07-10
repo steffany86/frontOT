@@ -51,6 +51,7 @@ export type InicioJornadaCreatePayload = {
   anclaje: 'SI' | 'NO'
   imagen: string
   imagenAuxiliar?: string
+  firmaInicio?: string
   ubicacionGeoRef?: string
   aceptoInicioJornada?: 'SI' | 'NO'
   sucursal?: string
@@ -66,5 +67,6 @@ export type CierreJornadaPayload = {
   novedadesTrabajo: 'SI' | 'NO'
   observacionNovedades?: string
   ubicacionGeoRef: string
+  firmaCierre?: string
   aceptoCierreJornada?: 'SI' | 'NO'
 }

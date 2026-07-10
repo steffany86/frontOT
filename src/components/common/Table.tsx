@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
 
 export interface Column<T> {
   key: string
@@ -23,6 +23,8 @@ interface TableProps<T> {
   desktopHeightClass?: string
   stickyHeader?: boolean
   density?: 'normal' | 'compact'
+  pageSize?: number
+  mobilePlainCards?: boolean
 }
 
 const Table = <T,>({
@@ -41,20 +43,41 @@ const Table = <T,>({
   desktopHeightClass = '',
   stickyHeader = false,
   density = 'normal',
+  pageSize,
+  mobilePlainCards = false,
 }: TableProps<T>) => {
   const isRowBlock = variant === 'row-block'
   const isCompact = density === 'compact'
   const desktopScrollClass =
     desktopScrollMode === 'always' ? 'overflow-x-scroll overflow-y-scroll' : 'overflow-x-auto overflow-y-auto'
+  const [page, setPage] = useState(1)
+  const totalPages = pageSize ? Math.max(1, Math.ceil(data.length / pageSize)) : 1
+  const visibleData = useMemo(() => {
+    if (!pageSize) return data
+    const currentPage = Math.min(page, totalPages)
+    const start = (currentPage - 1) * pageSize
+    return data.slice(start, start + pageSize)
+  }, [data, page, pageSize, totalPages])
 
-  const isActionColumn = (column: Column<T>): boolean => /accion|acciones/i.test(column.header)
+  useEffect(() => {
+    setPage(1)
+  }, [data, pageSize])
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages))
+  }, [totalPages])
+
+  const isActionColumn = (column: Column<T>): boolean => /accion|acciones/i.test(column.header) || /accion|acciones/i.test(column.key)
   const renderValue = (column: Column<T>, row: T) => {
     return column.render ? column.render(row) : (row as Record<string, ReactNode>)[column.key]
   }
   const getRowClassName = (row: T): string => (typeof rowClassName === 'function' ? rowClassName(row) : rowClassName)
+  const rootClassName = mobilePlainCards
+    ? 'overflow-hidden border-0 bg-transparent shadow-none md:rounded-[1.5rem] md:border md:border-slate-200 md:bg-white md:shadow-soft'
+    : 'overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft'
 
   return (
-    <div className="overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft">
+    <div className={rootClassName}>
       <div className="md:hidden">
         {data.length === 0 ? (
           <div className="px-4 py-12 text-center">
@@ -75,7 +98,7 @@ const Table = <T,>({
                 </thead>
               ) : null}
               <tbody>
-                {data.map((row, index) => (
+                {visibleData.map((row, index) => (
                   <tr key={index} className={getRowClassName(row)}>
                     {columns.map((column) => (
                       <td key={column.key} className={`border-b border-slate-200 px-3 py-1.5 align-top text-slate-700 ${column.className ?? ''}`}>
@@ -88,11 +111,15 @@ const Table = <T,>({
             </table>
           </div>
         ) : (
-          <div className={isRowBlock ? `${isCompact ? 'space-y-1.5 p-1.5' : 'space-y-2 p-2'}` : 'divide-y divide-slate-100'}>
-            {data.map((row, index) => (
+          <div className={isRowBlock ? (mobilePlainCards ? 'space-y-3 p-0' : `${isCompact ? 'space-y-1.5 p-1.5' : 'space-y-2 p-2'}`) : 'divide-y divide-slate-100'}>
+            {visibleData.map((row, index) => (
               <div
                 key={index}
-                className={`${isCompact ? 'p-2' : 'p-2.5'} ${isRowBlock ? 'rounded-2xl border border-brand-100/80 bg-white shadow-sm' : ''} ${getRowClassName(row)}`}
+                className={`${
+                  mobilePlainCards
+                    ? 'rounded-xl border border-black bg-transparent p-3 shadow-none'
+                    : `${isCompact ? 'p-2' : 'p-2.5'} ${isRowBlock ? 'rounded-2xl border border-brand-100/80 bg-white shadow-sm' : ''}`
+                } ${getRowClassName(row)}`}
               >
                 {isRowBlock ? (
                   <>
@@ -100,13 +127,20 @@ const Table = <T,>({
                       const visibleColumns = columns.filter((column) => !isActionColumn(column))
 
                       return (
-                        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
+                        <div className={mobilePlainCards ? 'space-y-2' : 'overflow-hidden rounded-2xl border border-slate-200 bg-slate-50'}>
                           {visibleColumns.map((column) => (
-                            <div key={column.key} className={`${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'}`}>
+                            <div
+                              key={column.key}
+                              className={
+                                mobilePlainCards
+                                  ? 'grid grid-cols-[42px_minmax(0,1fr)] items-start gap-2 border-b border-slate-300 pb-2 last:border-b-0 last:pb-0'
+                                  : `${isCompact ? 'px-2 py-1' : 'px-2.5 py-1.5'}`
+                              }
+                            >
                               {mobileShowHeaders ? (
                                 <span className={`block font-semibold uppercase tracking-wide text-slate-500 ${isCompact ? 'text-[9px]' : 'text-[10px]'}`}>{column.header}</span>
                               ) : null}
-                              <div className={`mt-0.5 break-words text-left text-slate-700 ${isCompact ? 'text-[13px]' : 'text-sm'}`}>{renderValue(column, row)}</div>
+                              <div className={`${mobilePlainCards ? 'min-w-0' : 'mt-0.5'} break-words text-left text-slate-700 ${isCompact ? 'text-[13px]' : 'text-sm'}`}>{renderValue(column, row)}</div>
                             </div>
                           ))}
                         </div>
@@ -192,7 +226,7 @@ const Table = <T,>({
                 </td>
               </tr>
             ) : (
-              data.map((row, index) => (
+              visibleData.map((row, index) => (
                 <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${getRowClassName(row)}`}>
                   {columns.map((column, columnIndex) => (
                     <td
@@ -215,6 +249,34 @@ const Table = <T,>({
           </tbody>
         </table>
       </div>
+      {pageSize && data.length > pageSize ? (
+        <div className="flex flex-col gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <span>
+            Mostrando {Math.min(data.length, (page - 1) * pageSize + 1)} - {Math.min(data.length, page * pageSize)} de {data.length}
+          </span>
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 disabled:opacity-50"
+              onClick={() => setPage((current) => Math.max(1, current - 1))}
+              disabled={page <= 1}
+            >
+              Ant.
+            </button>
+            <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-bold text-slate-700">
+              {page} / {totalPages}
+            </span>
+            <button
+              type="button"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 disabled:opacity-50"
+              onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              disabled={page >= totalPages}
+            >
+              Sig.
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

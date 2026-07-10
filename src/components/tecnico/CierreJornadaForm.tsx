@@ -5,6 +5,7 @@ import { faBriefcaseMedical, faClipboardList, faFileSignature, faHashtag, faLoca
 import Button from '../common/Button'
 import Field from '../common/Field'
 import Modal from '../common/Modal'
+import SignaturePad from '../common/SignaturePad'
 import { cerrarJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 
@@ -40,6 +41,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
   const [novedadesTrabajo, setNovedadesTrabajo] = useState<SiNo>('NO')
   const [observacionNovedades, setObservacionNovedades] = useState('')
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
+  const [firmaCierre, setFirmaCierre] = useState('')
   const [declaracionAceptada, setDeclaracionAceptada] = useState(false)
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -48,6 +50,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
 
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
   const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
+  const mostrarErrorFirmaCierre = intentoRegistrar && !firmaCierre
   const supervisorPendienteLabel = (supervisorPendiente?.trim() || '-').toUpperCase()
 
   const cierreMutation = useMutation({
@@ -62,6 +65,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
         novedadesTrabajo,
         observacionNovedades: novedadesTrabajo === 'SI' ? observacionNovedades : undefined,
         ubicacionGeoRef,
+        firmaCierre,
         aceptoCierreJornada: declaracionAceptada ? 'SI' : 'NO',
       }),
     onSuccess: () => {
@@ -84,26 +88,39 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
       setError('Tu navegador no soporta geolocalizacion.')
       return
     }
+    const aplicarUbicacion = (position: GeolocationPosition) => {
+      const lat = position.coords.latitude
+      const lng = position.coords.longitude
+      const acc = position.coords.accuracy
+      setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (+/-${Math.round(acc)}m)`)
+      setUbicacionResolviendo(false)
+      setError(null)
+    }
+    const mensajeErrorUbicacion = (geoError: GeolocationPositionError) => {
+      if (geoError.code === 1) return 'Permiso de ubicacion denegado.'
+      if (geoError.code === 2) return 'No se pudo determinar tu ubicacion.'
+      return 'Tiempo de espera agotado al obtener ubicacion. Puedes ingresar o pegar la ubicacion manualmente.'
+    }
     setUbicacionResolviendo(true)
     setError(null)
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        const acc = position.coords.accuracy
-        setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (+-${Math.round(acc)}m)`)
-        setUbicacionResolviendo(false)
-      },
+      aplicarUbicacion,
       (geoError) => {
-        const msg = geoError.code === 1
-          ? 'Permiso de ubicacion denegado.'
-          : geoError.code === 2
-            ? 'No se pudo determinar tu ubicacion.'
-            : 'Tiempo de espera agotado al obtener ubicacion.'
-        setError(msg)
-        setUbicacionResolviendo(false)
+        if (geoError.code === 1) {
+          setError(mensajeErrorUbicacion(geoError))
+          setUbicacionResolviendo(false)
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          aplicarUbicacion,
+          (fallbackError) => {
+            setError(mensajeErrorUbicacion(fallbackError))
+            setUbicacionResolviendo(false)
+          },
+          { enableHighAccuracy: false, timeout: 30000, maximumAge: 300000 }
+        )
       },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      { enableHighAccuracy: true, timeout: 25000, maximumAge: 60000 }
     )
   }
 
@@ -128,6 +145,10 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
     }
     if (!declaracionAceptada) {
       setError('Debe aceptar la declaracion jurada para registrar el cierre de jornada.')
+      return
+    }
+    if (!firmaCierre) {
+      setError('La firma de cierre es obligatoria.')
       return
     }
     setError(null)
@@ -182,7 +203,15 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
           </div>
           <Field label="Ubicacion georeferenciada">
             <div className="space-y-2">
-              <input className="input-base bg-slate-100" value={ubicacionGeoRef} readOnly />
+              <input
+                className="input-base bg-slate-100"
+                value={ubicacionGeoRef}
+                placeholder="Ej: -17.7935693,-63.1461147 (+/-9m)"
+                onChange={(event) => {
+                  setUbicacionGeoRef(event.target.value)
+                  setError(null)
+                }}
+              />
               <Button type="button" variant="secondary" onClick={resolverUbicacionAltaPrecision} disabled={ubicacionResolviendo}>
                 {ubicacionResolviendo ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
               </Button>
@@ -288,6 +317,11 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             {mostrarErrorDeclaracion ? (
               <p className="text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el cierre de jornada.</p>
             ) : null}
+            <Field label="Firma cierre" error={mostrarErrorFirmaCierre ? 'La firma de cierre es obligatoria.' : undefined}>
+              <div className={mostrarErrorFirmaCierre ? 'rounded-2xl border border-rose-500 ring-2 ring-rose-100' : ''}>
+                <SignaturePad value={firmaCierre} onChange={setFirmaCierre} />
+              </div>
+            </Field>
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
 import Button from '../common/Button'
 import Field from '../common/Field'
 import ImageLightbox from '../common/ImageLightbox'
+import SignaturePad from '../common/SignaturePad'
 import { registrarInicioJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 
@@ -68,6 +69,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
   const [nombreImagen, setNombreImagen] = useState('')
   const [imagenAuxiliar, setImagenAuxiliar] = useState('')
   const [nombreImagenAuxiliar, setNombreImagenAuxiliar] = useState('')
+  const [firmaInicio, setFirmaInicio] = useState('')
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
@@ -84,6 +86,8 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
   const mostrarErrorFecha = intentoRegistrar && !fechaVencimiento
   const mostrarErrorImagen = intentoRegistrar && !imagen
   const mostrarErrorImagenAuxiliar = intentoRegistrar && requiereImagenAuxiliar && !imagenAuxiliar
+  const mostrarErrorUbicacion = intentoRegistrar && !ubicacionGeoRef.trim()
+  const mostrarErrorFirmaInicio = intentoRegistrar && !firmaInicio
   const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
 
   const registrarMutation = useMutation({
@@ -102,6 +106,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
         anclaje,
         imagen,
         imagenAuxiliar: requiereImagenAuxiliar ? imagenAuxiliar : undefined,
+        firmaInicio,
         ubicacionGeoRef,
         idAuxiliar: idAuxiliar ?? null,
         aceptoInicioJornada: declaracionAceptada ? 'SI' : 'NO',
@@ -148,6 +153,16 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
       setError('Fecha de vencimiento e imagen son obligatorios.')
       return
     }
+    if (!ubicacionGeoRef.trim()) {
+      setFeedback(null)
+      setError('La ubicacion georreferenciada es obligatoria.')
+      return
+    }
+    if (!firmaInicio) {
+      setFeedback(null)
+      setError('La firma de inicio es obligatoria.')
+      return
+    }
     if (requiereImagenAuxiliar && !imagenAuxiliar) {
       setFeedback(null)
       setError('Debe cargar o tomar una foto del auxiliar asignado.')
@@ -167,6 +182,11 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
       setError('Tu navegador no soporta geolocalizacion.')
       return
     }
+    const mensajeErrorUbicacion = (geoError: GeolocationPositionError) => {
+      if (geoError.code === 1) return 'Permiso de ubicacion denegado.'
+      if (geoError.code === 2) return 'No se pudo determinar tu ubicacion.'
+      return 'Tiempo de espera agotado al obtener ubicacion. Puedes ingresar o pegar la ubicacion manualmente.'
+    }
     setUbicacionResolviendo(true)
     setError(null)
     navigator.geolocation.getCurrentPosition(
@@ -178,18 +198,35 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
         setUbicacionResolviendo(false)
       },
       (geoError) => {
-        const msg = geoError.code === 1
-          ? 'Permiso de ubicacion denegado.'
-          : geoError.code === 2
-            ? 'No se pudo determinar tu ubicacion.'
-            : 'Tiempo de espera agotado al obtener ubicacion.'
-        setError(msg)
-        setUbicacionResolviendo(false)
+        if (geoError.code === 1) {
+          setError(mensajeErrorUbicacion(geoError))
+          setUbicacionResolviendo(false)
+          return
+        }
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude
+            const lng = position.coords.longitude
+            const acc = position.coords.accuracy
+            setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (+/-${Math.round(acc)}m)`)
+            setUbicacionResolviendo(false)
+            setError(null)
+          },
+          (fallbackError) => {
+            setError(mensajeErrorUbicacion(fallbackError))
+            setUbicacionResolviendo(false)
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 30000,
+            maximumAge: 300000,
+          }
+        )
       },
       {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
+        timeout: 25000,
+        maximumAge: 60000,
       }
     )
   }
@@ -246,9 +283,17 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               </span>
             </div>
           </Field>
-          <Field label="Ubicacion georreferenciada">
+          <Field label="Ubicacion georreferenciada" error={mostrarErrorUbicacion ? 'La ubicacion georreferenciada es obligatoria.' : undefined}>
             <div className="space-y-2">
-              <input className="input-base bg-slate-100" value={ubicacionGeoRef} readOnly />
+              <input
+                className={`input-base ${mostrarErrorUbicacion ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : 'bg-slate-100'}`}
+                value={ubicacionGeoRef}
+                placeholder="Ej: -17.7935693,-63.1461147 (+/-9m)"
+                onChange={(event) => {
+                  setUbicacionGeoRef(event.target.value)
+                  setError(null)
+                }}
+              />
               <Button
                 type="button"
                 variant="secondary"
@@ -453,6 +498,11 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
           {mostrarErrorDeclaracion ? (
             <p className="text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el inicio de jornada.</p>
           ) : null}
+          <Field label="Firma inicio" error={mostrarErrorFirmaInicio ? 'La firma de inicio es obligatoria.' : undefined}>
+            <div className={mostrarErrorFirmaInicio ? 'rounded-2xl border border-rose-500 ring-2 ring-rose-100' : ''}>
+              <SignaturePad value={firmaInicio} onChange={setFirmaInicio} />
+            </div>
+          </Field>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
+import SignaturePad from '../components/common/SignaturePad'
 import { cerrarJornada, fetchCierreJornadaEstado, fetchInicioJornadaEstado, registrarInicioJornada } from '../api/inicioJornadaApi'
 import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
@@ -38,6 +39,7 @@ const TecnicoInicioJornadaPage = () => {
   const [anclaje, setAnclaje] = useState<SiNo>('NO')
   const [imagen, setImagen] = useState('')
   const [imagenAuxiliar, setImagenAuxiliar] = useState('')
+  const [firmaInicio, setFirmaInicio] = useState('')
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [codigoCliente, setCodigoCliente] = useState('')
@@ -48,6 +50,7 @@ const TecnicoInicioJornadaPage = () => {
   const [novedadesTrabajo, setNovedadesTrabajo] = useState<SiNo>('NO')
   const [observacionNovedades, setObservacionNovedades] = useState('')
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
+  const [firmaCierre, setFirmaCierre] = useState('')
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
 
   const estadoQuery = useQuery({
@@ -90,6 +93,7 @@ const TecnicoInicioJornadaPage = () => {
         anclaje,
         imagen,
         imagenAuxiliar: requiereImagenAuxiliar ? imagenAuxiliar : undefined,
+        firmaInicio,
         idAuxiliar: estadoQuery.data?.idAuxiliar ?? null,
         ubicacionGeoRef,
       }),
@@ -122,6 +126,7 @@ const TecnicoInicioJornadaPage = () => {
         novedadesTrabajo,
         observacionNovedades: novedadesTrabajo === 'SI' ? observacionNovedades : undefined,
         ubicacionGeoRef,
+        firmaCierre,
       }),
     onSuccess: () => {
       setError(null)
@@ -165,6 +170,11 @@ const TecnicoInicioJornadaPage = () => {
       setError('Debe cargar la foto del auxiliar asignado.')
       return
     }
+    if (!firmaInicio) {
+      setFeedback(null)
+      setError('La firma de inicio es obligatoria.')
+      return
+    }
     registrarMutation.mutate()
   }
 
@@ -188,6 +198,11 @@ const TecnicoInicioJornadaPage = () => {
     if (novedadesTrabajo === 'SI' && !observacionNovedades.trim()) {
       setFeedback(null)
       setError('Debes completar observación de novedades.')
+      return
+    }
+    if (!firmaCierre) {
+      setFeedback(null)
+      setError('La firma de cierre es obligatoria.')
       return
     }
     cierreMutation.mutate()
@@ -304,6 +319,11 @@ const TecnicoInicioJornadaPage = () => {
               {imagenAuxiliar ? <p className="mt-2 text-xs text-emerald-700">Imagen auxiliar cargada.</p> : null}
             </Field>
           ) : null}
+          <div className="md:col-span-2">
+            <Field label="Firma inicio">
+              <SignaturePad value={firmaInicio} onChange={setFirmaInicio} />
+            </Field>
+          </div>
         </div>
         <div className="mt-4">
           <Button type="button" onClick={handleSubmit} disabled={registrarMutation.isPending}>
@@ -361,6 +381,11 @@ const TecnicoInicioJornadaPage = () => {
                 <input className="input-base" value={observacionNovedades} onChange={(event) => setObservacionNovedades(event.target.value)} />
               </Field>
             ) : null}
+            <div className="md:col-span-2">
+              <Field label="Firma cierre">
+                <SignaturePad value={firmaCierre} onChange={setFirmaCierre} />
+              </Field>
+            </div>
           </div>
           <div className="mt-4">
             <Button type="button" onClick={handleCerrarJornada} disabled={cierreMutation.isPending}>

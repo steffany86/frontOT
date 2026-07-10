@@ -314,6 +314,8 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
   fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
   imagen: normalizeString(readValue(row, ['imagen', 'Imagen'])) || undefined,
   imagenAuxiliar: normalizeString(readValue(row, ['imagenAuxiliar', 'imagen_auxiliar', 'ImagenAuxiliar'])) || undefined,
+  firmaInicio: normalizeString(readValue(row, ['firmaInicio', 'firma_inicio', 'FirmaInicio'])) || undefined,
+  firmaCierre: normalizeString(readValue(row, ['firmaCierre', 'firma_cierre', 'FirmaCierre'])) || undefined,
   estado: normalizeString(readValue(row, ['estado', 'Estado'])) || undefined,
   capacitado: normalizeString(readValue(row, ['capacitado', 'Capacitado'])) || undefined,
   charla: normalizeString(readValue(row, ['charla', 'Charla'])) || undefined,
@@ -466,6 +468,19 @@ export const fetchInicioJornadaImagenAuxiliar = async (
   const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen-auxiliar`, {
     params: { miniatura },
+    responseType: 'blob',
+  })
+  return data
+}
+
+export const fetchInicioJornadaFirma = async (
+  idInicio: string,
+  tipo: 'inicio' | 'cierre',
+  scope: 'supervisor' | 'backoffice' = 'supervisor'
+): Promise<Blob> => {
+  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const endpoint = tipo === 'inicio' ? 'firma-inicio' : 'firma-cierre'
+  const { data } = await api.get(`${basePath}/jornadas/${idInicio}/${endpoint}`, {
     responseType: 'blob',
   })
   return data
