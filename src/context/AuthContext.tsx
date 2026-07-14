@@ -76,6 +76,18 @@ const normalizeRoleName = (value: string): string =>
     .toLowerCase()
     .replace(/[\s_]+/g, '')
 
+const almaceneroCruceNavigationItem: NavigationItem = {
+  label: 'Cruce Agenda Makiro',
+  to: '/almacen/cruce-agenda-makiro',
+  routePatterns: ['/almacen/cruce-agenda-makiro'],
+  allowedRoles: ['almacenero', 'auxiliar de almacen', 'sistemas', 'admin', 'administrador'],
+  showInSidebar: true,
+  sidebarLabelFromMenu: false,
+}
+
+const hasCruceAgendaAccessByRole = (roleName: string): boolean =>
+  ['almacenero', 'auxiliardealmacen', 'sistemas', 'admin', 'administrador'].includes(normalizeRoleName(roleName))
+
 const resolveRoleData = (usuario: UsuarioSesion | null, permisos: PermisosUsuario | null): { roleName: string; roleId: number } => {
   const roleName = (permisos?.rol ?? usuario?.rol ?? '').trim()
   const roleId = permisos?.idRol ?? usuario?.idRol ?? 0
@@ -318,14 +330,20 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     [pageNamesAsignadas, permisos, roleName]
   )
 
-  const visibleNavigationItems = useMemo(
-    () => navigationItems.filter((item) => canAccessNavigationItem(item)),
-    [canAccessNavigationItem]
-  )
+  const visibleNavigationItems = useMemo(() => {
+    const items = navigationItems.filter((item) => canAccessNavigationItem(item))
+    if (hasCruceAgendaAccessByRole(roleName) && !items.some((item) => item.to === almaceneroCruceNavigationItem.to)) {
+      return [...items, almaceneroCruceNavigationItem]
+    }
+    return items
+  }, [canAccessNavigationItem, roleName])
 
   const defaultPrivatePath = useMemo(() => {
+    if (hasCruceAgendaAccessByRole(roleName)) {
+      return '/almacen/cruce-agenda-makiro'
+    }
     return visibleNavigationItems[0]?.to ?? '/403'
-  }, [visibleNavigationItems])
+  }, [roleName, visibleNavigationItems])
 
   const canAccessPath = useCallback(
     (pathname: string): boolean => {
@@ -337,10 +355,13 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         item.routePatterns.some((pattern) => Boolean(matchPath({ path: pattern, end: true }, normalizedPath)))
       )
 
+      if (normalizedPath === '/almacen/cruce-agenda-makiro' && hasCruceAgendaAccessByRole(roleName)) {
+        return true
+      }
       if (!matchedNavigationItem) return true
       return canAccessNavigationItem(matchedNavigationItem)
     },
-    [canAccessNavigationItem, permisos, token]
+    [canAccessNavigationItem, permisos, roleName, token]
   )
 
   const value = useMemo<AuthContextValue>(

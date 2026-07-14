@@ -14,7 +14,30 @@ interface SidebarProps {
 const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJornadaClick }: SidebarProps) => {
   const navigate = useNavigate()
   const { visibleNavigationItems, menusAsignados, usuario, logout } = useAuth()
+  const normalizeRole = (value?: string): string =>
+    (value ?? '')
+      .normalize('NFD')
+      .replace(/\p{M}/gu, '')
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, '')
+
+  const cruceAgendaMakiroItem: NavigationItem = {
+    label: 'Cruce Agenda Makiro',
+    to: '/almacen/cruce-agenda-makiro',
+    routePatterns: ['/almacen/cruce-agenda-makiro'],
+    showInSidebar: true,
+    sidebarLabelFromMenu: false,
+  }
+
   const sidebarItems = visibleNavigationItems.filter((item) => item.showInSidebar !== false)
+  const roleNormalized = normalizeRole(usuario?.rol)
+  const shouldForceCruceAgendaMakiro =
+    ['almacenero', 'auxiliardealmacen', 'sistemas', 'admin', 'administrador'].includes(roleNormalized) &&
+    !sidebarItems.some((item) => item.to === cruceAgendaMakiroItem.to)
+  if (shouldForceCruceAgendaMakiro) {
+    sidebarItems.push(cruceAgendaMakiroItem)
+  }
   const menuById = new Map(menusAsignados.map((menu) => [menu.idMenu, menu] as const))
 
   const getMenuPages = (menu: (typeof menusAsignados)[number]): string[] => {

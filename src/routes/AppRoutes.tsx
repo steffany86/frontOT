@@ -32,6 +32,7 @@ import RegistroTorPage from '../pages/RegistroTorPage'
 import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPage'
 import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
 import NombresNpsPage from '../pages/NombresNpsPage'
+import CruceAgendaMakiroPage from '../pages/CruceAgendaMakiroPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -88,6 +89,7 @@ const AppRoutes = () => {
           <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
           <Route path="/Registro_TOR" element={<RegistroTorPage />} />
           <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
+          <Route path="/almacen/cruce-agenda-makiro" element={<CruceAgendaMakiroPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>

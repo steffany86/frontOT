@@ -186,6 +186,14 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Cruce Agenda Makiro',
+    to: '/almacen/cruce-agenda-makiro',
+    routePatterns: ['/almacen/cruce-agenda-makiro'],
+    allowedRoles: ['almacenero', 'auxiliar de almacen', 'sistemas', 'admin', 'administrador'],
+    sidebarLabelFromMenu: false,
+    showInSidebar: true,
+  },
+  {
     label: 'Pool de Privilegios',
     to: '/admin/privilegios',
     routePatterns: ['/admin/privilegios'],
