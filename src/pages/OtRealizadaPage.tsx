@@ -822,6 +822,14 @@ const OtRealizadaPage = () => {
     // Priorizar la fecha enviada desde la tarjeta seleccionada (OT del dia).
     return toIsoDateParam(fromState || fromVenta)
   }, [navState?.fecha, venta])
+  const fechaAgenda = useMemo(() => {
+    const rows = [venta, rowData].filter(Boolean) as UnknownRecord[]
+    for (const row of rows) {
+      const value = readString(row, ['inicio_agendado', 'Inicio_Agendado', 'InicioAgendado', 'fechaAgenda', 'FechaAgenda', 'Fecha_Agenda']).trim()
+      if (value) return value
+    }
+    return ''
+  }, [rowData, venta])
   const fechaHoy = useMemo(() => todayISO(), [])
   const registroFechaBloqueado = useMemo(() => {
     if (!fechaTrabajo) return true
@@ -3833,6 +3841,7 @@ const OtRealizadaPage = () => {
       idVenta?: number
       codigoCliente?: number
       fechaEjecucion?: string
+      fechaAgenda?: string
       idEstado: number
       observacion: string
       materiales: {
@@ -3921,6 +3930,7 @@ const OtRealizadaPage = () => {
             idVenta: payload.idVenta,
             codigoCliente: payload.codigoCliente,
             fechaEjecucion: payload.fechaEjecucion,
+            fechaAgenda: payload.fechaAgenda,
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(retryMateriales),
@@ -3932,6 +3942,7 @@ const OtRealizadaPage = () => {
             idVenta: payload.idVenta,
             codigoCliente: payload.codigoCliente,
             fechaEjecucion: payload.fechaEjecucion,
+            fechaAgenda: payload.fechaAgenda,
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(payload.materiales),
@@ -3972,6 +3983,7 @@ const OtRealizadaPage = () => {
           numeroOrden: payload.numeroOrden,
           idEstado: payload.idEstado,
           observacion: payload.observacion,
+          fechaAgenda: payload.fechaAgenda,
         }, resolvedIdSucursal ?? undefined)
       }
 
@@ -4102,6 +4114,7 @@ const OtRealizadaPage = () => {
       idVenta: idVentaActual,
       codigoCliente: clienteVisible ? Number(clienteVisible.replace(/\D/g, '')) : undefined,
       fechaEjecucion: fechaTrabajo || undefined,
+      fechaAgenda: fechaAgenda || undefined,
       idEstado: parsedEstado,
       observacion: observacionPayload,
       materiales: materialRows.map((row) => ({
@@ -4854,25 +4867,3 @@ const OtRealizadaPage = () => {
 }
 
 export default OtRealizadaPage
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

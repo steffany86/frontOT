@@ -39,6 +39,7 @@ export type OtRegistrarDetallePayload = {
   idVenta?: number
   codigoCliente?: number
   fechaEjecucion?: string
+  fechaAgenda?: string
   idEstado?: number
   observacion?: string
   materiales: OtDetalleMaterialPayload[]
@@ -1278,5 +1279,3 @@ export const registrarVentaParaRegistroOtWb = async (
     return response.data as RegistrarVentaParaRegistroOtResult
   }
 }
-
-

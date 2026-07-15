@@ -573,6 +573,16 @@ const RegistrarOTAgendaPage = () => {
     const value = readNumber(cabecera, ['cliente_nro', 'Cliente_Nro', 'clienteNro', 'ClienteNro'])
     return value !== null ? String(value) : clienteNro ? String(clienteNro) : ''
   }, [cabecera, clienteNro])
+
+  const fechaAgenda = useMemo(() => {
+    const rows = [cabecera, rowData].filter(Boolean) as UnknownRecord[]
+    for (const row of rows) {
+      const value = readString(row, ['inicio_agendado', 'Inicio_Agendado', 'InicioAgendado', 'fechaAgenda', 'FechaAgenda', 'Fecha_Agenda']).trim()
+      if (value) return value
+    }
+    return ''
+  }, [cabecera, rowData])
+
   const clienteInputValue = isManualMode ? clienteManualInput : clienteVisible
 
   const sucursalVisible = useMemo(() => {
@@ -1350,6 +1360,9 @@ const RegistrarOTAgendaPage = () => {
         checkPlantaExterna: Boolean(checkPlantaExterna),
         tieneDetalle: Boolean(tieneDetalle),
         tipoTecnologia: tipoTecnologia.trim().toUpperCase(),
+        fechaAgenda: fechaAgenda || undefined,
+        inicioAgendado: fechaAgenda || undefined,
+        inicio_agendado: fechaAgenda || undefined,
       }
       return await registrarVentaParaRegistroOtWb(payload, pdfFile)
     },

@@ -63,6 +63,7 @@ export interface OtRealizadaPayload {
   observacion: string
   idEstado: number
   numeroOrden: string
+  fechaAgenda?: string
 }
 
 export interface OtUpdatePayload {
