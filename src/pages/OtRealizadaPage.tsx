@@ -825,7 +825,19 @@ const OtRealizadaPage = () => {
   const fechaAgenda = useMemo(() => {
     const rows = [venta, rowData].filter(Boolean) as UnknownRecord[]
     for (const row of rows) {
-      const value = readString(row, ['inicio_agendado', 'Inicio_Agendado', 'InicioAgendado', 'fechaAgenda', 'FechaAgenda', 'Fecha_Agenda']).trim()
+      const value = readString(row, [
+        'inicio_agendado',
+        'Inicio_Agendado',
+        'InicioAgendado',
+        'fechaAgenda',
+        'FechaAgenda',
+        'Fecha_Agenda',
+        'fecha_agenda',
+        'fecha',
+        'Fecha',
+        'Fecha_Ejecucion',
+        'fecha_ejecucion',
+      ]).trim()
       if (value) return value
     }
     return ''
@@ -4114,7 +4126,7 @@ const OtRealizadaPage = () => {
       idVenta: idVentaActual,
       codigoCliente: clienteVisible ? Number(clienteVisible.replace(/\D/g, '')) : undefined,
       fechaEjecucion: fechaTrabajo || undefined,
-      fechaAgenda: toIsoDateParam(fechaAgenda) || undefined,
+      fechaAgenda: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
       idEstado: parsedEstado,
       observacion: observacionPayload,
       materiales: materialRows.map((row) => ({

@@ -206,12 +206,17 @@ const Table = <T,>({
           {!hideHeader ? (
             <thead
               className={`bg-slate-100 ${isCompact ? 'text-[11px]' : 'text-xs'} uppercase tracking-wide text-slate-500 ${
-                stickyHeader ? 'sticky top-0 z-20' : ''
+                stickyHeader ? 'sticky top-0 z-30 shadow-[0_1px_0_rgba(148,163,184,0.45)]' : ''
               }`}
             >
               <tr>
                 {columns.map((column) => (
-                  <th key={column.key} className={`${isCompact ? 'px-3 py-2' : 'px-4 py-3'} ${column.className ?? ''}`}>
+                  <th
+                    key={column.key}
+                    className={`${isCompact ? 'px-3 py-2' : 'px-4 py-3'} ${column.className ?? ''} ${
+                      stickyHeader ? 'bg-slate-100' : ''
+                    }`}
+                  >
                     {column.header}
                   </th>
                 ))}

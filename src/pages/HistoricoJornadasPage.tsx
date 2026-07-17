@@ -9,7 +9,7 @@ import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
-import { fetchHistoricoJornadaDetalle, fetchHistoricoJornadas } from '../api/supervisionApi'
+import { fetchHistoricoJornadaDetalle, fetchHistoricoJornadas, fetchInicioJornadaImagen } from '../api/supervisionApi'
 import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
@@ -98,6 +98,14 @@ const resolveInicioImageSrc = (value?: string): string | null => {
   if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) return raw
   return `data:image/jpeg;base64,${raw}`
 }
+
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.onerror = () => reject(reader.error)
+    reader.readAsDataURL(blob)
+  })
 
 const JornadaImageCard = ({
   label,
@@ -303,13 +311,24 @@ const HistoricoJornadasPage = () => {
     setDetalleLoading(true)
     try {
       const detalle = await fetchHistoricoJornadaDetalle(row.idInicio, isSupervisor ? 'supervisor' : 'backoffice')
+      let imagenInicio = detalle.imagen
+      if (!resolveInicioImageSrc(imagenInicio)) {
+        try {
+          const blob = await fetchInicioJornadaImagen(row.idInicio, isSupervisor ? 'supervisor' : 'backoffice', false)
+          imagenInicio = await blobToDataUrl(blob)
+        } catch {
+          imagenInicio = detalle.imagen
+        }
+      }
       setDetalleJornada({
         row: {
           ...row,
           ...detalle,
           idTecnico: row.idTecnico,
           idUsuarioInicio: row.idUsuarioInicio || detalle.idUsuarioInicio || detalle.idTecnico,
-          tecnicoNombre: row.tecnicoNombre,
+          tecnicoNombre: detalle.tecnicoNombre || row.tecnicoNombre,
+          auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre,
+          imagen: imagenInicio || detalle.imagen || row.imagen,
         },
         modo,
       })
@@ -331,12 +350,23 @@ const HistoricoJornadasPage = () => {
         }
         try {
           const detalle = await fetchHistoricoJornadaDetalle(row.idInicio, isSupervisor ? 'supervisor' : 'backoffice')
+          let imagenInicio = detalle.imagen || row.imagen
+          if (!resolveInicioImageSrc(imagenInicio)) {
+            try {
+              const blob = await fetchInicioJornadaImagen(row.idInicio, isSupervisor ? 'supervisor' : 'backoffice', false)
+              imagenInicio = await blobToDataUrl(blob)
+            } catch {
+              imagenInicio = detalle.imagen || row.imagen
+            }
+          }
           detalleRows.push({
             ...row,
             ...detalle,
             idTecnico: row.idTecnico,
             idUsuarioInicio: row.idUsuarioInicio || detalle.idUsuarioInicio || detalle.idTecnico,
-            tecnicoNombre: row.tecnicoNombre,
+            tecnicoNombre: detalle.tecnicoNombre || row.tecnicoNombre,
+            auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre,
+            imagen: imagenInicio || detalle.imagen || row.imagen,
           })
         } catch {
           detalleRows.push(row)
@@ -735,6 +765,7 @@ const HistoricoJornadasPage = () => {
           emptyLabel={jornadasQuery.isLoading ? 'Cargando jornadas...' : 'NO HAY DATOS PARA LA FECHA'}
           rowClassName={jornadaRowClass}
           desktopMinWidthClass="min-w-[1080px]"
+          desktopHeightClass="max-h-[calc(100dvh-20rem)]"
           density="compact"
           stickyHeader
         />

@@ -17,6 +17,7 @@ import {
 } from '../api/otApi'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useSessionStore } from '../store/sessionStore'
+import { todayISO } from '../utils/dates'
 
 type AgendaNavState = {
   manual?: boolean
@@ -588,7 +589,19 @@ const RegistrarOTAgendaPage = () => {
   const fechaAgenda = useMemo(() => {
     const rows = [cabecera, rowData].filter(Boolean) as UnknownRecord[]
     for (const row of rows) {
-      const value = readString(row, ['inicio_agendado', 'Inicio_Agendado', 'InicioAgendado', 'fechaAgenda', 'FechaAgenda', 'Fecha_Agenda']).trim()
+      const value = readString(row, [
+        'inicio_agendado',
+        'Inicio_Agendado',
+        'InicioAgendado',
+        'fechaAgenda',
+        'FechaAgenda',
+        'Fecha_Agenda',
+        'fecha_agenda',
+        'fecha',
+        'Fecha',
+        'Fecha_Ejecucion',
+        'fecha_ejecucion',
+      ]).trim()
       if (value) return value
     }
     return ''
@@ -1371,9 +1384,9 @@ const RegistrarOTAgendaPage = () => {
         checkPlantaExterna: Boolean(checkPlantaExterna),
         tieneDetalle: Boolean(tieneDetalle),
         tipoTecnologia: tipoTecnologia.trim().toUpperCase(),
-        fechaAgenda: toIsoDateParam(fechaAgenda) || undefined,
-        inicioAgendado: toIsoDateParam(fechaAgenda) || undefined,
-        inicio_agendado: toIsoDateParam(fechaAgenda) || undefined,
+        fechaAgenda: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
+        inicioAgendado: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
+        inicio_agendado: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
       }
       return await registrarVentaParaRegistroOtWb(payload, pdfFile)
     },
