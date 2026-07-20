@@ -9,7 +9,7 @@ import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
-import { fetchHistoricoJornadaDetalle, fetchHistoricoJornadas } from '../api/supervisionApi'
+import { fetchHistoricoJornadaDetalle, fetchHistoricoJornadas, fetchSupervisionTecnicos } from '../api/supervisionApi'
 import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
@@ -109,6 +109,27 @@ const parseGeoCoords = (value?: string): { lat: number; lng: number } | null => 
 const isSiValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'SI'
 const isNoValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'NO'
 
+const inicioChecklistKeys: Array<keyof SupervisionJornadaHistorico> = [
+  'capacitado',
+  'charla',
+  'botiquin',
+  'extintor',
+  'equipoEpp',
+  'estadoEpp',
+  'apr',
+  'escalera',
+  'anclaje',
+]
+
+const countInicioObservaciones = (row: SupervisionJornadaHistorico): number => {
+  const camposEnNo = inicioChecklistKeys.filter((key) => isNoValue(row[key] as string | undefined)).length
+  const sinUbicacion = parseGeoCoords(row.ubicacionGeoref) ? 0 : 1
+  const sinImagen = resolveInicioImageSrc(row.imagen) ? 0 : 1
+  return camposEnNo + sinUbicacion + sinImagen
+}
+
+const isNumericIdLike = (value?: string): boolean => /^\d+$/.test((value ?? '').trim())
+
 const tieneCierreJornada = (row: SupervisionJornadaHistorico): boolean =>
   Boolean(row.fechaCierre) ||
   Boolean(row.codigoClienteCierre) ||
@@ -190,6 +211,12 @@ const HistoricoJornadasPage = () => {
     enabled: Boolean(fechaDesdeConsulta && fechaHastaConsulta),
   })
 
+  const catalogoTecnicosQuery = useQuery({
+    queryKey: ['historico-jornadas-tecnicos-catalogo', isSupervisor ? 'supervisor' : 'backoffice', sucursal],
+    queryFn: () => fetchSupervisionTecnicos({ sucursal: !isSupervisor && sucursal ? sucursal : undefined }),
+    staleTime: 300_000,
+  })
+
   const rows = jornadasQuery.data ?? []
   const tecnicoOptions = useMemo(() => {
     const map = new Map<string, { nombre: string; usuarioRetirado: boolean }>()
@@ -223,6 +250,39 @@ const HistoricoJornadasPage = () => {
         return (a.tecnicoNombre || '').localeCompare(b.tecnicoNombre || '', 'es', { sensitivity: 'base' })
       })
   }, [rows, idTecnico, filtroInicio])
+
+  const tecnicoNombreById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const row of rows) {
+      const id = row.idTecnico?.trim()
+      const nombre = row.tecnicoNombre?.trim()
+      if (!id || !nombre || isNumericIdLike(nombre)) continue
+      if (!map.has(id)) map.set(id, nombre)
+    }
+    for (const tecnico of catalogoTecnicosQuery.data ?? []) {
+      const id = tecnico.idTecnico?.trim()
+      const nombre = tecnico.tecnico?.trim()
+      if (!id || !nombre || isNumericIdLike(nombre)) continue
+      if (!map.has(id)) map.set(id, nombre)
+    }
+    return map
+  }, [rows, catalogoTecnicosQuery.data])
+
+  const resolveAuxiliarDisplay = (row: SupervisionJornadaHistorico): string => {
+    const idAuxiliar = row.idAuxiliar?.trim()
+    const auxiliarNombre = row.auxiliarNombre?.trim()
+    const auxiliarNombreValido = Boolean(auxiliarNombre) && !isNumericIdLike(auxiliarNombre)
+    if (auxiliarNombreValido) return auxiliarNombre as string
+    const idFromNombre = isNumericIdLike(auxiliarNombre) ? auxiliarNombre : undefined
+    const idLookup = idAuxiliar || idFromNombre
+    if (idLookup) {
+      const nombrePorTecnico = tecnicoNombreById.get(idLookup)
+      if (nombrePorTecnico) return nombrePorTecnico
+      if (auxiliarNombre) return auxiliarNombre
+      return idLookup
+    }
+    return auxiliarNombre || '-'
+  }
 
   const resumen = useMemo(() => {
     return filteredRows.reduce(
@@ -408,7 +468,7 @@ const HistoricoJornadasPage = () => {
         const inicioFields = [
           ['Tecnico', row.tecnicoNombre || row.idTecnico || '-'],
           ['ID usuario inicio', row.idUsuarioInicio || '-'],
-          ['Auxiliar', row.auxiliarNombre || row.idAuxiliar || '-'],
+          ['Auxiliar', resolveAuxiliarDisplay(row)],
           ['Usuario retirado', row.usuarioRetirado ? 'SI' : 'NO'],
           ['Capacitado', row.capacitado || '-'],
           ['Charla', row.charla || '-'],
@@ -499,28 +559,37 @@ const HistoricoJornadasPage = () => {
       {
         key: 'acciones',
         header: 'Acciones',
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={noInicio(row)}
-              onClick={() => abrirDetalleJornada(row, 'inicio')}
-            >
-              Inicio
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              className="px-3 py-1.5 text-xs"
-              disabled={!tieneCierreJornada(row)}
-              onClick={() => abrirDetalleJornada(row, 'cierre')}
-            >
-              Cierre
-            </Button>
-          </div>
-        ),
+        render: (row) => {
+          const inicioObservaciones = noInicio(row) ? 0 : countInicioObservaciones(row)
+          return (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="secondary"
+                className="relative overflow-visible px-3 py-1.5 text-xs"
+                disabled={noInicio(row)}
+                title={inicioObservaciones > 0 ? `${inicioObservaciones} campo(s) incompleto(s) o con NO` : undefined}
+                onClick={() => abrirDetalleJornada(row, 'inicio')}
+              >
+                Inicio
+                {inicioObservaciones > 0 ? (
+                  <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-white bg-red-600 px-1 text-[10px] font-bold leading-none text-white shadow-sm">
+                    {inicioObservaciones}
+                  </span>
+                ) : null}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="px-3 py-1.5 text-xs"
+                disabled={!tieneCierreJornada(row)}
+                onClick={() => abrirDetalleJornada(row, 'cierre')}
+              >
+                Cierre
+              </Button>
+            </div>
+          )
+        },
       },
     ],
     []
@@ -732,7 +801,7 @@ const HistoricoJornadasPage = () => {
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
-                  <DetailCard label="Auxiliar" value={detalle.auxiliarNombre || detalle.idAuxiliar} />
+                  <DetailCard label="Auxiliar" value={resolveAuxiliarDisplay(detalle)} />
                   <DetailCard label="Capacitado" value={detalle.capacitado} />
                   <DetailCard label="Charla" value={detalle.charla} />
                   <DetailCard label="Botiquin" value={detalle.botiquin} />
