@@ -773,6 +773,7 @@ const RegistrarOTAgendaPage = () => {
     return normalizeTipoArchivo(readValue(selected ?? {}, ['tipoArchivoPROTW', 'TipoArchivo_PROTW', 'tipoarchivo_protw', 'TipoArchivoPROTW']))
   }, [effectiveIdTipoServicio, tiposServicioQuery.data])
   const archivoAdjuntoLabel = tipoArchivoProtw === 'IMAGEN' ? 'imagen' : 'PDF'
+  const archivoAdjuntoRequerido = tipoArchivoProtw === 'IMAGEN' ? 'una imagen JPG/PNG' : 'un PDF'
   const archivoAdjuntoAccept = tipoArchivoProtw === 'IMAGEN' ? '.jpg,.jpeg,.png,image/jpeg,image/png' : '.pdf,application/pdf'
 
   const estadosQuery = useQuery({
@@ -1931,7 +1932,7 @@ const RegistrarOTAgendaPage = () => {
                 disabled={registroGuardado || mutation.isPending || isPrevalidating}
               />
               <p className="mt-1 text-xs text-slate-500">
-                {pdfFile ? `Archivo: ${pdfFile.name}` : `Debes adjuntar ${tipoArchivoProtw === 'IMAGEN' ? 'una imagen JPG/PNG' : 'un PDF'} para continuar.`}
+                {pdfFile ? `Archivo: ${pdfFile.name}` : `Debes adjuntar ${archivoAdjuntoRequerido} para continuar.`}
               </p>
               {archivoInvalid ? <p className="mt-1 text-xs text-rose-600">Archivo obligatorio.</p> : null}
             </div>
