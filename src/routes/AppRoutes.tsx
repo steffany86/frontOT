@@ -32,6 +32,7 @@ import RegistroTorPage from '../pages/RegistroTorPage'
 import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPage'
 import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
 import NombresNpsPage from '../pages/NombresNpsPage'
+import NodoZonaPage from '../pages/NodoZonaPage'
 import CruceAgendaMakiroPage from '../pages/CruceAgendaMakiroPage'
 
 const LegacyOtDetailRedirect = () => {
@@ -83,6 +84,7 @@ const AppRoutes = () => {
           <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
           <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
           <Route path="/backoffice/nombres-nps" element={<NombresNpsPage />} />
+          <Route path="/backoffice/nodo-zona" element={<NodoZonaPage />} />
           <Route path="/jornadas/historico" element={<HistoricoJornadasPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />

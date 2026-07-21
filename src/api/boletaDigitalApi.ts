@@ -63,9 +63,12 @@ const mapBoletaDigitalOt = (row: Record<string, unknown>): BoletaDigitalOt => {
     rutaPdf,
     estado: normalizeString(readValue(row, ['Estado', 'estado'])),
     estadoArchivo: normalizeString(readValue(row, ['EstadoArchivo', 'estadoArchivo', 'Estado_Archivo', 'estado_archivo'])),
+    rutaArchivoNoPdf: normalizeBoolean(readValue(row, ['RutaArchivoNoPdf', 'rutaArchivoNoPdf', 'ruta_archivo_no_pdf'])),
+    rutaArchivoImagen: normalizeBoolean(readValue(row, ['RutaArchivoImagen', 'rutaArchivoImagen', 'ruta_archivo_imagen'])),
     otFisica: normalizeString(readValue(row, ['OT_FIsica', 'OT_FISICA', 'otFisica', 'ot_fisica', 'OtFisica'])),
     comparacion: normalizeString(readValue(row, ['Comparacion', 'comparacion', 'Comparación', 'comparación'])),
     previamenteModificada: normalizeBoolean(readValue(row, ['PreviamenteModificada', 'previamenteModificada'])),
+    todoOk: normalizeBoolean(readValue(row, ['TodoOk', 'todoOk', 'todo_ok'])),
     raw: row,
   }
 }
@@ -104,5 +107,14 @@ export const uploadBoletaDigitalArchivo = async (idVenta: string, archivo: File)
   formData.append('archivo', archivo, archivo.name)
 
   const { data } = await api.post('/boleta-digital/archivo-digital', formData)
+  return data
+}
+
+export const markBoletaDigitalTodoOk = async (idVenta: string, todoOk = true): Promise<unknown> => {
+  const formData = new FormData()
+  formData.append('id_venta', idVenta)
+  formData.append('todoOk', String(todoOk))
+
+  const { data } = await api.post('/boleta-digital/todo-ok', formData)
   return data
 }

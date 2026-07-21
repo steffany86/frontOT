@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownload, faEye, faFileExcel, faFilePdf, faRotateRight, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons'
+import { faCheckCircle, faDownload, faEye, faFileExcel, faFilePdf, faRotateRight, faSearch, faUpload } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import Modal from '../components/common/Modal'
@@ -9,6 +9,7 @@ import {
   downloadBoletaDigitalArchivo,
   fetchBoletaDigitalArchivo,
   fetchBoletaDigitalOts,
+  markBoletaDigitalTodoOk,
   uploadBoletaDigitalArchivo,
 } from '../api/boletaDigitalApi'
 import { getApiErrorMessage } from '../services/httpClient'
@@ -31,16 +32,24 @@ const getExpectedPdfFileName = (row: BoletaDigitalOt | null): string => {
   return otFisica ? `${otFisica}.pdf` : ''
 }
 
-const ensurePdfExtension = (fileName: string): string => {
-  const trimmed = fileName.trim()
-  if (!trimmed) return ''
-  return trimmed.toLowerCase().endsWith('.pdf') ? trimmed : `${trimmed}.pdf`
+const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp']
+
+const hasExtension = (fileName: string, extensions: string[]): boolean => {
+  const lower = fileName.trim().toLowerCase()
+  return extensions.some((extension) => lower.endsWith(extension))
 }
 
-const renamePdfFile = (file: File, fileName: string): File => {
+const ensureUploadExtension = (fileName: string, fallbackExtension: string): string => {
+  const trimmed = fileName.trim()
+  if (!trimmed) return ''
+  if (hasExtension(trimmed, ['.pdf', ...IMAGE_EXTENSIONS])) return trimmed
+  return `${trimmed}${fallbackExtension}`
+}
+
+const renameUploadFile = (file: File, fileName: string): File => {
   if (file.name === fileName) return file
   return new File([file], fileName, {
-    type: file.type || 'application/pdf',
+    type: file.type || 'application/octet-stream',
     lastModified: file.lastModified,
   })
 }
@@ -69,11 +78,16 @@ const isDifferentRow = (row: BoletaDigitalOt): boolean => {
 }
 
 const isWithoutPdfRow = (row: BoletaDigitalOt): boolean => {
+  if (isImageRow(row)) return false
   return normalizeText(row.comparacion) === 'sin_pdf' || normalizeText(row.estadoArchivo || row.estado) === 'sin_pdf'
 }
 
+const isImageRow = (row: BoletaDigitalOt): boolean => {
+  return row.rutaArchivoImagen || normalizeText(row.comparacion) === 'imagen' || normalizeText(row.estadoArchivo) === 'con_imagen'
+}
+
 const canReplacePdf = (row: BoletaDigitalOt): boolean => {
-  return isDifferentRow(row) || isWithoutPdfRow(row)
+  return isDifferentRow(row) || isWithoutPdfRow(row) || isImageRow(row) || (isEqualRow(row) && !row.todoOk)
 }
 
 const isEqualRow = (row: BoletaDigitalOt): boolean => {
@@ -82,6 +96,10 @@ const isEqualRow = (row: BoletaDigitalOt): boolean => {
 
 const isPreviouslyModifiedEqualRow = (row: BoletaDigitalOt): boolean => {
   return row.previamenteModificada && isEqualRow(row)
+}
+
+const canMarkTodoOk = (row: BoletaDigitalOt): boolean => {
+  return isEqualRow(row) && !row.todoOk
 }
 
 const getComparisonBadge = (row: BoletaDigitalOt): { label: string; className: string } => {
@@ -95,6 +113,12 @@ const getComparisonBadge = (row: BoletaDigitalOt): { label: string; className: s
     return {
       label: row.comparacion || '-',
       className: 'bg-rose-100 text-rose-700',
+    }
+  }
+  if (isImageRow(row)) {
+    return {
+      label: 'IMAGEN',
+      className: 'bg-sky-100 text-sky-700',
     }
   }
   return {
@@ -124,6 +148,11 @@ const formatBoletaDateTitle = (value: string): string => {
 }
 
 const boletaText = (value: string): string => value || '-'
+
+const canOpenBoletaFile = (row: BoletaDigitalOt): boolean => {
+  const path = row.rutaPdf.trim().toLowerCase().split('?')[0]
+  return Boolean(row.rutaPdf) && (path.endsWith('.pdf') || IMAGE_EXTENSIONS.some((extension) => path.endsWith(extension)))
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -156,7 +185,7 @@ const getBoletaDigitalErrorMessage = async (error: unknown, fallback: string): P
 
 const VerificacionBoletaDigitalPage = () => {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf' | 'imagenes'>('all')
   const [fechaInicio, setFechaInicio] = useState(defaultFechaInicio)
   const [fechaFin, setFechaFin] = useState(defaultFechaFin)
   const [fechaRangeError, setFechaRangeError] = useState(false)
@@ -191,6 +220,7 @@ const VerificacionBoletaDigitalPage = () => {
       iguales: rows.filter(isEqualRow).length,
       diferentes: rows.filter(isDifferentRow).length,
       sinPdf: rows.filter(isWithoutPdfRow).length,
+      imagenes: rows.filter(isImageRow).length,
     }),
     [rows]
   )
@@ -201,6 +231,7 @@ const VerificacionBoletaDigitalPage = () => {
         if (statusFilter === 'iguales') return isEqualRow(row)
         if (statusFilter === 'diferentes') return isDifferentRow(row)
         if (statusFilter === 'sin_pdf') return isWithoutPdfRow(row)
+        if (statusFilter === 'imagenes') return isImageRow(row)
         return true
       }),
     [rows, search, statusFilter]
@@ -222,7 +253,7 @@ const VerificacionBoletaDigitalPage = () => {
     }
   }, [hasValidDateRange])
 
-  const canExportExcel = statusFilter === 'diferentes' || statusFilter === 'sin_pdf'
+  const canExportExcel = statusFilter === 'diferentes' || statusFilter === 'sin_pdf' || statusFilter === 'imagenes'
 
   const exportarExcel = async () => {
     if (!hasValidDateRange) {
@@ -300,8 +331,8 @@ const VerificacionBoletaDigitalPage = () => {
   }
 
   const openPdf = async (row: BoletaDigitalOt) => {
-    if (!row.rutaPdf) {
-      setActionError('La OT seleccionada no tiene RutaPDF.')
+    if (!canOpenBoletaFile(row)) {
+      setActionError('La OT seleccionada no tiene un archivo valido para abrir.')
       return
     }
     const key = `${row.id || row.ot}-view`
@@ -320,8 +351,8 @@ const VerificacionBoletaDigitalPage = () => {
   }
 
   const downloadPdf = async (row: BoletaDigitalOt) => {
-    if (!row.rutaPdf) {
-      setActionError('La OT seleccionada no tiene RutaPDF.')
+    if (!canOpenBoletaFile(row)) {
+      setActionError('La OT seleccionada no tiene un archivo valido para descargar.')
       return
     }
     const key = `${row.id || row.ot}-download`
@@ -344,6 +375,24 @@ const VerificacionBoletaDigitalPage = () => {
     }
   }
 
+  const markTodoOk = async (row: BoletaDigitalOt) => {
+    if (!row.id) {
+      setActionError('La OT seleccionada no tiene id_venta para marcar Todo OK.')
+      return
+    }
+    const key = `${row.id || row.ot}-todo-ok`
+    setLoadingKey(key)
+    setActionError(null)
+    try {
+      await markBoletaDigitalTodoOk(row.id, true)
+      await otsQuery.refetch()
+    } catch (error) {
+      setActionError(getApiErrorMessage(error, 'No se pudo marcar Todo OK.'))
+    } finally {
+      setLoadingKey((current) => (current === key ? null : current))
+    }
+  }
+
   const selectReplacementPdf = (row: BoletaDigitalOt) => {
     if (!row.id) {
       setActionError('La OT seleccionada no tiene id_venta para cambiar el PDF.')
@@ -352,14 +401,18 @@ const VerificacionBoletaDigitalPage = () => {
     setActionError(null)
     setSelectedUploadRow(row)
     if (fileInputRef.current) {
+      fileInputRef.current.accept = isImageRow(row) ? '.jpg,.jpeg,.png,.webp,image/*' : 'application/pdf,.pdf'
       fileInputRef.current.value = ''
       fileInputRef.current.click()
     }
   }
 
   const uploadReplacementPdf = async (file: File, row: BoletaDigitalOt) => {
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setActionError('Solo se permite subir archivos PDF.')
+    const isImageUpload = isImageRow(row)
+    const lowerName = file.name.toLowerCase()
+    const validFile = isImageUpload ? hasExtension(lowerName, IMAGE_EXTENSIONS) : lowerName.endsWith('.pdf')
+    if (!validFile) {
+      setActionError(isImageUpload ? 'Solo se permite subir imagen JPG/PNG.' : 'Solo se permite subir archivos PDF.')
       return
     }
     const key = `${row.id || row.ot}-upload`
@@ -368,14 +421,14 @@ const VerificacionBoletaDigitalPage = () => {
     setUploadModal({
       open: true,
       status: 'loading',
-      message: 'Subiendo y validando boleta digital...',
+      message: isImageUpload ? 'Subiendo imagen...' : 'Subiendo y validando boleta digital...',
     })
     try {
       await uploadBoletaDigitalArchivo(row.id, file)
       await otsQuery.refetch()
       setUploadModal({ open: false, status: 'loading', message: '' })
     } catch (error) {
-      const message = await getBoletaDigitalErrorMessage(error, 'No se pudo cambiar el PDF.')
+      const message = await getBoletaDigitalErrorMessage(error, isImageUpload ? 'No se pudo cambiar la imagen.' : 'No se pudo cambiar el PDF.')
       setUploadModal({
         open: true,
         status: 'error',
@@ -395,8 +448,11 @@ const VerificacionBoletaDigitalPage = () => {
     const row = selectedUploadRow
     event.target.value = ''
     if (!file || !row) return
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setActionError('Solo se permite subir archivos PDF.')
+    const isImageUpload = isImageRow(row)
+    const lowerName = file.name.toLowerCase()
+    const validFile = isImageUpload ? hasExtension(lowerName, IMAGE_EXTENSIONS) : lowerName.endsWith('.pdf')
+    if (!validFile) {
+      setActionError(isImageUpload ? 'Solo se permite subir imagen JPG/PNG.' : 'Solo se permite subir archivos PDF.')
       setSelectedUploadRow(null)
       return
     }
@@ -420,7 +476,7 @@ const VerificacionBoletaDigitalPage = () => {
       closeUploadModal()
       return
     }
-    const finalName = ensurePdfExtension(uploadFileName)
+    const finalName = ensureUploadExtension(uploadFileName, isImageRow(selectedUploadRow) ? '.png' : '.pdf')
     if (!finalName) {
       setUploadRenameError('Ingrese el nombre del archivo.')
       return
@@ -430,7 +486,7 @@ const VerificacionBoletaDigitalPage = () => {
       return
     }
     setUploadRenameError(null)
-    void uploadReplacementPdf(renamePdfFile(pendingUploadFile, finalName), selectedUploadRow)
+    void uploadReplacementPdf(renameUploadFile(pendingUploadFile, finalName), selectedUploadRow)
   }
 
   return (
@@ -438,7 +494,7 @@ const VerificacionBoletaDigitalPage = () => {
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf,.pdf"
+        accept={selectedUploadRow && isImageRow(selectedUploadRow) ? '.jpg,.jpeg,.png,.webp,image/*' : 'application/pdf,.pdf'}
         className="hidden"
         onChange={handleReplacementFileChange}
       />
@@ -480,9 +536,11 @@ const VerificacionBoletaDigitalPage = () => {
         {uploadModal.status === 'confirm' ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
-              <p className="text-xs font-semibold uppercase text-slate-500">Nombre de archivo esperado:</p>
+              <p className="text-xs font-semibold uppercase text-slate-500">
+                {selectedUploadRow && isImageRow(selectedUploadRow) ? 'Archivo actual:' : 'Nombre de archivo esperado:'}
+              </p>
               <p className="mt-1 break-all text-base font-bold text-slate-900">
-                {getExpectedPdfFileName(selectedUploadRow) || '-'}
+                {selectedUploadRow && isImageRow(selectedUploadRow) ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot) : getExpectedPdfFileName(selectedUploadRow) || '-'}
               </p>
             </div>
             <div className="grid gap-3 text-sm sm:grid-cols-2">
@@ -503,7 +561,7 @@ const VerificacionBoletaDigitalPage = () => {
                   setUploadFileName(event.target.value)
                   setUploadRenameError(null)
                 }}
-                placeholder="SA-00000000.pdf"
+                placeholder={selectedUploadRow && isImageRow(selectedUploadRow) ? 'imagen.png' : 'SA-00000000.pdf'}
               />
             </Field>
             {uploadRenameError ? (
@@ -511,7 +569,11 @@ const VerificacionBoletaDigitalPage = () => {
                 {uploadRenameError}
               </div>
             ) : (
-              <p className="text-xs text-slate-500">Si no escribe .pdf, se agrega automaticamente al subir.</p>
+              <p className="text-xs text-slate-500">
+                {selectedUploadRow && isImageRow(selectedUploadRow)
+                  ? 'Si no escribe extension, se agrega .png automaticamente.'
+                  : 'Si no escribe .pdf, se agrega automaticamente al subir.'}
+              </p>
             )}
           </div>
         ) : uploadModal.status === 'loading' ? (
@@ -537,6 +599,7 @@ const VerificacionBoletaDigitalPage = () => {
               { id: 'iguales', label: 'Iguales', count: statusSummary.iguales },
               { id: 'diferentes', label: 'Diferentes', count: statusSummary.diferentes },
               { id: 'sin_pdf', label: 'Sin PDF', count: statusSummary.sinPdf },
+              { id: 'imagenes', label: 'Con imagen', count: statusSummary.imagenes },
             ].map((tab) => {
               const active = statusFilter === tab.id
               return (
@@ -560,7 +623,7 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         </div>
 
-        <div className="grid gap-2 border-b border-slate-200 px-3 py-2 sm:grid-cols-3">
+        <div className="grid gap-2 border-b border-slate-200 px-3 py-2 sm:grid-cols-4">
           <button
             type="button"
             className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${
@@ -596,6 +659,18 @@ const VerificacionBoletaDigitalPage = () => {
           >
             <span className="text-[10px] font-semibold uppercase tracking-wide">Sin PDF</span>
             <span className="block text-lg font-extrabold leading-5">{statusSummary.sinPdf}</span>
+          </button>
+          <button
+            type="button"
+            className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${
+              statusFilter === 'imagenes'
+                ? 'border-sky-400 bg-sky-50 text-sky-900'
+                : 'border-sky-200 bg-sky-50 text-sky-700 hover:border-sky-400'
+            }`}
+            onClick={() => setStatusFilter((current) => (current === 'imagenes' ? 'all' : 'imagenes'))}
+          >
+            <span className="text-[10px] font-semibold uppercase tracking-wide">Con imagen</span>
+            <span className="block text-lg font-extrabold leading-5">{statusSummary.imagenes}</span>
           </button>
         </div>
 
@@ -723,6 +798,8 @@ const VerificacionBoletaDigitalPage = () => {
                 visibleRows.map((row, index) => {
                   const isDifferent = isDifferentRow(row)
                   const canReplace = canReplacePdf(row)
+                  const canValidateTodoOk = canMarkTodoOk(row)
+                  const canOpenPdf = canOpenBoletaFile(row)
                   const comparisonBadge = getComparisonBadge(row)
                   return (
                   <tr key={`${row.id || row.ot || row.rutaPdf}-${index}`} className={`align-top ${isDifferent ? 'bg-rose-50' : ''}`}>
@@ -734,9 +811,16 @@ const VerificacionBoletaDigitalPage = () => {
                     <td className="truncate px-2 py-1.5 text-slate-700" title={row.estado}>{row.estado || '-'}</td>
                     <td className="truncate px-2 py-1.5 font-semibold text-slate-700" title={row.otFisica}>{row.otFisica || '-'}</td>
                     <td className="px-2 py-1.5">
-                      <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${comparisonBadge.className}`}>
-                        {comparisonBadge.label}
-                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        <span className={`inline-flex rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${comparisonBadge.className}`}>
+                          {comparisonBadge.label}
+                        </span>
+                        {row.todoOk ? (
+                          <span className="inline-flex rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                            TODO OK
+                          </span>
+                        ) : null}
+                      </div>
                     </td>
                     <td className="px-2 py-1.5 text-[11px] text-slate-500">
                       <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={row.rutaPdf}>
@@ -749,7 +833,7 @@ const VerificacionBoletaDigitalPage = () => {
                           type="button"
                           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-300 text-[11px] text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
                           onClick={() => void openPdf(row)}
-                          disabled={!row.rutaPdf || loadingKey === `${row.id || row.ot}-view`}
+                          disabled={!canOpenPdf || loadingKey === `${row.id || row.ot}-view`}
                           title="Ver PDF"
                         >
                           <FontAwesomeIcon icon={faEye} />
@@ -758,7 +842,7 @@ const VerificacionBoletaDigitalPage = () => {
                           type="button"
                           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-300 text-[11px] text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
                           onClick={() => void downloadPdf(row)}
-                          disabled={!row.rutaPdf || loadingKey === `${row.id || row.ot}-download`}
+                          disabled={!canOpenPdf || loadingKey === `${row.id || row.ot}-download`}
                           title="Descargar PDF"
                         >
                           <FontAwesomeIcon icon={faDownload} />
@@ -772,6 +856,17 @@ const VerificacionBoletaDigitalPage = () => {
                             title="Cambiar PDF"
                           >
                             <FontAwesomeIcon icon={faUpload} />
+                          </button>
+                        ) : null}
+                        {canValidateTodoOk ? (
+                          <button
+                            type="button"
+                            className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-emerald-300 text-[11px] text-emerald-700 transition hover:border-emerald-400 hover:bg-emerald-50 disabled:opacity-50"
+                            onClick={() => void markTodoOk(row)}
+                            disabled={!row.id || loadingKey === `${row.id || row.ot}-todo-ok`}
+                            title="Todo OK"
+                          >
+                            <FontAwesomeIcon icon={faCheckCircle} />
                           </button>
                         ) : null}
                       </div>
@@ -814,15 +909,24 @@ const VerificacionBoletaDigitalPage = () => {
           ) : (
             visibleRows.map((row, index) => {
               const canReplace = canReplacePdf(row)
+              const canValidateTodoOk = canMarkTodoOk(row)
+              const canOpenPdf = canOpenBoletaFile(row)
               const comparisonBadge = getComparisonBadge(row)
               return (
                 <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm">
                   <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
                     <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                       <p className="min-w-0 break-words text-base font-extrabold text-slate-900">OT: {row.ot || '-'}</p>
-                      <span className={`inline-flex shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${comparisonBadge.className}`}>
-                        {comparisonBadge.label}
-                      </span>
+                      <div className="flex shrink-0 flex-wrap justify-end gap-1">
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-bold ${comparisonBadge.className}`}>
+                          {comparisonBadge.label}
+                        </span>
+                        {row.todoOk ? (
+                          <span className="inline-flex rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">
+                            TODO OK
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                     <p className="mt-1 break-words text-xs font-semibold text-slate-500">{row.tecnico || '-'}</p>
                   </div>
@@ -855,11 +959,11 @@ const VerificacionBoletaDigitalPage = () => {
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-4 py-3">
-                    <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => void openPdf(row)} disabled={!row.rutaPdf}>
+                    <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => void openPdf(row)} disabled={!canOpenPdf}>
                       <FontAwesomeIcon icon={faEye} />
                       <span>Ver</span>
                     </Button>
-                    <Button type="button" className="min-h-11 px-3" onClick={() => void downloadPdf(row)} disabled={!row.rutaPdf}>
+                    <Button type="button" className="min-h-11 px-3" onClick={() => void downloadPdf(row)} disabled={!canOpenPdf}>
                       <FontAwesomeIcon icon={faDownload} />
                       <span>Descargar</span>
                     </Button>
@@ -867,6 +971,12 @@ const VerificacionBoletaDigitalPage = () => {
                       <Button type="button" variant="secondary" className="col-span-2 min-h-11 px-3" onClick={() => selectReplacementPdf(row)} disabled={!row.id || loadingKey === `${row.id || row.ot}-upload`}>
                         <FontAwesomeIcon icon={faUpload} />
                         <span>Cambiar archivo</span>
+                      </Button>
+                    ) : null}
+                    {canValidateTodoOk ? (
+                      <Button type="button" variant="secondary" className="col-span-2 min-h-11 px-3 text-emerald-700" onClick={() => void markTodoOk(row)} disabled={!row.id || loadingKey === `${row.id || row.ot}-todo-ok`}>
+                        <FontAwesomeIcon icon={faCheckCircle} />
+                        <span>Todo OK</span>
                       </Button>
                     ) : null}
                   </div>

@@ -155,6 +155,15 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Nodo Zona',
+    to: '/backoffice/nodo-zona',
+    routePatterns: ['/backoffice/nodo-zona'],
+    requiredAnyPageNames: ['NodoZonaPage'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'sistemas', 'admin', 'administrador'],
+    sidebarLabelFromMenu: true,
+    showInSidebar: true,
+  },
+  {
     label: 'Georeferencias',
     to: '/digitador/georef',
     routePatterns: ['/digitador/georef'],

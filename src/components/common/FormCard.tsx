@@ -7,12 +7,13 @@ interface FormCardProps {
   actions?: ReactNode
   hideHeader?: boolean
   compact?: boolean
+  overflowVisible?: boolean
 }
 
-const FormCard = ({ title, description, children, actions, hideHeader = false, compact = false }: FormCardProps) => {
+const FormCard = ({ title, description, children, actions, hideHeader = false, compact = false, overflowVisible = false }: FormCardProps) => {
   const showHeader = !hideHeader
   return (
-    <div className={`glass-panel ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-5'}`}>
+    <div className={`glass-panel ${overflowVisible ? '!overflow-visible' : ''} ${compact ? 'p-3 sm:p-4' : 'p-4 sm:p-5'}`}>
       {showHeader ? (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>

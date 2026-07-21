@@ -221,6 +221,7 @@ const resolveImageSrc = (value?: string): string | null => {
 const JornadaRemoteImageCard = ({
   queryKey,
   queryFn,
+  fullImageQueryFn,
   label,
   alt,
   className = 'h-48 w-full object-cover',
@@ -230,6 +231,7 @@ const JornadaRemoteImageCard = ({
 }: {
   queryKey: Array<string | number | boolean>
   queryFn: () => Promise<Blob>
+  fullImageQueryFn?: () => Promise<Blob>
   label: string
   alt: string
   className?: string
@@ -245,6 +247,13 @@ const JornadaRemoteImageCard = ({
     retry: false,
     enabled: enabled && !fallbackSrc,
   })
+  const fullImageQuery = useQuery({
+    queryKey: [...queryKey, 'completa'],
+    queryFn: fullImageQueryFn ?? queryFn,
+    staleTime: 10 * 60_000,
+    retry: false,
+    enabled: false,
+  })
   const [objectUrl, setObjectUrl] = useState<string | null>(null)
 
   useEffect(() => {
@@ -259,13 +268,35 @@ const JornadaRemoteImageCard = ({
 
   const src = fallbackSrc || objectUrl
 
+  const handleZoom = async () => {
+    if (!fullImageQueryFn) {
+      if (src) onZoom(src)
+      return
+    }
+    try {
+      const result = await fullImageQuery.refetch()
+      if (result.data) {
+        onZoom(URL.createObjectURL(result.data))
+        return
+      }
+    } catch {
+      // Si falla la imagen completa, mantiene disponible la miniatura visible.
+    }
+    if (src) onZoom(src)
+  }
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-slate-100 p-5">
       <p className="text-sm font-semibold tracking-[0.2em] text-slate-700">{label}</p>
       {imageQuery.isLoading ? (
         <p className="mt-2 text-sm font-semibold text-slate-500">Cargando...</p>
       ) : src ? (
-        <button type="button" className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200" onClick={() => onZoom(src)}>
+        <button
+          type="button"
+          className="mt-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200 disabled:cursor-progress"
+          onClick={handleZoom}
+          disabled={fullImageQuery.isFetching}
+        >
           <img src={src} alt={alt} className={`rounded-xl border border-slate-300 ${className}`} />
         </button>
       ) : (
@@ -2007,6 +2038,7 @@ const SupervisorSupervisionPage = () => {
                 <JornadaRemoteImageCard
                   queryKey={['supervision', 'jornada-imagen-modal', inicioPendienteDetalle.idInicio]}
                   queryFn={() => fetchInicioJornadaImagen(inicioPendienteDetalle.idInicio, 'supervisor', true)}
+                  fullImageQueryFn={() => fetchInicioJornadaImagen(inicioPendienteDetalle.idInicio, 'supervisor', false)}
                   label="Imagen inicio"
                   alt="Inicio jornada"
                   onZoom={setZoomImageSrc}
@@ -2024,6 +2056,7 @@ const SupervisorSupervisionPage = () => {
                 <JornadaRemoteImageCard
                   queryKey={['supervision', 'jornada-imagen-auxiliar-modal', inicioPendienteDetalle.idInicio]}
                   queryFn={() => fetchInicioJornadaImagenAuxiliar(inicioPendienteDetalle.idInicio, 'supervisor', true)}
+                  fullImageQueryFn={() => fetchInicioJornadaImagenAuxiliar(inicioPendienteDetalle.idInicio, 'supervisor', false)}
                   label="Imagen auxiliar"
                   alt="Auxiliar inicio jornada"
                   fallbackValue={inicioPendienteDetalle.imagenAuxiliar}

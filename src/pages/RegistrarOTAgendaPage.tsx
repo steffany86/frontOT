@@ -47,7 +47,8 @@ const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = 10 * 1024 * 1024
 const IMAGE_MAX_BYTES = 10 * 1024 * 1024
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
-const IMAGE_MIME_TYPES = ['image/jpeg', 'image/png']
+const IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/x-png', 'application/octet-stream']
+const FORM_STEPS = ['Cabecera', 'Red', 'Observacion', 'Archivo'] as const
 const TIPO_SERVICIO_ID_KEYS = [
   'id_tiposervicio',
   'Id_TipoServicio',
@@ -58,6 +59,8 @@ const TIPO_SERVICIO_ID_KEYS = [
 ] as const
 
 const normalizeHostName = (value: string): string => value.trim().toLowerCase()
+const isTouchLikeDevice = (): boolean =>
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
 
 const normalizeKey = (value: string): string => value.replace(/[_\-\s]/g, '').toLowerCase()
 const normalizeText = (value: string): string =>
@@ -387,6 +390,7 @@ const RegistrarOTAgendaPage = () => {
   const [tipoTecnologia, setTipoTecnologia] = useState('')
   const [checkPlantaExterna, setCheckPlantaExterna] = useState(false)
   const [tieneDetalle, setTieneDetalle] = useState(false)
+  const [formStep, setFormStep] = useState(0)
   const queryClient = useQueryClient()
   const tipoServicioRef = useRef<HTMLSelectElement | null>(null)
   const estadoRef = useRef<HTMLSelectElement | null>(null)
@@ -398,6 +402,7 @@ const RegistrarOTAgendaPage = () => {
   const tapRef = useRef<HTMLInputElement | null>(null)
   const bocaRef = useRef<HTMLSelectElement | null>(null)
   const archivoRef = useRef<HTMLInputElement | null>(null)
+  const observacionRef = useRef<HTMLTextAreaElement | null>(null)
 
   const otRaw = (navState?.ot ?? '').trim()
   const ot = parseNumber(otRaw)
@@ -774,7 +779,7 @@ const RegistrarOTAgendaPage = () => {
   }, [effectiveIdTipoServicio, tiposServicioQuery.data])
   const archivoAdjuntoLabel = tipoArchivoProtw === 'IMAGEN' ? 'imagen' : 'PDF'
   const archivoAdjuntoRequerido = tipoArchivoProtw === 'IMAGEN' ? 'una imagen JPG/PNG' : 'un PDF'
-  const archivoAdjuntoAccept = tipoArchivoProtw === 'IMAGEN' ? '.jpg,.jpeg,.png,image/jpeg,image/png' : '.pdf,application/pdf'
+  const archivoAdjuntoAccept = tipoArchivoProtw === 'IMAGEN' ? '.jpg,.jpeg,.png,image/*' : '.pdf,application/pdf'
 
   const estadosQuery = useQuery({
     queryKey: ['catalogos-estados-agenda'],
@@ -943,6 +948,7 @@ const RegistrarOTAgendaPage = () => {
     if (!tapValid) missing.push('tap (3 digitos)')
     if (!bocaValid) missing.push('boca')
     if (!tipoTecnologia.trim()) missing.push('tipo tecnologia')
+    if (!observacion.trim()) missing.push('bitacora')
     return missing
   }, [
     bocaValid,
@@ -952,6 +958,7 @@ const RegistrarOTAgendaPage = () => {
     nodoValid,
     parsedEstadoId,
     ramalValid,
+    observacion,
     session?.idUsuario,
     tapValid,
     tipoTecnologia,
@@ -972,9 +979,11 @@ const RegistrarOTAgendaPage = () => {
   const tapInvalid = shouldShowValidation && !tapValid
   const bocaInvalid = shouldShowValidation && !bocaValid
   const tipoTecnologiaInvalid = shouldShowValidation && !tipoTecnologia.trim()
+  const observacionInvalid = shouldShowValidation && !observacion.trim()
   const archivoInvalid = shouldShowValidation && !pdfFile
 
   const handleNodoBlur = (event: FocusEvent<HTMLInputElement>) => {
+    if (isTouchLikeDevice()) return
     if (!nodoValid) {
       const input = event.currentTarget
       window.setTimeout(() => {
@@ -986,6 +995,7 @@ const RegistrarOTAgendaPage = () => {
   }
 
   const handleTapBlur = (event: FocusEvent<HTMLInputElement>) => {
+    if (isTouchLikeDevice()) return
     if (!tapValid) {
       const input = event.currentTarget
       window.setTimeout(() => {
@@ -1007,6 +1017,7 @@ const RegistrarOTAgendaPage = () => {
       (ramalInvalid ? ramalRef.current : null) ??
       (tapInvalid ? tapRef.current : null) ??
       (bocaInvalid ? bocaRef.current : null) ??
+      (observacionInvalid ? observacionRef.current : null) ??
       (archivoInvalid ? archivoRef.current : null)
     window.setTimeout(() => {
       target?.focus()
@@ -1623,6 +1634,67 @@ const RegistrarOTAgendaPage = () => {
     setSubmitErrorModalOpen(false)
     focusFirstInvalidField()
   }
+  const isFirstFormStep = formStep === 0
+  const isLastFormStep = formStep === FORM_STEPS.length - 1
+  const focusStepField = (target: HTMLElement | null) => {
+    window.setTimeout(() => {
+      target?.focus()
+      target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }, 0)
+  }
+  const validateFormStep = (step: number): boolean => {
+    if (step === 0) {
+      const target =
+        (firstPositiveNumber(effectiveIdTipoServicio) === null ? tipoServicioRef.current : null) ??
+        (!hasValidOrdenTrabajo ? otRef.current : null) ??
+        (!hasValidCodigoCliente ? clienteRef.current : null) ??
+        (parsedEstadoId === null ? estadoRef.current : null)
+      if (target || isBlockedEstadoForCurrentOt) {
+        setSubmitError(isBlockedEstadoForCurrentOt ? 'El estado seleccionado no esta permitido para esta OT.' : 'Complete los datos de cabecera antes de continuar.')
+        focusStepField(target)
+        return false
+      }
+      return true
+    }
+    if (step === 1) {
+      const target =
+        (!tipoTecnologia.trim() ? tipoTecnologiaRef.current : null) ??
+        (!nodoValid ? nodoRef.current : null) ??
+        (!ramalValid ? ramalRef.current : null) ??
+        (!tapValid ? tapRef.current : null) ??
+        (!bocaValid ? bocaRef.current : null)
+      if (target) {
+        setSubmitError('Complete los datos de red antes de continuar.')
+        focusStepField(target)
+        return false
+      }
+      return true
+    }
+    if (step === 2) {
+      if (!observacion.trim()) {
+        setSubmitError('Complete la bitacora antes de continuar.')
+        focusStepField(observacionRef.current)
+        return false
+      }
+      return true
+    }
+    return true
+  }
+  const canMoveToStep = (targetStep: number): boolean => {
+    if (targetStep <= formStep) return true
+    setHasAttemptedSubmit(true)
+    for (let step = formStep; step < targetStep; step += 1) {
+      if (!validateFormStep(step)) return false
+    }
+    setSubmitError(null)
+    return true
+  }
+  const goToFormStep = (targetStep: number) => {
+    if (!canMoveToStep(targetStep)) return
+    setFormStep(targetStep)
+  }
+  const goToPrevStep = () => setFormStep((current) => Math.max(0, current - 1))
+  const goToNextStep = () => goToFormStep(Math.min(FORM_STEPS.length - 1, formStep + 1))
 
   return (
     <div className="bento-page overflow-x-hidden">
@@ -1632,6 +1704,31 @@ const RegistrarOTAgendaPage = () => {
 
       <form className="flex flex-col gap-4" onSubmit={handleFormSubmit}>
         <FormCard title="" hideHeader>
+          <div className="mb-4 border-b border-slate-200 pb-4">
+            <div className="flex flex-wrap gap-2">
+              {FORM_STEPS.map((label, index) => {
+                const active = formStep === index
+                const completed = formStep > index
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${
+                      active
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : completed
+                          ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                          : 'border-slate-200 bg-slate-50 text-slate-500'
+                    }`}
+                    onClick={() => goToFormStep(index)}
+                    disabled={mutation.isPending || isPrevalidating}
+                  >
+                    {index + 1}. {label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
           <div className="grid gap-3 md:grid-cols-6">
             <div className="md:col-span-4 hidden">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Usuario</label>
@@ -1643,6 +1740,7 @@ const RegistrarOTAgendaPage = () => {
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={tecnicoVisible} disabled />
             </div>
 
+            <div className={formStep === 0 ? 'contents' : 'hidden'}>
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-red-600">Fecha Ejecucion</label>
               <input
@@ -1748,7 +1846,9 @@ const RegistrarOTAgendaPage = () => {
               <label className="mb-1 block text-xs font-semibold text-slate-700">Origen</label>
               <input className="input-base rounded-md bg-slate-50 py-2 text-sm" value={origenRegistro} disabled />
             </div>
+            </div>
 
+            <div className={formStep === 1 ? 'contents' : 'hidden'}>
             <div className="md:col-span-2">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Tipo Tecnologia</label>
               <select
@@ -1846,15 +1946,20 @@ const RegistrarOTAgendaPage = () => {
                 disabled
               />
             </div>
+            </div>
 
+            <div className={formStep === 2 ? 'contents' : 'hidden'}>
             <div className="md:col-span-6">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Bitacora</label>
               <textarea
-                className="input-base h-24 resize-none rounded-md py-2 text-sm"
+                ref={observacionRef}
+                className={`input-base h-24 resize-none rounded-md py-2 text-sm ${observacionInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={observacion}
                 onChange={(event) => setObservacion(event.target.value)}
                 placeholder="Escribe una observacion"
+                aria-invalid={observacionInvalid}
               />
+              {observacionInvalid ? <p className="mt-1 text-xs text-rose-600">Bitacora es requerida.</p> : null}
             </div>
 
             <div className="md:col-span-1 md:pt-6">
@@ -1891,7 +1996,9 @@ const RegistrarOTAgendaPage = () => {
                 <p className="mt-1 text-xs text-slate-500">Para este estado, "Se uso material?" no aplica.</p>
               ) : null}
             </div>
+            </div>
 
+            <div className={formStep === 3 ? 'contents' : 'hidden'}>
             <div className="md:col-span-6">
               <label className="mb-1 block text-xs font-semibold text-slate-700">Adjuntar {archivoAdjuntoLabel} (obligatorio)</label>
               <input
@@ -1972,6 +2079,7 @@ const RegistrarOTAgendaPage = () => {
               </div>
               {geoError ? <div className="mt-2 text-rose-600">{geoError}</div> : null}
             </div>
+            </div>
           </div>
         </FormCard>
 
@@ -2017,10 +2125,24 @@ const RegistrarOTAgendaPage = () => {
         ) : null}
         {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
 
-        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-center text-xs font-semibold text-slate-500 sm:text-left">
+            Paso {formStep + 1} de {FORM_STEPS.length}: {FORM_STEPS[formStep]}
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={handleBackToDashboard} disabled={mutation.isPending || isPrevalidating}>
             {success ? 'Volver' : 'Cancelar'}
           </Button>
+          {!isFirstFormStep ? (
+            <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={goToPrevStep} disabled={mutation.isPending || isPrevalidating}>
+              Anterior
+            </Button>
+          ) : null}
+          {!isLastFormStep ? (
+            <Button className="w-full sm:w-auto" type="button" onClick={goToNextStep} disabled={mutation.isPending || cabeceraQuery.isLoading || geoLoading || calibrationBusy || isPrevalidating}>
+              Siguiente
+            </Button>
+          ) : (
           <Button
             className="w-full sm:w-auto"
             type="submit"
@@ -2028,6 +2150,8 @@ const RegistrarOTAgendaPage = () => {
           >
             {registroGuardado ? 'Registrada' : isPrevalidating ? 'Validando...' : mutation.isPending ? 'Guardando...' : 'Registrar OT'}
           </Button>
+          )}
+          </div>
         </div>
       </form>
 

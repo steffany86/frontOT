@@ -43,10 +43,13 @@ const Modal = ({
   if (!open || typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/45 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/45 backdrop-blur-sm"
+      style={{ height: '100vh', minHeight: '100svh', WebkitOverflowScrolling: 'touch' }}
+    >
       <div className="flex min-h-full items-start justify-center p-2 sm:items-center sm:p-6">
         <div
-          className={`bento-modal flex max-h-[calc(100dvh-1rem)] flex-col overflow-hidden ${containerClassName ?? maxWidthClass ?? 'max-w-lg'}`}
+          className={`bento-modal flex max-h-[calc(100vh-1rem)] flex-col overflow-hidden sm:max-h-[calc(100svh-3rem)] ${containerClassName ?? maxWidthClass ?? 'max-w-lg'}`}
         >
           <div className="flex items-center justify-between border-b border-slate-200/80 pb-3">
             <h3 className="text-lg font-semibold text-slate-900">{title}</h3>
@@ -54,7 +57,7 @@ const Modal = ({
               x
             </button>
           </div>
-          <div className="mt-4 overflow-y-auto pr-1">
+          <div className="mt-4 overflow-y-auto pr-1" style={{ WebkitOverflowScrolling: 'touch' }}>
             <div className={`text-sm text-slate-600 ${contentClassName ?? ''}`.trim()}>{children}</div>
             {actions ? <div className="mt-6 flex justify-end gap-3">{actions}</div> : null}
           </div>
