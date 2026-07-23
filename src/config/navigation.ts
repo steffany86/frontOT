@@ -113,6 +113,13 @@ export const navigationItems: NavigationItem[] = [
     sidebarLabelFromMenu: true,
   },
   {
+    label: 'Cuadre de técnicos',
+    to: '/tecnico/cuadre',
+    routePatterns: ['/tecnico/cuadre'],
+    allowedRoles: ['tecnico'],
+    showInSidebar: true,
+  },
+  {
     label: 'Seguimiento y Control Operativo',
     to: '/supervisor/llamada-atencion',
     routePatterns: ['/supervisor/llamada-atencion'],

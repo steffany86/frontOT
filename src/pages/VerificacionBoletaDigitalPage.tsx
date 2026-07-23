@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faDownload, faEye, faFileExcel, faFilePdf, faFloppyDisk, faRotateRight, faSearch, faUpload, faCheckCircle } from '@fortawesome/free-solid-svg-icons'
+import { faDownload, faEye, faFileExcel, faFilePdf, faList, faRotateRight, faSearch, faUpload, faCheckCircle } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import Modal from '../components/common/Modal'
 import {
-  confirmarBoletaDigitalBoleta,
   downloadBoletaDigitalArchivo,
   fetchBoletaDigitalArchivo,
   fetchBoletaDigitalOts,
   markBoletaDigitalTodoOk,
+  renameBoletaDigitalArchivo,
   uploadBoletaDigitalArchivo,
 } from '../api/boletaDigitalApi'
 import { getApiErrorMessage } from '../services/httpClient'
@@ -26,6 +26,11 @@ const getFileName = (rutaPdf: string, ot: string): string => {
   const fileName = normalized.split('/').filter(Boolean).pop()
   if (fileName) return fileName
   return ot ? `OT_${ot}.pdf` : 'boleta-digital.pdf'
+}
+
+const getFileExtension = (fileName: string, fallback: string): string => {
+  const match = fileName.toLowerCase().match(/\.[a-z0-9]+$/)
+  return match?.[0] || fallback
 }
 
 const getExpectedPdfFileName = (row: BoletaDigitalOt | null): string => {
@@ -88,7 +93,7 @@ const isImageRow = (row: BoletaDigitalOt): boolean => {
 }
 
 const canReplacePdf = (row: BoletaDigitalOt): boolean => {
-  return isDifferentRow(row) || isWithoutPdfRow(row) || isImageRow(row) || (isEqualRow(row) && !row.todoOk)
+  return !row.todoOk && (isDifferentRow(row) || isWithoutPdfRow(row) || isImageRow(row) || isEqualRow(row) || isEditedRow(row))
 }
 
 const isEqualRow = (row: BoletaDigitalOt): boolean => {
@@ -99,8 +104,10 @@ const isPreviouslyModifiedEqualRow = (row: BoletaDigitalOt): boolean => {
   return row.previamenteModificada && isEqualRow(row)
 }
 
+const isEditedRow = (row: BoletaDigitalOt): boolean => row.previamenteModificada
+
 const canMarkTodoOk = (row: BoletaDigitalOt): boolean => {
-  return isEqualRow(row) && !row.todoOk
+  return !row.todoOk && (isEqualRow(row) || isEditedRow(row))
 }
 
 const getComparisonBadge = (row: BoletaDigitalOt): { label: string; className: string } => {
@@ -148,8 +155,20 @@ const formatBoletaDateTitle = (value: string): string => {
 
 const boletaText = (value: string): string => value || '-'
 
-const getBoletaRowKey = (row: BoletaDigitalOt): string =>
-  row.id?.trim() || row.ot?.trim() || row.rutaPdf?.trim() || row.nroTransaccion?.trim() || ''
+const formatDetailValue = (value: unknown): string => {
+  if (value === undefined || value === null || value === '') return '-'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return String(value)
+    }
+  }
+  return String(value)
+}
+
+const formatDetailLabel = (key: string): string => key.replace(/_/g, ' ')
 
 const readRawBoletaValue = (row: BoletaDigitalOt, keys: string[]): unknown => {
   for (const key of keys) {
@@ -170,13 +189,6 @@ const readRawBoletaValue = (row: BoletaDigitalOt, keys: string[]): unknown => {
 const getIdBoCitaHistorial = (row: BoletaDigitalOt): string => {
   const value = row.idBoCitaHistorial || readRawBoletaValue(row, ['Id_BO_CITA_MAKIRO_Historial', 'id_BO_CITA_MAKIRO_Historial', 'idBoCitaMakiroHistorial'])
   return typeof value === 'string' ? value.trim() : String(value ?? '').trim()
-}
-
-const isActualizadoBoletaConfirmado = (row: BoletaDigitalOt): boolean => {
-  const value = readRawBoletaValue(row, ['Actualizado_BOLETA', 'ActualizadoBoleta', 'actualizado_boleta', 'actualizadoBoleta'])
-  if (typeof value === 'number') return value === 1
-  if (typeof value === 'string') return value.trim() === '1'
-  return false
 }
 
 const canOpenBoletaFile = (row: BoletaDigitalOt): boolean => {
@@ -215,7 +227,7 @@ const getBoletaDigitalErrorMessage = async (error: unknown, fallback: string): P
 
 const VerificacionBoletaDigitalPage = () => {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf' | 'imagenes'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf' | 'imagenes' | 'editados'>('all')
   const [fechaInicio, setFechaInicio] = useState(defaultFechaInicio)
   const [fechaFin, setFechaFin] = useState(defaultFechaFin)
   const [fechaRangeError, setFechaRangeError] = useState(false)
@@ -223,18 +235,33 @@ const VerificacionBoletaDigitalPage = () => {
   const [actionError, setActionError] = useState<string | null>(null)
   const [loadingKey, setLoadingKey] = useState<string | null>(null)
   const [exportandoExcel, setExportandoExcel] = useState(false)
+  const [selectedDetailRow, setSelectedDetailRow] = useState<BoletaDigitalOt | null>(null)
   const [selectedUploadRow, setSelectedUploadRow] = useState<BoletaDigitalOt | null>(null)
   const [pendingUploadFile, setPendingUploadFile] = useState<File | null>(null)
   const [uploadFileName, setUploadFileName] = useState('')
   const [uploadRenameError, setUploadRenameError] = useState<string | null>(null)
   const [uploadModal, setUploadModal] = useState<{
     open: boolean
-    status: 'confirm' | 'loading' | 'error'
+    status: 'choose' | 'confirm' | 'rename' | 'loading' | 'error'
     message: string
   }>({ open: false, status: 'loading', message: '' })
-  const [confirmBoletaByRow, setConfirmBoletaByRow] = useState<Record<string, boolean>>({})
   const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const tableScrollRef = useRef<HTMLDivElement | null>(null)
+  const horizontalScrollRef = useRef<HTMLDivElement | null>(null)
   const hasValidDateRange = Boolean(fechaInicio && fechaFin && fechaInicio <= fechaFin)
+
+  const syncHorizontalScroll = (source: 'top' | 'table') => {
+    const tableScroll = tableScrollRef.current
+    const horizontalScroll = horizontalScrollRef.current
+    if (!tableScroll || !horizontalScroll) return
+
+    if (source === 'top' && tableScroll.scrollLeft !== horizontalScroll.scrollLeft) {
+      tableScroll.scrollLeft = horizontalScroll.scrollLeft
+    }
+    if (source === 'table' && horizontalScroll.scrollLeft !== tableScroll.scrollLeft) {
+      horizontalScroll.scrollLeft = tableScroll.scrollLeft
+    }
+  }
 
   const otsQuery = useQuery({
     queryKey: ['boleta-digital', 'ots', fechaInicio, fechaFin],
@@ -252,6 +279,7 @@ const VerificacionBoletaDigitalPage = () => {
       diferentes: rows.filter(isDifferentRow).length,
       sinPdf: rows.filter(isWithoutPdfRow).length,
       imagenes: rows.filter(isImageRow).length,
+      editados: rows.filter(isEditedRow).length,
     }),
     [rows]
   )
@@ -263,6 +291,7 @@ const VerificacionBoletaDigitalPage = () => {
         if (statusFilter === 'diferentes') return isDifferentRow(row)
         if (statusFilter === 'sin_pdf') return isWithoutPdfRow(row)
         if (statusFilter === 'imagenes') return isImageRow(row)
+        if (statusFilter === 'editados') return isEditedRow(row)
         return true
       }),
     [rows, search, statusFilter]
@@ -283,48 +312,6 @@ const VerificacionBoletaDigitalPage = () => {
       setFechaRangeError(false)
     }
   }, [hasValidDateRange])
-
-  const confirmarBoletaMutation = useMutation({
-    mutationFn: ({ idVenta }: { idVenta: string; rowKey: string }) => confirmarBoletaDigitalBoleta(idVenta),
-    onSuccess: async (_, variables) => {
-      setConfirmBoletaByRow((current) => {
-        const next = { ...current }
-        delete next[variables.rowKey]
-        return next
-      })
-      await otsQuery.refetch()
-    },
-  })
-
-  const toggleConfirmBoleta = (rowKey: string, checked: boolean) => {
-    setConfirmBoletaByRow((current) => ({
-      ...current,
-      [rowKey]: checked,
-    }))
-  }
-
-  const procesarCambioBoleta = (row: BoletaDigitalOt) => {
-    const rowKey = getBoletaRowKey(row)
-    if (!rowKey) {
-      setActionError('No se pudo identificar la OT para confirmar la boleta.')
-      return
-    }
-    if (!row.id?.trim()) {
-      setActionError('La fila no tiene id de venta para procesar el cambio.')
-      return
-    }
-    if (!confirmBoletaByRow[rowKey]) {
-      setActionError('Marca confirmar antes de procesar el cambio.')
-      return
-    }
-    setActionError(null)
-    setLoadingKey(`${rowKey}-confirm-boleta`)
-    confirmarBoletaMutation.mutate({ idVenta: row.id, rowKey }, {
-      onSettled: () => {
-        setLoadingKey((current) => (current === `${rowKey}-confirm-boleta` ? null : current))
-      },
-    })
-  }
 
   const canExportExcel = statusFilter === 'diferentes' || statusFilter === 'sin_pdf' || statusFilter === 'imagenes'
 
@@ -473,11 +460,22 @@ const VerificacionBoletaDigitalPage = () => {
     }
     setActionError(null)
     setSelectedUploadRow(row)
-    if (fileInputRef.current) {
-      fileInputRef.current.accept = isImageRow(row) ? '.jpg,.jpeg,.png,.webp,image/*' : 'application/pdf,.pdf'
-      fileInputRef.current.value = ''
-      fileInputRef.current.click()
-    }
+    setUploadModal({ open: true, status: 'choose', message: '' })
+  }
+
+  const chooseNewUpload = () => {
+    if (!selectedUploadRow || !fileInputRef.current) return
+    fileInputRef.current.accept = isImageRow(selectedUploadRow) ? '.jpg,.jpeg,.png,.webp,image/*' : 'application/pdf,.pdf'
+    fileInputRef.current.value = ''
+    setUploadModal({ open: false, status: 'loading', message: '' })
+    fileInputRef.current.click()
+  }
+
+  const chooseRenameUpload = () => {
+    if (!selectedUploadRow) return
+    setUploadFileName(getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot))
+    setUploadRenameError(null)
+    setUploadModal({ open: true, status: 'rename', message: '' })
   }
 
   const uploadReplacementPdf = async (file: File, row: BoletaDigitalOt) => {
@@ -562,6 +560,36 @@ const VerificacionBoletaDigitalPage = () => {
     void uploadReplacementPdf(renameUploadFile(pendingUploadFile, finalName), selectedUploadRow)
   }
 
+  const confirmRenameUpload = () => {
+    if (!selectedUploadRow?.id) {
+      closeUploadModal()
+      return
+    }
+    const currentName = getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot)
+    const finalName = ensureUploadExtension(uploadFileName, getFileExtension(currentName, isImageRow(selectedUploadRow) ? '.png' : '.pdf'))
+    if (!finalName) {
+      setUploadRenameError('Ingrese el nombre del archivo.')
+      return
+    }
+    if (finalName.includes('/') || finalName.includes('\\')) {
+      setUploadRenameError('El nombre no debe incluir carpetas ni barras.')
+      return
+    }
+    const key = `${selectedUploadRow.id}-rename`
+    setLoadingKey(key)
+    setUploadRenameError(null)
+    setUploadModal({ open: true, status: 'loading', message: 'Cambiando nombre del archivo...' })
+    void renameBoletaDigitalArchivo(selectedUploadRow.id, finalName)
+      .then(async () => {
+        await otsQuery.refetch()
+        closeUploadModal()
+      })
+      .catch(async (error) => {
+        setUploadModal({ open: true, status: 'error', message: await getBoletaDigitalErrorMessage(error, 'No se pudo cambiar el nombre del archivo.') })
+      })
+      .finally(() => setLoadingKey((current) => (current === key ? null : current)))
+  }
+
   return (
     <div className="bento-page max-w-full overflow-x-hidden">
       <input
@@ -574,7 +602,9 @@ const VerificacionBoletaDigitalPage = () => {
       <Modal
         open={uploadModal.open}
         title={
-          uploadModal.status === 'confirm'
+          uploadModal.status === 'choose'
+            ? 'Cambiar archivo'
+            : uploadModal.status === 'confirm' || uploadModal.status === 'rename'
             ? 'Cambiar archivo'
             : uploadModal.status === 'loading'
               ? 'Subiendo boleta'
@@ -586,7 +616,11 @@ const VerificacionBoletaDigitalPage = () => {
           }
         }}
         actions={
-          uploadModal.status === 'confirm' ? (
+          uploadModal.status === 'choose' ? (
+            <Button type="button" variant="secondary" onClick={closeUploadModal}>
+              Cancelar
+            </Button>
+          ) : uploadModal.status === 'confirm' ? (
             <>
               <Button type="button" variant="secondary" onClick={closeUploadModal}>
                 Cancelar
@@ -594,6 +628,15 @@ const VerificacionBoletaDigitalPage = () => {
               <Button type="button" onClick={confirmReplacementUpload}>
                 <FontAwesomeIcon icon={faUpload} />
                 <span>Subir archivo</span>
+              </Button>
+            </>
+          ) : uploadModal.status === 'rename' ? (
+            <>
+              <Button type="button" variant="secondary" onClick={closeUploadModal}>
+                Cancelar
+              </Button>
+              <Button type="button" onClick={confirmRenameUpload} disabled={Boolean(loadingKey)}>
+                Cambiar nombre
               </Button>
             </>
           ) : uploadModal.status === 'error' ? (
@@ -606,7 +649,28 @@ const VerificacionBoletaDigitalPage = () => {
           ) : null
         }
       >
-        {uploadModal.status === 'confirm' ? (
+        {uploadModal.status === 'choose' ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+              <p className="text-xs font-semibold uppercase text-slate-500">Nombre de archivo esperado</p>
+              <p className="mt-1 break-all text-base font-bold text-slate-900">
+                {selectedUploadRow && isImageRow(selectedUploadRow)
+                  ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot)
+                  : getExpectedPdfFileName(selectedUploadRow) || '-'}
+              </p>
+            </div>
+            <p className="text-sm text-slate-600">Selecciona qué deseas hacer con el archivo actual.</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button type="button" onClick={chooseNewUpload}>
+                <FontAwesomeIcon icon={faUpload} />
+                <span>Subir archivo nuevo</span>
+              </Button>
+              <Button type="button" variant="secondary" onClick={chooseRenameUpload}>
+                <span>Cambiar nombre de archivo existente</span>
+              </Button>
+            </div>
+          </div>
+        ) : uploadModal.status === 'confirm' ? (
           <div className="space-y-4">
             <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
               <p className="text-xs font-semibold uppercase text-slate-500">
@@ -649,6 +713,30 @@ const VerificacionBoletaDigitalPage = () => {
               </p>
             )}
           </div>
+        ) : uploadModal.status === 'rename' ? (
+          <div className="space-y-4">
+            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+              <p className="text-xs font-semibold uppercase text-slate-500">Nombre esperado</p>
+              <p className="mt-1 break-all text-base font-bold text-slate-900">
+                {selectedUploadRow && isImageRow(selectedUploadRow)
+                  ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot)
+                  : getExpectedPdfFileName(selectedUploadRow) || '-'}
+              </p>
+            </div>
+            <p className="text-sm text-slate-600">El archivo actual se conservará; solo se cambiará su nombre y la ruta registrada.</p>
+            <Field label="Nuevo nombre del archivo">
+              <input
+                className={`input-base ${uploadRenameError ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
+                value={uploadFileName}
+                onChange={(event) => {
+                  setUploadFileName(event.target.value)
+                  setUploadRenameError(null)
+                }}
+                placeholder={selectedUploadRow && isImageRow(selectedUploadRow) ? 'imagen.png' : 'SA-00000000.pdf'}
+              />
+            </Field>
+            {uploadRenameError ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">{uploadRenameError}</div> : null}
+          </div>
         ) : uploadModal.status === 'loading' ? (
           <div className="flex items-center gap-3">
             <span className="h-8 w-8 animate-spin rounded-full border-4 border-blue-100 border-t-blue-700" />
@@ -659,6 +747,34 @@ const VerificacionBoletaDigitalPage = () => {
             {uploadModal.message || 'No coincide el nombre del PDF.'}
           </div>
         )}
+      </Modal>
+      <Modal
+        open={Boolean(selectedDetailRow)}
+        title={`Detalle de boleta ${selectedDetailRow?.id || selectedDetailRow?.ot || ''}`}
+        onClose={() => setSelectedDetailRow(null)}
+        actions={
+          <Button type="button" variant="secondary" onClick={() => setSelectedDetailRow(null)}>
+            Cerrar
+          </Button>
+        }
+      >
+        {selectedDetailRow ? (
+          <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
+            <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm sm:grid-cols-3">
+              <p><span className="block text-[10px] font-bold uppercase text-slate-500">Id venta</span><span className="font-bold text-slate-900">{selectedDetailRow.id || '-'}</span></p>
+              <p><span className="block text-[10px] font-bold uppercase text-slate-500">Cliente</span><span className="font-bold text-slate-900">{selectedDetailRow.cliente || '-'}</span></p>
+              <p><span className="block text-[10px] font-bold uppercase text-slate-500">OT</span><span className="font-bold text-slate-900">{selectedDetailRow.ot || '-'}</span></p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {Object.entries(selectedDetailRow.raw).map(([key, value]) => (
+                <div key={key} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{formatDetailLabel(key)}</p>
+                  <p className="mt-1 break-words text-xs font-semibold text-slate-800">{formatDetailValue(value)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </Modal>
       <div className="bento-page-head">
         <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Verificación Boleta Digital</h2>
@@ -673,6 +789,7 @@ const VerificacionBoletaDigitalPage = () => {
               { id: 'diferentes', label: 'Diferentes', count: statusSummary.diferentes },
               { id: 'sin_pdf', label: 'Sin PDF', count: statusSummary.sinPdf },
               { id: 'imagenes', label: 'Con imagen', count: statusSummary.imagenes },
+              { id: 'editados', label: 'Editados', count: statusSummary.editados },
             ].map((tab) => {
               const active = statusFilter === tab.id
               return (
@@ -828,7 +945,20 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         ) : null}
 
-        <div className="hidden max-h-[68vh] max-w-full overflow-auto md:block">
+        <div className="hidden items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-[11px] text-slate-500 md:flex">
+          <span className="shrink-0 font-semibold uppercase tracking-wide">Desplazamiento horizontal</span>
+          <div
+            ref={horizontalScrollRef}
+            className="min-w-0 flex-1 overflow-x-scroll overflow-y-hidden rounded-md border border-slate-200 bg-white"
+            onScroll={() => syncHorizontalScroll('top')}
+            aria-label="Desplazamiento horizontal de la tabla"
+          >
+            <div className="h-2 min-w-[1120px]" />
+          </div>
+          <span className="hidden shrink-0 sm:inline">Mueve la tabla de izquierda a derecha</span>
+        </div>
+
+        <div ref={tableScrollRef} onScroll={() => syncHorizontalScroll('table')} className="hidden max-h-[68vh] max-w-full overflow-x-auto overflow-y-auto md:block">
           <table className="w-full min-w-[1120px] table-fixed divide-y divide-slate-200 text-xs leading-tight">
             <colgroup>
               <col className="w-[8%]" />
@@ -840,8 +970,7 @@ const VerificacionBoletaDigitalPage = () => {
               <col className="w-[10%]" />
               <col className="w-[10%]" />
               <col className="w-[11%]" />
-              <col className="w-[7%]" />
-              <col className="w-[8%]" />
+              <col className="w-[15%]" />
             </colgroup>
             <thead className="sticky top-0 z-10 bg-slate-50 text-[10px] uppercase text-slate-500 shadow-sm">
               <tr>
@@ -854,18 +983,17 @@ const VerificacionBoletaDigitalPage = () => {
                 <th className="px-2 py-1.5 text-left font-semibold">OT Fisica</th>
                 <th className="px-2 py-1.5 text-left font-semibold">Comparacion</th>
                 <th className="px-2 py-1.5 text-left font-semibold">RutaPDF</th>
-                <th className="px-2 py-1.5 text-center font-semibold">Confirmar</th>
                 <th className="px-2 py-1.5 text-right font-semibold">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {otsQuery.isLoading ? (
                 <tr>
-                  <td className="px-2 py-4 text-slate-500" colSpan={11}>Cargando boletas...</td>
+                  <td className="px-2 py-4 text-slate-500" colSpan={10}>Cargando boletas...</td>
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={11}>
+                  <td className="px-4 py-12 text-center" colSpan={10}>
                     <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
                   </td>
                 </tr>
@@ -875,9 +1003,6 @@ const VerificacionBoletaDigitalPage = () => {
                   const canReplace = canReplacePdf(row)
                   const canValidateTodoOk = canMarkTodoOk(row)
                   const canOpenPdf = canOpenBoletaFile(row)
-                  const rowKey = getBoletaRowKey(row) || `${index}`
-                  const confirmBoletaLocked = isActualizadoBoletaConfirmado(row)
-                  const confirmBoletaChecked = confirmBoletaLocked || Boolean(confirmBoletaByRow[rowKey])
                   const comparisonBadge = getComparisonBadge(row)
                   return (
                   <tr key={`${row.id || row.ot || row.rutaPdf}-${index}`} className={`align-top ${isDifferent ? 'bg-rose-50' : ''}`}>
@@ -914,34 +1039,17 @@ const VerificacionBoletaDigitalPage = () => {
                         {row.rutaPdf || '-'}
                       </span>
                     </td>
-                    <td className="whitespace-nowrap px-2 py-1.5 text-center">
-                      <div className="inline-flex items-center gap-1">
-                        <input
-                          type="checkbox"
-                          checked={confirmBoletaChecked}
-                          onChange={(event) => toggleConfirmBoleta(rowKey, event.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 accent-slate-600 focus:ring-0 focus:ring-offset-0"
-                          aria-label="Confirmar cambio"
-                          disabled={confirmBoletaLocked}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          className="h-7 w-7 shrink-0 rounded-md !border-0 !bg-transparent p-0 text-slate-700 hover:!bg-slate-100 hover:text-slate-900 disabled:opacity-50"
-                          onClick={() => procesarCambioBoleta(row)}
-                          disabled={confirmBoletaLocked || !confirmBoletaChecked || confirmarBoletaMutation.isPending || loadingKey === `${rowKey}-confirm-boleta`}
-                          title={confirmBoletaLocked ? 'Ya confirmado' : 'Confirmar cambio'}
-                        >
-                          {loadingKey === `${rowKey}-confirm-boleta` ? (
-                            '...'
-                          ) : (
-                            <FontAwesomeIcon icon={faFloppyDisk} />
-                          )}
-                        </Button>
-                      </div>
-                    </td>
                     <td className="whitespace-nowrap px-2 py-1.5">
                       <div className="flex min-w-[92px] justify-end gap-1">
+                        <button
+                          type="button"
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-indigo-300 text-[11px] text-indigo-700 transition hover:border-indigo-400 hover:bg-indigo-50 disabled:opacity-50"
+                          onClick={() => setSelectedDetailRow(row)}
+                          title="Ver detalle"
+                          aria-label="Ver detalle"
+                        >
+                          <FontAwesomeIcon icon={faList} />
+                        </button>
                         <button
                           type="button"
                           className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-300 text-[11px] text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:opacity-50"
@@ -1024,9 +1132,6 @@ const VerificacionBoletaDigitalPage = () => {
               const canReplace = canReplacePdf(row)
               const canValidateTodoOk = canMarkTodoOk(row)
               const canOpenPdf = canOpenBoletaFile(row)
-              const rowKey = getBoletaRowKey(row) || `${index}`
-              const confirmBoletaLocked = isActualizadoBoletaConfirmado(row)
-              const confirmBoletaChecked = confirmBoletaLocked || Boolean(confirmBoletaByRow[rowKey])
               const comparisonBadge = getComparisonBadge(row)
               return (
                 <article key={`${row.id || row.ot || row.rutaPdf}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-sm shadow-sm">
@@ -1083,33 +1188,12 @@ const VerificacionBoletaDigitalPage = () => {
                         {row.rutaPdf || '-'}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={confirmBoletaChecked}
-                          onChange={(event) => toggleConfirmBoleta(rowKey, event.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 accent-slate-600 focus:ring-0 focus:ring-offset-0"
-                          disabled={confirmBoletaLocked}
-                        />
-                      </label>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="h-7 w-7 shrink-0 rounded-md !border-0 !bg-transparent p-0 text-slate-700 hover:!bg-slate-100 hover:text-slate-900 disabled:opacity-50"
-                        onClick={() => procesarCambioBoleta(row)}
-                        disabled={confirmBoletaLocked || !confirmBoletaChecked || confirmarBoletaMutation.isPending || loadingKey === `${rowKey}-confirm-boleta`}
-                        title={confirmBoletaLocked ? 'Ya confirmado' : 'Confirmar cambio'}
-                      >
-                        {loadingKey === `${rowKey}-confirm-boleta` ? (
-                          '...'
-                        ) : (
-                          <FontAwesomeIcon icon={faFloppyDisk} />
-                        )}
-                      </Button>
-                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 border-t border-slate-100 px-4 py-3">
+                    <Button type="button" variant="secondary" className="col-span-2 min-h-11 px-3 text-indigo-700" onClick={() => setSelectedDetailRow(row)}>
+                      <FontAwesomeIcon icon={faList} />
+                      <span>Ver detalle</span>
+                    </Button>
                     <Button type="button" variant="secondary" className="min-h-11 px-3" onClick={() => void openPdf(row)} disabled={!canOpenPdf}>
                       <FontAwesomeIcon icon={faEye} />
                       <span>Ver</span>

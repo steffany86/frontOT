@@ -25,6 +25,7 @@ import CentralGruposPage from '../pages/CentralGruposPage'
 import PrivilegiosPage from '../pages/admin/PrivilegiosPage'
 import ForbiddenPage from '../pages/ForbiddenPage'
 import TecnicoInicioJornadaPage from '../pages/TecnicoInicioJornadaPage'
+import CuadreTecnicoPage from '../pages/CuadreTecnicoPage'
 import ChangePasswordPage from '../pages/ChangePasswordPage'
 import NpsDashboardPage from '../pages/NpsDashboardPage'
 import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
@@ -53,6 +54,7 @@ const AppRoutes = () => {
           <Route element={<MainLayout />}>
             <Route index element={<Navigate to={defaultPrivatePath} replace />} />
             <Route path="/tecnico/inicio-jornada" element={<TecnicoInicioJornadaPage />} />
+            <Route path="/tecnico/cuadre" element={<CuadreTecnicoPage />} />
             <Route path="/GestionOTs" element={<OtDashboardPage />} />
           <Route path="/GestionOTs/crear" element={<OtCreatePage />} />
           <Route path="/GestionOTs/lista" element={<OtListPage />} />

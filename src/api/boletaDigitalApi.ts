@@ -111,6 +111,15 @@ export const uploadBoletaDigitalArchivo = async (idVenta: string, archivo: File)
   return data
 }
 
+export const renameBoletaDigitalArchivo = async (idVenta: string, nombreArchivo: string): Promise<unknown> => {
+  const formData = new FormData()
+  formData.append('id_venta', idVenta)
+  formData.append('nombreArchivo', nombreArchivo)
+
+  const { data } = await api.post('/boleta-digital/renombrar-archivo', formData)
+  return data
+}
+
 export const markBoletaDigitalTodoOk = async (idVenta: string, todoOk = true): Promise<unknown> => {
   const formData = new FormData()
   formData.append('id_venta', idVenta)
