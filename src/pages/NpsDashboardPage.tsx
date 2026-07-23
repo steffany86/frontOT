@@ -828,31 +828,31 @@ const NpsDashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="grid gap-4 lg:grid-cols-2">
-                  <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm">
+                <div className="grid min-w-0 gap-3 sm:gap-4 lg:grid-cols-2">
+                  <div className="min-w-0 rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-3 shadow-sm sm:p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faScrewdriverWrench} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Tecnologia</p>
+                      <p className="text-base font-semibold text-slate-800 sm:text-lg">Tecnologia</p>
                     </div>
-                    <div className="relative h-[250px]">
+                    <div className="relative h-[215px] sm:h-[235px]">
                       <Doughnut
                         data={{ labels: techLabels, datasets: [{ data: techValues, backgroundColor: donutPaletteTech }] }}
-                        options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right' as const, labels: { color: '#334155' } } } }}
+                        options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, boxHeight: 10, padding: 12, color: '#334155', usePointStyle: true } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <span className="rounded-full bg-white/90 px-3 py-1 text-xl font-bold text-slate-800 shadow-sm">{techTotal}</span>
                       </div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-4 shadow-sm">
+                  <div className="min-w-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-3 shadow-sm sm:p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-cyan-100 p-2 text-cyan-700"><FontAwesomeIcon icon={faUserTie} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Tipo de Técnico</p>
+                      <p className="text-base font-semibold text-slate-800 sm:text-lg">Tipo de Técnico</p>
                     </div>
-                    <div className="relative h-[250px]">
+                    <div className="relative h-[215px] sm:h-[235px]">
                       <Doughnut
                         data={{ labels: tipoLabels, datasets: [{ data: tipoValues, backgroundColor: donutPaletteTipo }] }}
-                        options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'right' as const, labels: { color: '#334155' } } } }}
+                        options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, boxHeight: 10, padding: 12, color: '#334155', usePointStyle: true } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <span className="rounded-full bg-white/90 px-3 py-1 text-xl font-bold text-slate-800 shadow-sm">{tipoTotal}</span>
@@ -861,13 +861,27 @@ const NpsDashboardPage = () => {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <span className="rounded-lg bg-slate-100 p-2 text-slate-600"><FontAwesomeIcon icon={faCalendarDays} /></span>
                     <p className="text-lg font-semibold text-slate-800">Detalle de Invitaciones Vigentes</p>
                   </div>
-                  <div className="max-h-[420px] overflow-auto rounded-xl border border-slate-200">
-                    <table className="min-w-full text-xs">
+                  <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2 md:hidden">
+                    {invitado.vigentes.map((r, idx) => (
+                      <article key={`inv-card-${r.idCliente}-${idx}`} className="grid grid-cols-2 gap-x-3 gap-y-2 rounded-lg border border-slate-200 bg-white p-3 text-xs shadow-sm">
+                        <div className="min-w-0"><p className="text-[10px] font-semibold uppercase text-slate-500">Tecnico</p><p className="break-words font-semibold text-slate-700">{r.tecnico || '-'}</p></div>
+                        <div className="min-w-0"><p className="text-[10px] font-semibold uppercase text-slate-500">Fecha</p><p className="break-words font-semibold text-slate-700">{r.fechaCreacion || '-'}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase text-slate-500">Cliente</p><p className="font-semibold text-slate-700">{r.idCliente || '-'}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase text-slate-500">Tecnologia</p><p className="font-semibold text-slate-700">{r.tecnologia || '-'}</p></div>
+                        <div className="min-w-0"><p className="text-[10px] font-semibold uppercase text-slate-500">Transaccion</p><p className="break-words font-semibold text-slate-700">{r.tipoTransaccion || '-'}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase text-slate-500">Telefono</p><p className="font-semibold text-slate-700">{r.telefono || '-'}</p></div>
+                        <div><p className="text-[10px] font-semibold uppercase text-slate-500">Dias de envio</p><p className="font-bold text-slate-900">{r.diasEnvio}</p></div>
+                        <div>{r.historico ? <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">Historico</span> : <span className="text-slate-400">Vigente</span>}</div>
+                      </article>
+                    ))}
+                  </div>
+                  <div className="hidden max-h-[420px] overflow-auto rounded-xl border border-slate-200 md:block">
+                    <table className="min-w-[820px] w-full text-xs">
                       <thead className="sticky top-0 bg-slate-50 text-slate-600">
                         <tr>
                           <th className="p-2 text-left">Tecnico</th>

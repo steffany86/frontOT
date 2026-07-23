@@ -551,7 +551,14 @@ const CruceAgendaMakiroPage = () => {
               </div>
             </div>
           </div>
-          <div className="border-t border-slate-200 pt-4">
+        </div>
+        <details className="group mt-4 border-t border-slate-200 pt-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-2 text-sm font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
+            <span className="group-open:hidden">Mostrar filtros y acciones</span>
+            <span className="hidden group-open:inline">Ocultar filtros y acciones</span>
+            <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="pt-2">
             <div className="grid gap-3 sm:grid-cols-[180px_minmax(220px,1fr)_auto_auto]">
               <label className="text-sm font-semibold text-slate-700">
                 Fecha
@@ -587,8 +594,7 @@ const CruceAgendaMakiroPage = () => {
               </Button>
             </div>
           </div>
-        </div>
-        <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="text-sm font-semibold text-slate-700">
             TipoCruce
             <select value={tipoCruce} onChange={(event) => setTipoCruce(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500">
@@ -729,7 +735,8 @@ const CruceAgendaMakiroPage = () => {
           <Button type="button" variant="secondary" className="self-end" onClick={clearFilters}>
             Limpiar
           </Button>
-        </div>
+          </div>
+        </details>
       </section>
 
       {errorMessage ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</div> : null}

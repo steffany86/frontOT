@@ -1111,7 +1111,7 @@ const SupervisorSupervisionPage = () => {
   const detalle = detalleQuery.data
 
   return (
-    <div className="bento-page">
+    <div className="bento-page supervision-page">
       <div className="bento-page-head">
         <h2 className="text-2xl font-semibold text-slate-900">Supervision</h2>
         <p className="text-sm text-slate-500">Registro manual de notas de supervision para supervisor.</p>
@@ -1569,7 +1569,7 @@ const SupervisorSupervisionPage = () => {
                 {getApiErrorMessage(listadoQuery.error, 'No se pudo cargar las notas de supervision.')}
               </div>
             ) : null}
-            <div className="md:hidden space-y-3">
+            <div className="space-y-3 rounded-xl bg-slate-900 p-2 md:hidden">
               {listadoQuery.isLoading ? (
                 <div className="rounded-2xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Cargando notas...</div>
               ) : listados.length === 0 ? (
@@ -1578,39 +1578,38 @@ const SupervisorSupervisionPage = () => {
                 </div>
               ) : (
                 listados.map((row) => (
-                  <article key={row.idSupervision} className="rounded-3xl border border-[#cfd8ee] bg-white p-3 shadow-sm">
-                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] leading-5">
-                        <div>
+                  <article key={row.idSupervision} className="rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                    <div className="grid min-w-0 grid-cols-2 gap-x-4 gap-y-3 text-[13px] leading-5">
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Fecha</p>
-                          <p className="font-semibold text-slate-700">{formatDateTime(row.fechaRegistro)}</p>
+                          <p className="break-words font-semibold text-slate-700">{formatDateTime(row.fechaRegistro)}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tecnico Principal</p>
-                          <p className="font-semibold text-slate-700">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</p>
+                          <p className="break-words font-semibold text-slate-700">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tecnico Auxiliar</p>
-                          <p className="font-semibold text-slate-700">{row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || '-'}</p>
+                          <p className="break-words font-semibold text-slate-700">{row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || '-'}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo Supervision</p>
-                          <p className="font-semibold text-slate-700">{resolveTipoSupervisionDetalle(row)}</p>
+                          <p className="break-words font-semibold text-slate-700">{resolveTipoSupervisionDetalle(row)}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo Trabajo</p>
-                          <p className="font-semibold text-slate-700">{resolveTipoTrabajoDetalle(row)}</p>
+                          <p className="break-words font-semibold text-slate-700">{resolveTipoTrabajoDetalle(row)}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Codigo</p>
-                          <p className="font-semibold text-slate-700">{row.codigo || '-'}</p>
+                          <p className="break-words font-semibold text-slate-700">{row.codigo || '-'}</p>
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">OT</p>
-                          <p className="font-semibold text-slate-700">{row.ordenTrabajo || '-'}</p>
+                          <p className="break-words font-semibold text-slate-700">{row.ordenTrabajo || '-'}</p>
                         </div>
-                      </div>
-                      <div className="mt-3">
+                    </div>
+                    <div className="mt-4 border-t border-slate-200 pt-3">
                         <Button
                           type="button"
                           variant="secondary"
@@ -1622,7 +1621,6 @@ const SupervisorSupervisionPage = () => {
                         >
                           Ver detalle
                         </Button>
-                      </div>
                     </div>
                   </article>
                 ))

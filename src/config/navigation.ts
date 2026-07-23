@@ -178,6 +178,13 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Cruce Digitacion',
+    to: '/digitador/cruce-no-finalizado',
+    routePatterns: ['/digitador/cruce-no-finalizado'],
+    allowedRoles: ['digitador', 'sistemas', 'admin', 'central'],
+    showInSidebar: true,
+  },
+  {
     label: 'Registro_TOR',
     to: '/Registro_TOR',
     routePatterns: ['/Registro_TOR'],

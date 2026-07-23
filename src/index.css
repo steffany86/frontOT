@@ -151,6 +151,10 @@
     @apply bento-tile;
   }
 
+  .supervision-page {
+    min-width: 0;
+  }
+
   .section-title {
     @apply text-xl font-semibold text-slate-900;
   }
@@ -194,6 +198,26 @@
     #root,
     .bento-main {
       overflow-x: hidden;
+    }
+
+    .supervision-page {
+      gap: 0.75rem;
+    }
+
+    .supervision-page > * {
+      min-width: 0;
+      max-width: 100%;
+    }
+
+    .supervision-page .bento-page-head,
+    .supervision-page .glass-panel,
+    .supervision-page > section {
+      border-radius: 0.85rem;
+    }
+
+    .supervision-page .btn-primary,
+    .supervision-page .btn-secondary {
+      min-width: 0;
     }
 
     .ot-realizada-page {
