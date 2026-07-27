@@ -19,6 +19,27 @@ const isSessionExpired = (): boolean => {
   return Date.now() >= expiresAt
 }
 
+const readSucursalFromToken = (token: string): number | null => {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=')
+    const claims = JSON.parse(atob(padded)) as Record<string, unknown>
+    const value = Number(claims.idSucursal ?? claims.IdSucursal ?? claims.id_sucursal ?? claims.Id_Sucursal)
+    return Number.isFinite(value) && value > 0 ? Math.trunc(value) : null
+  } catch {
+    return null
+  }
+}
+
+export const getSessionSucursalId = (): number | null => {
+  const stored = Number(localStorage.getItem(storageKeys.idSucursal))
+  if (Number.isFinite(stored) && stored > 0) return Math.trunc(stored)
+  const token = localStorage.getItem(storageKeys.sessionToken)
+  return token ? readSucursalFromToken(token) : null
+}
+
 export const getSessionExpiresAt = (): number | null => {
   const expiresAtRaw = localStorage.getItem(storageKeys.sessionExpiresAt)
   if (!expiresAtRaw) return null
@@ -46,7 +67,7 @@ export const getSessionStorage = (): SessionData | null => {
   const nombre = localStorage.getItem(storageKeys.nombre) ?? ''
   const rol = localStorage.getItem(storageKeys.rol) ?? ''
   const idRol = Number(localStorage.getItem(storageKeys.idRol))
-  const idSucursal = Number(localStorage.getItem(storageKeys.idSucursal))
+  const idSucursal = getSessionSucursalId() ?? 0
   const hostName = localStorage.getItem('hostName') ?? undefined
 
   return {

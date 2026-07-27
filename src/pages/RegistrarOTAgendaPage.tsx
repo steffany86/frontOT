@@ -18,6 +18,7 @@ import {
 import { getApiErrorMessage } from '../services/httpClient'
 import { useSessionStore } from '../store/sessionStore'
 import { todayISO } from '../utils/dates'
+import { getSessionSucursalId } from '../utils/storage'
 
 type AgendaNavState = {
   manual?: boolean
@@ -541,7 +542,7 @@ const RegistrarOTAgendaPage = () => {
   }, [navIdTipoServicio, resolvedRows])
   const hiddenIdSucursal = useMemo(() => {
     const cabeceraValue = findNumberInRows(resolvedRows, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
-    return firstPositiveNumber(cabeceraValue, navIdSucursal, session?.idSucursal)
+    return firstPositiveNumber(cabeceraValue, navIdSucursal, session?.idSucursal, getSessionSucursalId())
   }, [navIdSucursal, resolvedRows, session?.idSucursal])
   const latitudFallback = useMemo(
     () => findNumberInRows(resolvedRows, ['latitud', 'Latitud', 'latitud_georef', 'lat', 'latitude', 'Latitude']),
@@ -1470,10 +1471,12 @@ const RegistrarOTAgendaPage = () => {
       const [cierreAgenda, hasCuadreRuta] = await Promise.all([
         validateExisteCierreAlmacen({
           fecha: executionDate,
+          idSucursal: hiddenIdSucursal ?? undefined,
         }),
         validateCuadreRuta({
           idRuta: routeId,
           fecha: executionDate,
+          idSucursal: hiddenIdSucursal ?? undefined,
         }),
       ])
 

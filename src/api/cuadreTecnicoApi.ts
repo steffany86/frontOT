@@ -11,6 +11,12 @@ export type CuadreDetalle = {
   totalVendido: number
 }
 
+export type CuadreRetiro = {
+  idProducto: number | null
+  producto: string
+  cantidad: number
+}
+
 export type CuadreRuta = {
   idRuta: number
   ruta: string
@@ -18,8 +24,10 @@ export type CuadreRuta = {
   cuadreRegistrado: boolean
   registroDisponible: boolean
   bloqueoRegistro?: string | null
+  cantidadOt: number
   resumen: Record<string, number>
   detalle: CuadreDetalle[]
+  retiros: CuadreRetiro[]
 }
 
 export type CuadreTecnicoActual = {
@@ -45,6 +53,7 @@ export const fetchCuadreTecnicoActual = async (fecha?: string): Promise<CuadreTe
 
 export const registrarCuadreTecnico = async (params: {
   idRuta: number
+  cantidadOt: number
   fecha?: string
   observacion?: string
 }): Promise<Record<string, unknown>> => {

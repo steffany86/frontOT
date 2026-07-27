@@ -14,6 +14,7 @@ import type {
   OtSummary,
   OtUpdatePayload,
 } from '../types/ot'
+import { getSessionSucursalId } from '../utils/storage'
 
 type UnknownRecord = Record<string, unknown>
 type RegistroAgendaValidacionApi = {
@@ -240,6 +241,10 @@ const buildListaOtQuery = (params: ListaOtParams): string => {
     searchParams.set('idUsuario', String(params.idUsuario))
   }
 
+  if (typeof params.idSucursal === 'number' && Number.isFinite(params.idSucursal) && params.idSucursal > 0) {
+    searchParams.set('idSucursal', String(params.idSucursal))
+  }
+
   if (params.rol?.trim()) {
     searchParams.set('rol', params.rol.trim())
   }
@@ -392,11 +397,13 @@ export const fetchSupervisorUltimoEstadoDia = async (params: {
   tecnico?: string
   rol?: string
 }): Promise<OtSummary[]> => {
+  const idSucursal = getSessionSucursalId() ?? undefined
   try {
     const listaOtRows = await fetchListaOt({
       fecha: params.fecha,
       tecnico: params.tecnico,
       idUsuario: params.idUsuario,
+      idSucursal,
       rol: params.rol,
     })
     const otWebRows = await fetchOtWebPendientesConFallback(params)
@@ -416,6 +423,7 @@ export const fetchSupervisorUltimoEstadoDia = async (params: {
 
     // Fallback legado por compatibilidad con entornos antiguos.
     const queryParams: Record<string, string | number> = { fecha: params.fecha }
+    if (typeof idSucursal === 'number' && idSucursal > 0) queryParams.idSucursal = idSucursal
     if (typeof params.idUsuario === 'number' && Number.isFinite(params.idUsuario) && params.idUsuario > 0) {
       queryParams.idUsuario = params.idUsuario
     }
@@ -450,6 +458,7 @@ export const fetchSupervisorUltimoEstadoDia = async (params: {
     return await fetchOtList({
       fecha: params.fecha,
       usuario: params.idUsuario,
+      idSucursal,
       rol: params.rol,
       pendiente: true,
     }).catch(() => {
@@ -1180,10 +1189,19 @@ export const validateCuadreRuta = async (params: {
     params: queryParams,
   })
 
+  let normalizedData: unknown = data
+  if (typeof normalizedData === 'string') {
+    try {
+      normalizedData = JSON.parse(normalizedData) as unknown
+    } catch {
+      // Se mantiene el valor original para que el parser de mensajes lo evalúe.
+    }
+  }
+
   const resolved = coerceApiBoolean(
-    isRecord(data) && Object.prototype.hasOwnProperty.call(data, 'data')
-      ? (data as Record<string, unknown>).data
-      : data
+    isRecord(normalizedData) && Object.prototype.hasOwnProperty.call(normalizedData, 'data')
+      ? (normalizedData as Record<string, unknown>).data
+      : normalizedData
   )
   return resolved ?? false
 }

@@ -18,6 +18,7 @@ import { fetchRutas, fetchTiposServicio } from '../api/catalogApi'
 import { useAuth } from '../context/AuthContext'
 import type { OtSummary } from '../types/ot'
 import { todayISO } from '../utils/dates'
+import { getSessionSucursalId } from '../utils/storage'
 import { translateCode } from '../utils/translator'
 
 const readValue = (row: OtSummary, keys: string[]): unknown => {
@@ -696,6 +697,7 @@ const OtDashboardPage = () => {
   const location = useLocation()
   const queryClient = useQueryClient()
   const { usuario, roleName } = useAuth()
+  const sessionSucursalId = getSessionSucursalId()
   const todayValue = todayISO()
   const [fechaFiltro, setFechaFiltro] = useState(todayValue)
   const fecha = fechaFiltro
@@ -755,6 +757,15 @@ const OtDashboardPage = () => {
     enabled: Boolean(usuario?.idUsuario) && isTecnico,
     staleTime: 60_000,
   })
+
+  const rutaTecnicoUnicaId = useMemo(() => {
+    const ids = new Set<number>()
+    for (const item of rutasTecnicoQuery.data ?? []) {
+      const id = Number(getRutaIdFromCatalogItem(item as Record<string, unknown>))
+      if (Number.isFinite(id) && id > 0) ids.add(Math.trunc(id))
+    }
+    return ids.size === 1 ? Array.from(ids)[0] : null
+  }, [rutasTecnicoQuery.data])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -895,6 +906,8 @@ const OtDashboardPage = () => {
           desdeAgenda: target.desdeAgenda,
         }),
       staleTime: 60_000,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
       retry: 1,
     })),
   })
@@ -937,11 +950,13 @@ const OtDashboardPage = () => {
     const unique = new Map<string, { key: string; fecha: string; idRuta: number; idSucursal: number | null }>()
     for (const row of allRows) {
       const idRutaRaw = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
+        || (rutaTecnicoUnicaId ? String(rutaTecnicoUnicaId) : '')
       if (!idRutaRaw) continue
       const idRuta = Number(idRutaRaw)
       if (!Number.isFinite(idRuta) || idRuta <= 0) continue
 
       const idSucursalRaw = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
+        || (usuario?.idSucursal ? String(usuario.idSucursal) : '')
       const idSucursalParsed = idSucursalRaw ? Number(idSucursalRaw) : null
       const fechaFila = getFecha(row).trim() || fecha
       const key = buildRegistroBloqueoKey(fechaFila, String(idRuta), idSucursalRaw)
@@ -956,7 +971,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(unique.values())
-  }, [allRows, fecha, isFinalizadasTab])
+  }, [allRows, fecha, isFinalizadasTab, rutaTecnicoUnicaId, usuario?.idSucursal])
 
   const bloqueoQueries = useQueries({
     queries: bloqueoTargets.map((target) => ({
@@ -969,11 +984,14 @@ const OtDashboardPage = () => {
           validateCuadreRuta({
             idRuta: target.idRuta,
             fecha: target.fecha,
+            idSucursal: target.idSucursal ?? undefined,
           }),
         ])
         return { hasCierre: cierreAgenda.bloqueado, hasCuadre }
       },
-      staleTime: 60_000,
+      staleTime: 0,
+      refetchOnMount: 'always',
+      refetchOnWindowFocus: true,
       retry: 1,
     })),
   })
@@ -1155,7 +1173,10 @@ const OtDashboardPage = () => {
         const estadoVisual = isFinalizadasTab ? estado : isFinalizada ? 'finalizado' : estado
         const estadoBadgeClass = getEstadoBadgeClass(estadoVisual)
         const idRuta = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
+          || (rutaTecnicoUnicaId ? String(rutaTecnicoUnicaId) : '')
         const idSucursal = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
+          || (usuario?.idSucursal ? String(usuario.idSucursal) : '')
+          || (sessionSucursalId ? String(sessionSucursalId) : '')
         const bloqueoKey = buildRegistroBloqueoKey(fechaValidacionCard, idRuta, idSucursal)
         const bloqueoState = bloqueoByKey.get(bloqueoKey)
         const isCheckingBloqueo = isFinalizadasTab ? false : bloqueoState?.isLoading ?? false
@@ -1242,6 +1263,7 @@ const OtDashboardPage = () => {
       fecha,
       finalizadasEstadoByVenta,
       isFinalizadasTab,
+      rutaTecnicoUnicaId,
       tipoServicioNombreById,
       usuario?.nombre,
       ventaValidationByKey,
@@ -1643,7 +1665,11 @@ const OtDashboardPage = () => {
                       const hasCuadreRuta =
                         manualBloqueoState && !manualBloqueoState.isError
                           ? manualBloqueoState.hasCuadre
-                          : await validateCuadreRuta({ idRuta: rutasParaValidar[0], fecha })
+                          : await validateCuadreRuta({
+                              idRuta: rutasParaValidar[0],
+                              fecha,
+                              idSucursal: usuario?.idSucursal,
+                            })
                       if (hasCuadreRuta) {
                         setNavError('No se puede continuar porque la ruta ya realizo cuadre.')
                         return
@@ -1970,6 +1996,11 @@ const OtDashboardPage = () => {
 
                           <Button
                             type="button"
+                            className={
+                              card.ui.materialDisabled
+                                ? 'disabled:!cursor-not-allowed disabled:!border-slate-400 disabled:!bg-slate-500 disabled:!text-white disabled:!opacity-100'
+                                : ''
+                            }
                             disabled={card.ui.materialDisabled || materialClickKey === card.key}
                             title={materialClickKey === card.key ? 'Validando transacciones pendientes...' : card.ui.materialTitle}
                             onClick={async () => {
@@ -1992,7 +2023,11 @@ const OtDashboardPage = () => {
                                 }
 
                                 if (idRuta) {
-                                  const hasCuadreRuta = await validateCuadreRuta({ idRuta, fecha: fechaValidacion })
+                                  const idSucursalValue = Number(
+                                    card.idSucursal || getNumericString(card.row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
+                                  )
+                                  const idSucursal = Number.isFinite(idSucursalValue) && idSucursalValue > 0 ? idSucursalValue : undefined
+                                  const hasCuadreRuta = await validateCuadreRuta({ idRuta, fecha: fechaValidacion, idSucursal })
                                   if (hasCuadreRuta) {
                                     setNavError('No se puede continuar porque la ruta ya realizo cuadre.')
                                     return

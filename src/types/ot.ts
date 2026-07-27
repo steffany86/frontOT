@@ -46,6 +46,7 @@ export interface OtListParams {
   inicio?: string
   fin?: string
   usuario?: number
+  idSucursal?: number
   rol?: string
   pendiente?: boolean
 }
@@ -56,6 +57,7 @@ export interface ListaOtParams {
   estados?: string[]
   tecnico?: string
   idUsuario?: number
+  idSucursal?: number
   rol?: string
 }
 
