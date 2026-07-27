@@ -185,10 +185,17 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Cortes TAP',
+    to: '/digitador/cortes-tap',
+    routePatterns: ['/digitador/cortes-tap'],
+    allowedRoles: ['digitador', 'sistemas', 'admin', 'administrador'],
+    showInSidebar: true,
+  },
+  {
     label: 'Registro_TOR',
     to: '/Registro_TOR',
     routePatterns: ['/Registro_TOR'],
-    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'digitador', 'sistemas', 'admin'],
+    allowedRoles: ['back office', 'backoffice', 'backoffice_v', 'backup', 'sistemas', 'admin'],
     sidebarLabelFromMenu: false,
     showInSidebar: true,
   },

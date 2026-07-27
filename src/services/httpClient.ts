@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios'
 import { clearSessionStorage, getSessionStorage } from '../utils/storage'
 import { useSessionStore } from '../store/sessionStore'
+import { assertNoSqlInjectionPayload } from '../utils/inputSecurity'
 
 type ApiEnvelope<T> = {
   data: T
@@ -286,6 +287,8 @@ httpClient.interceptors.request.use((config) => {
       config.params = currentParams
     }
   }
+  assertNoSqlInjectionPayload(config.params, 'request.params')
+  assertNoSqlInjectionPayload(config.data, 'request.body')
   if (apiVerboseEnabled) {
     const method = (config.method ?? 'get').toUpperCase()
     const url = `${config.baseURL ?? ''}${config.url ?? ''}`

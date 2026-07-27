@@ -1012,6 +1012,78 @@ const coerceApiBoolean = (payload: unknown): boolean | null => {
   return null
 }
 
+const resolveRegistroAgendaBlocked = (payload: unknown): boolean | null => {
+  if (payload === undefined || payload === null) return null
+  if (typeof payload === 'boolean') return payload
+  if (typeof payload === 'number') return payload !== 0
+  if (typeof payload === 'string') return parseBooleanLike(payload)
+
+  if (Array.isArray(payload)) {
+    let resolved = false
+    for (const item of payload) {
+      const itemResult = resolveRegistroAgendaBlocked(item)
+      if (itemResult === true) return true
+      if (itemResult === false) resolved = true
+    }
+    return resolved ? false : null
+  }
+
+  if (!isRecord(payload)) return null
+
+  const explicitKeys = [
+    'bloqueado',
+    'Bloqueado',
+    'cierreAlmacenBloqueado',
+    'CierreAlmacenBloqueado',
+    'cierrePrPdBloqueado',
+    'CierrePrPdBloqueado',
+    'movimientosBloqueados',
+    'MovimientosBloqueados',
+    'existeCierre',
+    'ExisteCierre',
+    'tieneCierre',
+    'TieneCierre',
+    'hayCierre',
+    'HayCierre',
+  ]
+  let hasExplicitFlag = false
+  for (const key of explicitKeys) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) continue
+    const flag = parseBooleanLike(payload[key])
+    if (flag === true) return true
+    if (flag === false) hasExplicitFlag = true
+  }
+  if (hasExplicitFlag) return false
+
+  const cantidad = readNumber(payload, ['cantidad', 'Cantidad', 'total', 'Total', 'count', 'Count'])
+  if (typeof cantidad === 'number') return cantidad !== 0
+
+  for (const key of ['data', 'Data']) {
+    if (!Object.prototype.hasOwnProperty.call(payload, key)) continue
+    const nested = resolveRegistroAgendaBlocked(payload[key])
+    if (nested !== null) return nested
+  }
+
+  return null
+}
+
+const readRegistroAgendaMessage = (payload: unknown): string => {
+  if (!isRecord(payload)) return ''
+
+  const nested = pickValue(payload, ['data', 'Data'])
+  if (Array.isArray(nested)) {
+    for (const item of nested) {
+      const nestedMessage = readRegistroAgendaMessage(item)
+      if (nestedMessage) return nestedMessage
+    }
+  } else {
+    const nestedMessage = readRegistroAgendaMessage(nested)
+    if (nestedMessage) return nestedMessage
+  }
+
+  return readString(payload, ['mensaje', 'Mensaje', 'message', 'Message']).trim()
+}
+
 export const validateExisteCierreAlmacen = async (params: {
   fecha?: string
   idSucursal?: number
@@ -1029,23 +1101,9 @@ export const validateExisteCierreAlmacen = async (params: {
     params: Object.keys(queryParams).length ? queryParams : undefined,
   })
 
-  const payload = isRecord(data) && isRecord(data.data) ? (data.data as RegistroAgendaValidacionApi) : null
-  if (payload) {
-    const blocked =
-      payload.bloqueado === true ||
-      payload.cierreAlmacenBloqueado === true ||
-      payload.cierrePrPdBloqueado === true ||
-      payload.movimientosBloqueados === true
-    return {
-      bloqueado: blocked,
-      mensaje: String(payload.mensaje ?? data.message ?? '').trim(),
-    }
-  }
-
-  const resolved = coerceApiBoolean(data)
   return {
-    bloqueado: resolved ?? false,
-    mensaje: isRecord(data) && typeof data.message === 'string' ? data.message : '',
+    bloqueado: resolveRegistroAgendaBlocked(data) ?? false,
+    mensaje: readRegistroAgendaMessage(data),
   }
 }
 

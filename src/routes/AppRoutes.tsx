@@ -30,6 +30,7 @@ import ChangePasswordPage from '../pages/ChangePasswordPage'
 import NpsDashboardPage from '../pages/NpsDashboardPage'
 import DigitadorGeorefPage from '../pages/DigitadorGeorefPage'
 import DigitadorCruceNoFinalizadoPage from '../pages/DigitadorCruceNoFinalizadoPage'
+import DigitadorCortesTapPage from '../pages/DigitadorCortesTapPage'
 import RegistroTorPage from '../pages/RegistroTorPage'
 import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPage'
 import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
@@ -93,6 +94,7 @@ const AppRoutes = () => {
           <Route path="/nps" element={<NpsDashboardPage />} />
           <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
           <Route path="/digitador/cruce-no-finalizado" element={<DigitadorCruceNoFinalizadoPage />} />
+          <Route path="/digitador/cortes-tap" element={<DigitadorCortesTapPage />} />
           <Route path="/Registro_TOR" element={<RegistroTorPage />} />
           <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
           <Route path="/almacen/cruce-agenda-makiro" element={<CruceAgendaMakiroPage />} />

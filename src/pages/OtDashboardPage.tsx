@@ -15,6 +15,7 @@ import {
   type OtRegistroCompletoVenta,
 } from '../api/otApi'
 import { fetchRutas, fetchTiposServicio } from '../api/catalogApi'
+import CortesTapPanel from '../components/ot/CortesTapPanel'
 import { useAuth } from '../context/AuthContext'
 import type { OtSummary } from '../types/ot'
 import { todayISO } from '../utils/dates'
@@ -124,11 +125,12 @@ const normalizeEstado = (value: string): string => {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
-type OtDashboardTab = 'pendientes' | 'finalizadas'
+type OtDashboardTab = 'pendientes' | 'finalizadas' | 'cortes-tap'
 
 const OT_DASHBOARD_TABS: { id: OtDashboardTab; label: string }[] = [
   { id: 'pendientes', label: 'General (pendientes)' },
   { id: 'finalizadas', label: 'Finalizadas' },
+  { id: 'cortes-tap', label: 'Cortes TAP' },
 ]
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 
@@ -704,6 +706,7 @@ const OtDashboardPage = () => {
   const [estadoTab, setEstadoTab] = useState<OtDashboardTab>('pendientes')
   const isFinalizadasTab = estadoTab === 'finalizadas'
   const isPendientesTab = estadoTab === 'pendientes'
+  const isCortesTapTab = estadoTab === 'cortes-tap'
   const [showListFilters, setShowListFilters] = useState(false)
   const [nroOtFilter, setNroOtFilter] = useState('')
   const [codClienteFilter, setCodClienteFilter] = useState('')
@@ -728,7 +731,7 @@ const OtDashboardPage = () => {
         idUsuario: usuario?.idUsuario,
         rol: roleName || undefined,
       }),
-    enabled: true,
+    enabled: !isCortesTapTab,
   })
 
   const finalizadasQuery = useQuery({
@@ -738,7 +741,7 @@ const OtDashboardPage = () => {
         fecha,
         usuario: usuario?.idUsuario,
       }),
-    enabled: true,
+    enabled: !isCortesTapTab,
   })
 
   const manualPendientesQuery = useQuery({
@@ -804,7 +807,7 @@ const OtDashboardPage = () => {
     queryFn: () => validateExisteCierreAlmacen({ fecha }),
     staleTime: 60_000,
     retry: 1,
-    enabled: !isFinalizadasTab,
+    enabled: isPendientesTab,
   })
 
   const rows = useMemo(() => {
@@ -958,13 +961,12 @@ const OtDashboardPage = () => {
       const idSucursalRaw = getNumericString(row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
         || (usuario?.idSucursal ? String(usuario.idSucursal) : '')
       const idSucursalParsed = idSucursalRaw ? Number(idSucursalRaw) : null
-      const fechaFila = getFecha(row).trim() || fecha
-      const key = buildRegistroBloqueoKey(fechaFila, String(idRuta), idSucursalRaw)
+      const key = buildRegistroBloqueoKey(fecha, String(idRuta), idSucursalRaw)
 
       if (!unique.has(key)) {
         unique.set(key, {
           key,
-          fecha: fechaFila,
+          fecha,
           idRuta,
           idSucursal: idSucursalParsed !== null && Number.isFinite(idSucursalParsed) && idSucursalParsed > 0 ? idSucursalParsed : null,
         })
@@ -977,17 +979,12 @@ const OtDashboardPage = () => {
     queries: bloqueoTargets.map((target) => ({
       queryKey: ['ot-dashboard-validar-bloqueo-registro', target.key, refreshToken],
       queryFn: async () => {
-        const [cierreAgenda, hasCuadre] = await Promise.all([
-          validateExisteCierreAlmacen({
-            fecha: target.fecha,
-          }),
-          validateCuadreRuta({
-            idRuta: target.idRuta,
-            fecha: target.fecha,
-            idSucursal: target.idSucursal ?? undefined,
-          }),
-        ])
-        return { hasCierre: cierreAgenda.bloqueado, hasCuadre }
+        const hasCuadre = await validateCuadreRuta({
+          idRuta: target.idRuta,
+          fecha: target.fecha,
+          idSucursal: target.idSucursal ?? undefined,
+        })
+        return { hasCierre: false, hasCuadre }
       },
       staleTime: 0,
       refetchOnMount: 'always',
@@ -1508,7 +1505,7 @@ const OtDashboardPage = () => {
   }, [filteredCardEntries, isFinalizadasTab])
 
   const handleEstadoTabChange = (id: string) => {
-    if (id === 'pendientes' || id === 'finalizadas') {
+    if (id === 'pendientes' || id === 'finalizadas' || id === 'cortes-tap') {
       setEstadoTab(id)
     }
   }
@@ -1596,7 +1593,8 @@ const OtDashboardPage = () => {
 
   return (
     <div className="bento-page">
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
+        <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Ordenes de Trabajo (            
@@ -1604,7 +1602,7 @@ const OtDashboardPage = () => {
             )
             </h2>
           </div>
-          {activeListQuery.isFetching ? <span className="text-xs text-slate-500">Actualizando...</span> : null}
+          {!isCortesTapTab && activeListQuery.isFetching ? <span className="text-xs text-slate-500">Actualizando...</span> : null}
         </div>
 
         <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm">
@@ -1616,7 +1614,7 @@ const OtDashboardPage = () => {
                   <button
                     key={tab.id}
                     type="button"
-                    disabled={shouldBlockByMultipleRoutes}
+                    disabled={tab.id !== 'cortes-tap' && shouldBlockByMultipleRoutes}
                     onClick={() => handleEstadoTabChange(tab.id)}
                     className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition sm:px-4 ${
                       active
@@ -1629,7 +1627,7 @@ const OtDashboardPage = () => {
                 )
               })}
             </div>
-            <div className="flex flex-wrap items-center gap-2 px-1 lg:justify-end">
+            {!isCortesTapTab ? <div className="flex flex-wrap items-center gap-2 px-1 lg:justify-end">
               <span className="px-2 text-sm font-medium text-slate-700 whitespace-nowrap">Fecha activa: {fechaActivaLabel}</span>
               <Button
                 type="button"
@@ -1705,11 +1703,11 @@ const OtDashboardPage = () => {
               >
                 {showListFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
               </Button>
-            </div>
+            </div> : null}
           </div>
         </div>
 
-        {showListFilters && !shouldBlockByMultipleRoutes ? (
+        {!isCortesTapTab && showListFilters && !shouldBlockByMultipleRoutes ? (
           <div className="mt-3 grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
               <span>Nro OT</span>
@@ -1761,11 +1759,11 @@ const OtDashboardPage = () => {
           </div>
         ) : null}
 
-        <div className="mt-4 flex items-center justify-between">
+        {!isCortesTapTab ? <div className="mt-4 flex items-center justify-between">
           <span className="text-sm font-semibold text-slate-700">{filteredCardEntries.length} registros</span>
-        </div>
+        </div> : null}
 
-        <div className="mt-4">
+        {isCortesTapTab ? <CortesTapPanel /> : <div className="mt-4">
           {navError ? (
             <div className="mb-4 whitespace-pre-line break-words rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
               {navError}
@@ -2119,7 +2117,7 @@ const OtDashboardPage = () => {
               })}
             </div>
           )}
-        </div>
+        </div>}
         <Modal
           open={detalleModalOpen}
           title={detalleModalTitle}
@@ -2286,6 +2284,7 @@ const OtDashboardPage = () => {
             </div>
           )}
         </Modal>
+        </div>
       </section>
     </div>
   )

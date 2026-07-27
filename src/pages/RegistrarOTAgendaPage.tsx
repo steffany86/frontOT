@@ -6,7 +6,8 @@ import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
 import { fetchEstados, fetchRamales, fetchRutas, fetchTiposServicio, fetchTiposTecnologia, type CatalogItem } from '../api/catalogApi'
-import { fetchMe } from '../api/authApi'
+import { fetchMe, fetchSucursales } from '../api/authApi'
+import { crearCorteTap } from '../api/corteTapApi'
 import {
   fetchCabeceraVentaParaRegistroOtWb,
   fetchOtByNumero,
@@ -615,13 +616,22 @@ const RegistrarOTAgendaPage = () => {
 
   const clienteInputValue = isManualMode ? clienteManualInput : clienteVisible
 
+  const sucursalesQuery = useQuery({
+    queryKey: ['auth-sucursales-registro-ot'],
+    queryFn: fetchSucursales,
+  })
+
   const sucursalVisible = useMemo(() => {
-    for (const row of cabeceraRows) {
+    for (const row of resolvedRows) {
       const fromSucursal = readString(row, ['sucursal', 'Sucursal']).trim()
       if (fromSucursal) return fromSucursal
     }
+    const sucursalCatalogo = (sucursalesQuery.data?.data ?? []).find(
+      (item) => item.idSucursal === hiddenIdSucursal
+    )
+    if (sucursalCatalogo?.sucursal?.trim()) return sucursalCatalogo.sucursal.trim()
     return ''
-  }, [cabeceraRows])
+  }, [hiddenIdSucursal, resolvedRows, sucursalesQuery.data])
 
   const tiposServicioQuery = useQuery({
     queryKey: ['catalogos-tipo-servicio-agenda'],
@@ -685,6 +695,30 @@ const RegistrarOTAgendaPage = () => {
 
   const parsedTipoServicioManual = parseNumber(idTipoServicioManual)
   const effectiveIdTipoServicio = isManualMode ? parsedTipoServicioManual : (hiddenIdTipoServicio ?? parsedTipoServicioManual)
+  const effectiveTor = useMemo(() => {
+    const torFromNavigation = tor.trim().toUpperCase()
+    if (torFromNavigation) return torFromNavigation
+    if (!isManualMode || effectiveIdTipoServicio === null) return ''
+
+    const selected = (tiposServicioQuery.data ?? []).find((row) => {
+      const id = readNumber(row, [...TIPO_SERVICIO_ID_KEYS, 'id', 'Id'])
+      return id !== null && id === effectiveIdTipoServicio
+    })
+    return readString(selected ?? {}, [
+      'prefijo',
+      'Prefijo',
+      'tor',
+      'TOR',
+      'codigo',
+      'Codigo',
+      'abreviatura',
+      'Abreviatura',
+      'sigla',
+      'Sigla',
+    ])
+      .trim()
+      .toUpperCase()
+  }, [effectiveIdTipoServicio, isManualMode, tiposServicioQuery.data, tor])
 
   const estadoOrigen = useMemo(() => {
     const fromState = (navState?.estado ?? '').trim()
@@ -1403,15 +1437,36 @@ const RegistrarOTAgendaPage = () => {
       }
       return await registrarVentaParaRegistroOtWb(payload, pdfFile)
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       const idVenta = data?.data?.idVenta
       const orden = data?.data?.ordenTrabajo
+      const torNormalizado = effectiveTor
+      let corteTapMessage = ''
+      if (torNormalizado === 'TE' || torNormalizado === 'SE') {
+        try {
+          const idTecnico = hiddenIdVendedor ?? 0
+          const codigoClienteCorte = clienteInputValue.trim()
+          const sucursalCorte = sucursalVisible
+          await crearCorteTap({
+            codigoCliente: codigoClienteCorte,
+            tor: torNormalizado,
+            idTecnico,
+            tecnico: tecnicoVisible,
+            sucursal: sucursalCorte,
+            nodoTapBoca: `NODO ${nodoUpper} RAMAL ${ramalUpper} ${tapDisplay} BOCA ${parsedBoca}`,
+          })
+          corteTapMessage = ' | Corte TAP creado.'
+          await queryClient.invalidateQueries({ queryKey: ['ot-dashboard-cortes-tap'], refetchType: 'all' })
+        } catch (error) {
+          corteTapMessage = ` | OT registrada, pero no se pudo crear Corte TAP: ${getApiErrorMessage(error)}`
+        }
+      }
       setSubmitError(null)
       setRegistroGuardado(true)
       setConfirmModalOpen(false)
       const rutaPdf = data?.data?.rutaPdf
       const message = idVenta || orden ? `Registro exitoso. NroTrans.: ${idVenta ?? '-'} | OT: ${orden ?? '-'}` : 'Registro exitoso.'
-      const messageFinal = rutaPdf ? `${message} | PDF: ${rutaPdf}` : message
+      const messageFinal = `${rutaPdf ? `${message} | PDF: ${rutaPdf}` : message}${corteTapMessage}`
       setSuccess(messageFinal)
       setSuccessModalMessage(messageFinal)
       setSuccessModalOpen(true)
