@@ -41,6 +41,7 @@ export type OtRegistrarDetallePayload = {
   codigoCliente?: number
   fechaEjecucion?: string
   fechaAgenda?: string
+  origenPendienteMaterial?: string
   idEstado?: number
   observacion?: string
   materiales: OtDetalleMaterialPayload[]
@@ -212,6 +213,14 @@ export const fetchOtFinalizadas = async (params?: { fecha?: string; usuario?: nu
 
 export const fetchOtPendientesMaterial = async (params?: { fecha?: string; usuario?: number }): Promise<OtSummary[]> => {
   const { data } = await api.get('/ot/pendientes-material', {
+    params: sanitizeParams(params),
+  })
+  const rows = normalizeArrayResponse<UnknownRecord>(data)
+  return rows.map(mapOtSummary)
+}
+
+export const fetchOtOrdenesPasadasMaterial = async (params?: { usuario?: number }): Promise<OtSummary[]> => {
+  const { data } = await api.get('/ot/ordenes-pasadas-material', {
     params: sanitizeParams(params),
   })
   const rows = normalizeArrayResponse<UnknownRecord>(data)

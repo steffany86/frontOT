@@ -192,6 +192,13 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Pedido de material',
+    to: '/pedidos-material',
+    routePatterns: ['/pedidos-material'],
+    allowedRoles: ['tecnico', 'almacenero', 'auxiliar de almacen', 'sistemas', 'admin', 'administrador'],
+    showInSidebar: true,
+  },
+  {
     label: 'Registro_TOR',
     to: '/Registro_TOR',
     routePatterns: ['/Registro_TOR'],

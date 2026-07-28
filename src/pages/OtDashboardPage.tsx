@@ -6,6 +6,7 @@ import Modal from '../components/common/Modal'
 import {
   fetchOtByNumero,
   fetchOtFinalizadas,
+  fetchOtOrdenesPasadasMaterial,
   fetchOtPendientesMaterial,
   fetchOtRegistroCompleto,
   fetchSupervisorUltimoEstadoDia,
@@ -125,10 +126,11 @@ const normalizeEstado = (value: string): string => {
     .replace(/[\u0300-\u036f]/g, '')
 }
 
-type OtDashboardTab = 'pendientes' | 'finalizadas' | 'cortes-tap'
+type OtDashboardTab = 'pendientes' | 'ordenes-pasadas' | 'finalizadas' | 'cortes-tap'
 
 const OT_DASHBOARD_TABS: { id: OtDashboardTab; label: string }[] = [
   { id: 'pendientes', label: 'General (pendientes)' },
+  { id: 'ordenes-pasadas', label: 'Ordenes pasadas' },
   { id: 'finalizadas', label: 'Finalizadas' },
   { id: 'cortes-tap', label: 'Cortes TAP' },
 ]
@@ -706,6 +708,7 @@ const OtDashboardPage = () => {
   const [estadoTab, setEstadoTab] = useState<OtDashboardTab>('pendientes')
   const isFinalizadasTab = estadoTab === 'finalizadas'
   const isPendientesTab = estadoTab === 'pendientes'
+  const isOrdenesPasadasTab = estadoTab === 'ordenes-pasadas'
   const isCortesTapTab = estadoTab === 'cortes-tap'
   const [showListFilters, setShowListFilters] = useState(false)
   const [nroOtFilter, setNroOtFilter] = useState('')
@@ -754,6 +757,15 @@ const OtDashboardPage = () => {
     enabled: isPendientesTab,
   })
 
+  const ordenesPasadasQuery = useQuery({
+    queryKey: ['ot-dashboard-lista-ordenes-pasadas-material', usuario?.idUsuario ?? 0, refreshToken],
+    queryFn: () =>
+      fetchOtOrdenesPasadasMaterial({
+        usuario: usuario?.idUsuario,
+      }),
+    enabled: !isCortesTapTab,
+  })
+
   const rutasTecnicoQuery = useQuery({
     queryKey: ['ot-dashboard-rutas-tecnico', usuario?.idUsuario ?? 0],
     queryFn: () => fetchRutas(usuario?.idUsuario),
@@ -784,6 +796,7 @@ const OtDashboardPage = () => {
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-finalizadas'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-manuales-pendientes'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-pendientes-material'] }),
+        queryClient.invalidateQueries({ queryKey: ['ot-dashboard-lista-ordenes-pasadas-material'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-venta'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-bloqueo-registro'] }),
         queryClient.invalidateQueries({ queryKey: ['ot-dashboard-validar-cierre-agenda'] }),
@@ -792,9 +805,10 @@ const OtDashboardPage = () => {
         query.refetch(),
         finalizadasQuery.refetch(),
         manualPendientesQuery.refetch(),
+        ordenesPasadasQuery.refetch(),
       ])
     })()
-  }, [finalizadasQuery.refetch, manualPendientesQuery.refetch, query.refetch, queryClient, refreshToken])
+  }, [finalizadasQuery.refetch, manualPendientesQuery.refetch, ordenesPasadasQuery.refetch, query.refetch, queryClient, refreshToken])
 
   useEffect(() => {
     if (!isPendientesTab) return
@@ -815,6 +829,9 @@ const OtDashboardPage = () => {
     const finalizadasRows = finalizadasQuery.data ?? []
     if (isFinalizadasTab) {
       return finalizadasRows
+    }
+    if (isOrdenesPasadasTab) {
+      return ordenesPasadasQuery.data ?? []
     }
     const manualRows = manualPendientesQuery.data ?? []
     if (finalizadasRows.length === 0 && manualRows.length === 0) {
@@ -871,7 +888,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(merged.values())
-  }, [finalizadasQuery.data, isFinalizadasTab, manualPendientesQuery.data, query.data])
+  }, [finalizadasQuery.data, isFinalizadasTab, isOrdenesPasadasTab, manualPendientesQuery.data, ordenesPasadasQuery.data, query.data])
 
   // No descartar filas por aliases de columnas: algunos SPs devuelven nombres
   // distintos y el filtro estricto puede ocultar todo el listado.
@@ -884,7 +901,9 @@ const OtDashboardPage = () => {
       const ot = getOtCodigo(row).trim()
       const clienteNro = getClienteNro(row).trim()
       if (!ot || !clienteNro) continue
-      const fechaFila = fecha
+      const fechaFila = isOrdenesPasadasTab
+        ? (normalizeToISODate(getFecha(row).trim()) || normalizeToISODate(getFechaEjecucion(row).trim()) || fecha)
+        : fecha
       const key = buildVentaValidationKey(fechaFila, ot, clienteNro)
       const agendaSource = isAgendaRow(row)
       if (!unique.has(key)) {
@@ -895,7 +914,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(unique.values())
-  }, [allRows, fecha])
+  }, [allRows, fecha, isOrdenesPasadasTab])
 
   const ventaValidationQueries = useQueries({
     queries: validationTargets.map((target) => ({
@@ -949,7 +968,7 @@ const OtDashboardPage = () => {
   }, [validationTargets, ventaValidationQueries])
 
   const bloqueoTargets = useMemo(() => {
-    if (isFinalizadasTab) return []
+    if (isFinalizadasTab || isOrdenesPasadasTab) return []
     const unique = new Map<string, { key: string; fecha: string; idRuta: number; idSucursal: number | null }>()
     for (const row of allRows) {
       const idRutaRaw = getNumericString(row, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta', 'id_grupo', 'Id_Grupo', 'idGrupo', 'IdGrupo'])
@@ -973,7 +992,7 @@ const OtDashboardPage = () => {
       }
     }
     return Array.from(unique.values())
-  }, [allRows, fecha, isFinalizadasTab, rutaTecnicoUnicaId, usuario?.idSucursal])
+  }, [allRows, fecha, isFinalizadasTab, isOrdenesPasadasTab, rutaTecnicoUnicaId, usuario?.idSucursal])
 
   const bloqueoQueries = useQueries({
     queries: bloqueoTargets.map((target) => ({
@@ -1100,7 +1119,7 @@ const OtDashboardPage = () => {
     return map
   }, [tiposServicioQuery.data])
 
-  const activeListQuery = isFinalizadasTab ? finalizadasQuery : query
+  const activeListQuery = isFinalizadasTab ? finalizadasQuery : isOrdenesPasadasTab ? ordenesPasadasQuery : query
 
   const errorMessage =
     activeListQuery.isError && activeListQuery.error instanceof Error && activeListQuery.error.message
@@ -1125,6 +1144,7 @@ const OtDashboardPage = () => {
         const clienteNro = getClienteNro(row).trim()
         const fechaAgenda = getFecha(row).trim() || fecha
         const fechaEjecucionRaw = getFechaEjecucion(row).trim()
+        const isOrdenPasadaMaterial = Boolean(readValue(row, ['pendienteMaterialPasado', 'PendienteMaterialPasado']))
         const agendaBasedRow = isAgendaRow(row)
         const fechaFila = fechaAgenda
         const fechaEjecucion = agendaBasedRow ? (fechaAgenda || fechaEjecucionRaw) : (fechaEjecucionRaw || fechaAgenda)
@@ -1140,7 +1160,9 @@ const OtDashboardPage = () => {
         const estado = estadoFromTblEstado || estadoFromRow || (isFinalizadasTab ? 'SIN ESTADO' : 'pendiente')
         const origen = getOrigen(row).trim()
         const isManual = normalizeEstado(origen).includes('manual')
-        const fechaValidacionCard = fecha
+        const fechaValidacionCard = isOrdenesPasadasTab
+          ? (normalizeToISODate(fechaFila) || normalizeToISODate(fechaEjecucion) || fecha)
+          : fecha
         const validationKey = buildVentaValidationKey(fechaValidacionCard, ot, clienteNro)
         const validationState = ventaValidationByKey.get(validationKey)
         const tieneDetalleEsperado = validationState?.tieneDetalle ?? getTieneDetalleEsperado(row)
@@ -1178,12 +1200,12 @@ const OtDashboardPage = () => {
         const bloqueoState = bloqueoByKey.get(bloqueoKey)
         const isCheckingBloqueo = isFinalizadasTab ? false : bloqueoState?.isLoading ?? false
         const bloqueoError = isFinalizadasTab ? false : bloqueoState?.isError ?? false
-        const hasCierre = isFinalizadasTab ? false : bloqueoState?.hasCierre ?? false
-        const hasCuadre = isFinalizadasTab ? false : bloqueoState?.hasCuadre ?? false
-        const cierreMensaje = isFinalizadasTab ? '' : cierreAgendaQuery.data?.mensaje?.trim() || ''
-        const hasCierreGlobal = isFinalizadasTab ? false : cierreAgendaQuery.data?.bloqueado ?? false
-        const isCheckingCierreGlobal = isFinalizadasTab ? false : cierreAgendaQuery.isLoading || cierreAgendaQuery.isFetching
-        const hasCierreGlobalError = isFinalizadasTab ? false : cierreAgendaQuery.isError
+        const hasCierre = isFinalizadasTab || isOrdenesPasadasTab ? false : bloqueoState?.hasCierre ?? false
+        const hasCuadre = isFinalizadasTab || isOrdenesPasadasTab ? false : bloqueoState?.hasCuadre ?? false
+        const cierreMensaje = isFinalizadasTab || isOrdenesPasadasTab ? '' : cierreAgendaQuery.data?.mensaje?.trim() || ''
+        const hasCierreGlobal = isFinalizadasTab || isOrdenesPasadasTab ? false : cierreAgendaQuery.data?.bloqueado ?? false
+        const isCheckingCierreGlobal = isFinalizadasTab || isOrdenesPasadasTab ? false : cierreAgendaQuery.isLoading || cierreAgendaQuery.isFetching
+        const hasCierreGlobalError = isFinalizadasTab || isOrdenesPasadasTab ? false : cierreAgendaQuery.isError
         const ui = isFinalizadasTab
           ? {
               registroBloqueado: false,
@@ -1198,6 +1220,20 @@ const OtDashboardPage = () => {
               blockedCategory: null,
               isFullyBlocked: false,
             }
+          : isOrdenPasadaMaterial
+            ? {
+                registroBloqueado: false,
+                finalizarDisabled: true,
+                materialDisabled: false,
+                finalizarTitle: 'Esta OT pasada solo permite cargar material.',
+                materialTitle: 'Cargar material pendiente',
+                finalizarLabel: 'Finalizar OT',
+                materialLabel: 'Cargar Material',
+                blockedNotice: null,
+                blockedNoticeTone: 'slate' as const,
+                blockedCategory: null,
+                isFullyBlocked: false,
+              }
           : buildOtCardUiState({
               isCheckingCierreGlobal,
               hasCierreGlobal,
@@ -1241,6 +1277,7 @@ const OtDashboardPage = () => {
           cantidadVentas,
           cantidadDetalles,
           isFinalizada,
+          isOrdenPasadaMaterial,
           validationError,
           idRuta,
           idSucursal,
@@ -1260,6 +1297,7 @@ const OtDashboardPage = () => {
       fecha,
       finalizadasEstadoByVenta,
       isFinalizadasTab,
+      isOrdenesPasadasTab,
       rutaTecnicoUnicaId,
       tipoServicioNombreById,
       usuario?.nombre,
@@ -1505,7 +1543,7 @@ const OtDashboardPage = () => {
   }, [filteredCardEntries, isFinalizadasTab])
 
   const handleEstadoTabChange = (id: string) => {
-    if (id === 'pendientes' || id === 'finalizadas' || id === 'cortes-tap') {
+    if (id === 'pendientes' || id === 'ordenes-pasadas' || id === 'finalizadas' || id === 'cortes-tap') {
       setEstadoTab(id)
     }
   }
@@ -1589,7 +1627,8 @@ const OtDashboardPage = () => {
     }
   }
 
-  const fechaActivaLabel = `${todayValue} (hoy)`
+  const fechaActivaLabel = isOrdenesPasadasTab ? 'Ordenes pasadas' : `${todayValue} (hoy)`
+  const ordenesPasadasCount = ordenesPasadasQuery.data?.length ?? 0
 
   return (
     <div className="bento-page">
@@ -1610,6 +1649,7 @@ const OtDashboardPage = () => {
             <div className="inline-flex min-w-0 gap-2 overflow-x-auto">
               {OT_DASHBOARD_TABS.map((tab) => {
                 const active = estadoTab === tab.id
+                const count = tab.id === 'ordenes-pasadas' ? ordenesPasadasCount : null
                 return (
                   <button
                     key={tab.id}
@@ -1622,14 +1662,25 @@ const OtDashboardPage = () => {
                         : 'border border-transparent bg-white text-slate-600 hover:border-slate-300 hover:text-blue-600'
                     }`}
                   >
-                    {tab.label}
+                    <span className="inline-flex items-center gap-2">
+                      <span>{tab.label}</span>
+                      {count !== null && count > 0 ? (
+                        <span
+                          className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-black leading-none ${
+                            active ? 'bg-white text-blue-700' : 'bg-rose-600 text-white'
+                          }`}
+                        >
+                          {count}
+                        </span>
+                      ) : null}
+                    </span>
                   </button>
                 )
               })}
             </div>
             {!isCortesTapTab ? <div className="flex flex-wrap items-center gap-2 px-1 lg:justify-end">
               <span className="px-2 text-sm font-medium text-slate-700 whitespace-nowrap">Fecha activa: {fechaActivaLabel}</span>
-              <Button
+              {!isOrdenesPasadasTab ? <Button
                 type="button"
                 className="h-9 whitespace-nowrap px-3"
                 title={manualDisabledReason || 'Registrar OT manual'}
@@ -1693,7 +1744,7 @@ const OtDashboardPage = () => {
                 }}
               >
                 {manualClickLoading ? 'Validando...' : '+ OT manual'}
-              </Button>
+              </Button> : null}
               <Button
                 variant="secondary"
                 type="button"
@@ -1736,11 +1787,17 @@ const OtDashboardPage = () => {
                 type="date"
                 value={fecha}
                 onChange={(event) => {
-                  if (isPendientesTab) return
+                  if (isPendientesTab || isOrdenesPasadasTab) return
                   setFechaFiltro(event.target.value || todayValue)
                 }}
-                disabled={isPendientesTab}
-                title={isPendientesTab ? 'En General (pendientes) la fecha esta fija en el dia de hoy.' : undefined}
+                disabled={isPendientesTab || isOrdenesPasadasTab}
+                title={
+                  isPendientesTab
+                    ? 'En General (pendientes) la fecha esta fija en el dia de hoy.'
+                    : isOrdenesPasadasTab
+                      ? 'Ordenes pasadas usa las fechas devueltas por el SP.'
+                      : undefined
+                }
               />
             </label>
             <Button
@@ -2014,13 +2071,15 @@ const OtDashboardPage = () => {
                                 )
                                 const idRuta = Number.isFinite(idRutaValue) && idRutaValue > 0 ? idRutaValue : null
 
-                                const cierreAgenda = await validateExisteCierreAlmacen({ fecha: fechaValidacion })
-                                if (cierreAgenda.bloqueado) {
-                                  setNavError(cierreAgenda.mensaje || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.')
-                                  return
+                                if (!card.isOrdenPasadaMaterial) {
+                                  const cierreAgenda = await validateExisteCierreAlmacen({ fecha: fechaValidacion })
+                                  if (cierreAgenda.bloqueado) {
+                                    setNavError(cierreAgenda.mensaje || 'No se puede continuar porque existe cierre de almacen para la fecha seleccionada.')
+                                    return
+                                  }
                                 }
 
-                                if (idRuta) {
+                                if (idRuta && !card.isOrdenPasadaMaterial) {
                                   const idSucursalValue = Number(
                                     card.idSucursal || getNumericString(card.row, ['id_sucursal', 'Id_Sucursal', 'idSucursal', 'IdSucursal'])
                                   )
@@ -2034,12 +2093,26 @@ const OtDashboardPage = () => {
 
                                 let ventaDetalle: Awaited<ReturnType<typeof validateVentaYDetalle>>
                                 try {
-                                  ventaDetalle = await validateVentaYDetalle({
-                                    fecha: fechaValidacion,
-                                    ot: card.ot,
-                                    clienteNro: card.clienteNro,
-                                    incluirManual: true,
-                                  })
+                                  if (card.isOrdenPasadaMaterial) {
+                                    ventaDetalle = {
+                                      existeVenta: true,
+                                      tieneDetalle: true,
+                                      tieneDetalleEnCodigoVenta: false,
+                                      cantidadVentas: card.cantidadVentas || 1,
+                                      cantidadDetalles: 0,
+                                      addMaterialOCargoUsuario: true,
+                                      habilitarCargarMaterial: true,
+                                      idVenta: Number(card.idVenta) || undefined,
+                                      idRuta: Number(card.idRuta) || undefined,
+                                    }
+                                  } else {
+                                    ventaDetalle = await validateVentaYDetalle({
+                                      fecha: fechaValidacion,
+                                      ot: card.ot,
+                                      clienteNro: card.clienteNro,
+                                      incluirManual: true,
+                                    })
+                                  }
                                 } catch (error) {
                                   if (card.ui.materialDisabled) {
                                     throw error
@@ -2091,6 +2164,7 @@ const OtDashboardPage = () => {
                                       (ventaDetalle.idVenta && ventaDetalle.idVenta > 0 ? String(ventaDetalle.idVenta) : null) ??
                                       card.idVenta,
                                     rowData: card.row,
+                                    origenPendienteMaterial: card.isOrdenPasadaMaterial ? 'ORDEN_PASADA' : undefined,
                                   },
                                 })
                               } catch (error) {

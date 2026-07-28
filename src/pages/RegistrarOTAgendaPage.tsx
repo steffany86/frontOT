@@ -522,9 +522,9 @@ const RegistrarOTAgendaPage = () => {
   }, [isManualMode, manualRouteResolution.id, rutasQuery.data])
 
   const hiddenIdVendedor = useMemo(() => {
-    const cabeceraValue = findNumberInRows(resolvedRows, ['id_vendedor', 'Id_Vendedor', 'idVendedor', 'IdVendedor', 'idusuario', 'IdUsuario'])
-    return cabeceraValue ?? navIdVendedor ?? session?.idUsuario ?? null
-  }, [navIdVendedor, resolvedRows, session?.idUsuario])
+    const cabeceraValue = findNumberInRows(resolvedRows, ['id_vendedor', 'Id_Vendedor', 'idVendedor', 'IdVendedor'])
+    return cabeceraValue ?? navIdVendedor ?? null
+  }, [navIdVendedor, resolvedRows])
   const hiddenIdRuta = useMemo(() => {
     if (isManualMode) return manualRouteResolution.id
     const cabeceraValue = findNumberInRows(resolvedRows, ['id_ruta', 'Id_Ruta', 'idRuta', 'IdRuta'])
@@ -719,6 +719,7 @@ const RegistrarOTAgendaPage = () => {
       .trim()
       .toUpperCase()
   }, [effectiveIdTipoServicio, isManualMode, tiposServicioQuery.data, tor])
+  const isTorSip = effectiveTor.trim().toUpperCase() === 'SIP'
 
   const estadoOrigen = useMemo(() => {
     const fromState = (navState?.estado ?? '').trim()
@@ -763,9 +764,10 @@ const RegistrarOTAgendaPage = () => {
     return normalizeTipoServicioLabel(desc ? `${desc} (${tor})` : tor)
   }, [effectiveIdTipoServicio, hiddenIdTipoServicio, isManualMode, tipoServicioOptions, tiposServicioQuery.data, tor])
   const isTipoAsistencia = useMemo(() => {
+    if (isTorSip) return false
     const normalized = normalizeText(tipoServicioLabel)
     return normalized.includes('asistencia')
-  }, [tipoServicioLabel])
+  }, [isTorSip, tipoServicioLabel])
 
   const tieneDetalleSuggested = useMemo(() => {
     const rows = tiposServicioQuery.data ?? []
@@ -781,6 +783,7 @@ const RegistrarOTAgendaPage = () => {
   }, [effectiveIdTipoServicio, tiposServicioQuery.data])
 
   const canUseMaterialCheck = useMemo(() => {
+    if (isTorSip) return false
     const rows = tiposServicioQuery.data ?? []
     const selectedId = effectiveIdTipoServicio
     if (selectedId === null) return false
@@ -800,7 +803,7 @@ const RegistrarOTAgendaPage = () => {
     ])
     const parsed = readOptionalBooleanFlag(raw)
     return parsed ?? true
-  }, [effectiveIdTipoServicio, tiposServicioQuery.data])
+  }, [effectiveIdTipoServicio, isTorSip, tiposServicioQuery.data])
 
   const tipoArchivoProtw = useMemo(() => {
     const rows = tiposServicioQuery.data ?? []
@@ -913,7 +916,6 @@ const RegistrarOTAgendaPage = () => {
 
   const parsedEstadoId = parseNumber(idEstado)
   const hasRequiredIds =
-    firstPositiveNumber(hiddenIdVendedor) !== null &&
     firstPositiveNumber(hiddenIdRuta) !== null &&
     firstPositiveNumber(hiddenIdGrupo) !== null &&
     firstPositiveNumber(effectiveIdTipoServicio) !== null &&
@@ -921,7 +923,6 @@ const RegistrarOTAgendaPage = () => {
 
   const missingHeaderFields = useMemo(() => {
     const missing: string[] = []
-    if (firstPositiveNumber(hiddenIdVendedor) === null) missing.push('vendedor (idUsuario/idVendedor)')
     if (firstPositiveNumber(hiddenIdRuta) === null) {
       if (isManualMode && manualRouteResolution.hasMultiple) {
         missing.push('ruta/grupo (el usuario tiene mas de un registro en tbl_ruta)')
@@ -934,7 +935,7 @@ const RegistrarOTAgendaPage = () => {
     if (firstPositiveNumber(effectiveIdTipoServicio) === null) missing.push('tipo de servicio (idTipoServicio)')
     if (firstPositiveNumber(hiddenIdSucursal) === null) missing.push('sucursal (idSucursal)')
     return missing
-  }, [effectiveIdTipoServicio, hiddenIdRuta, hiddenIdSucursal, hiddenIdVendedor, isManualMode, manualRouteResolution.hasMultiple])
+  }, [effectiveIdTipoServicio, hiddenIdRuta, hiddenIdSucursal, isManualMode, manualRouteResolution.hasMultiple])
 
   const tipoServicioHeaderWarning = useMemo(() => {
     if (!hasAttemptedSubmit || effectiveIdTipoServicio !== null) return null
@@ -1428,7 +1429,7 @@ const RegistrarOTAgendaPage = () => {
         ramal: ramal.trim(),
         tap: parsedTap,
         boca: parsedBoca,
-        checkPlantaExterna: Boolean(checkPlantaExterna),
+        checkPlantaExterna: isTorSip ? false : Boolean(checkPlantaExterna),
         tieneDetalle: Boolean(tieneDetalle),
         tipoTecnologia: tipoTecnologia.trim().toUpperCase(),
         fechaAgenda: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
@@ -2020,18 +2021,20 @@ const RegistrarOTAgendaPage = () => {
               {observacionInvalid ? <p className="mt-1 text-xs text-rose-600">Bitacora es requerida.</p> : null}
             </div>
 
-            <div className="md:col-span-1 md:pt-6">
-              <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <input
-                  type="checkbox"
-                  className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
-                  checked={checkPlantaExterna}
-                  onChange={(event) => setCheckPlantaExterna(event.target.checked)}
-                  disabled={!isTipoAsistencia}
-                />
-                Es Planta Externa
-              </label>
-            </div>
+            {!isTorSip ? (
+              <div className="md:col-span-1 md:pt-6">
+                <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-slate-300 text-slate-700 focus:ring-slate-400"
+                    checked={checkPlantaExterna}
+                    onChange={(event) => setCheckPlantaExterna(event.target.checked)}
+                    disabled={!isTipoAsistencia}
+                  />
+                  Es Planta Externa
+                </label>
+              </div>
+            ) : null}
 
             <div className="md:col-span-1 md:pt-6">
               <label className={`inline-flex items-center gap-2 text-sm font-semibold ${canUseMaterialCheck ? 'text-slate-700' : 'text-slate-400'}`}>

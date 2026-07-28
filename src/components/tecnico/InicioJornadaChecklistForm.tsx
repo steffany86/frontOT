@@ -83,6 +83,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
 
   const auxiliarDisplay = nombreAuxiliar?.trim() || (idAuxiliar ? `ID ${idAuxiliar}` : '')
   const requiereImagenAuxiliar = Boolean(idAuxiliar || nombreAuxiliar?.trim())
+  const puedeMarcarTrabajoSolo = !requiereImagenAuxiliar
   const mostrarErrorFecha = intentoRegistrar && !fechaVencimiento
   const mostrarErrorImagen = intentoRegistrar && !imagen
   const mostrarErrorImagenAuxiliar = intentoRegistrar && requiereImagenAuxiliar && !imagenAuxiliar
@@ -94,7 +95,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
     mutationFn: () =>
       registrarInicioJornada({
         fechaVencimiento,
-        estoyTrabajandoSolo: estoyTrabajandoSolo ? true : undefined,
+        estoyTrabajandoSolo: puedeMarcarTrabajoSolo ? estoyTrabajandoSolo : false,
         capacitado,
         charla,
         botiquin,
@@ -304,15 +305,17 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               </Button>
             </div>
           </Field>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
-              checked={estoyTrabajandoSolo}
-              onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
-            />
-            <span>ESTOY TRABAJANDO SOLO</span>
-          </label>
+          {puedeMarcarTrabajoSolo ? (
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                checked={estoyTrabajandoSolo}
+                onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
+              />
+              <span>ESTOY TRABAJANDO SOLO</span>
+            </label>
+          ) : null}
         </div>
       </div>
 

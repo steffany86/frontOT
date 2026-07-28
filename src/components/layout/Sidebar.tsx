@@ -1,6 +1,30 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBell, faClipboardCheck, faFileInvoice, faGear, faHand, faHelmetSafety, faLocationDot, faShieldHalved, faStar, faThumbsUp, faUsers, faUserShield, faWrench } from '@fortawesome/free-solid-svg-icons'
+import {
+  faBell,
+  faBoxOpen,
+  faCalculator,
+  faCalendarCheck,
+  faClipboardCheck,
+  faDatabase,
+  faFileInvoice,
+  faFileLines,
+  faGear,
+  faHand,
+  faHelmetSafety,
+  faLayerGroup,
+  faLocationDot,
+  faMapLocationDot,
+  faPeopleGroup,
+  faShieldHalved,
+  faTableList,
+  faThumbsUp,
+  faTowerBroadcast,
+  faTruckRampBox,
+  faUsers,
+  faUserShield,
+  faWrench,
+} from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../../context/AuthContext'
 import type { NavigationItem } from '../../config/navigation'
 
@@ -82,14 +106,24 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
     if (key.includes('gestion') || key.includes('/ot')) return faClipboardCheck
     if (key.includes('historico') || key.includes('jornada')) return faHelmetSafety
     if (key.includes('conform') || key.includes('cuadrilla')) return faUsers
+    if (key.includes('cuadre')) return faCalculator
     if (key.includes('llamada') || key.includes('seguimiento') || key.includes('control operativo')) return faBell
     if (key.includes('nps')) return faThumbsUp
+    if (key.includes('nodo') || key.includes('zona')) return faDatabase
     if (key.includes('georef')) return faLocationDot
+    if (key.includes('cruce digitacion') || key.includes('cruce-no-finalizado')) return faTableList
+    if (key.includes('cortes tap') || key.includes('cortes-tap')) return faTowerBroadcast
+    if (key.includes('pedido') || key.includes('material')) return faBoxOpen
+    if (key.includes('registro_tor')) return faFileLines
     if (key.includes('boleta')) return faFileInvoice
-    if (key.includes('central')) return faWrench
+    if (key.includes('grupos') || key.includes('central')) return faPeopleGroup
+    if (key.includes('cruce agenda') || key.includes('makiro')) return faCalendarCheck
     if (key.includes('privileg')) return faUserShield
     if (key.includes('supervision')) return faHand
-    return faStar
+    if (key.includes('ruta')) return faMapLocationDot
+    if (key.includes('almacen')) return faTruckRampBox
+    if (key.includes('crear') || key.includes('modificar')) return faWrench
+    return faLayerGroup
   }
 
   const initials = (usuario?.nombre || 'Usuario')

@@ -318,8 +318,17 @@ const parseGeoCoords = (value?: string): { lat: number; lng: number } | null => 
   return { lat, lng }
 }
 
-const isSiValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'SI'
-const isNoValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'NO'
+const formatSiNoValue = (value?: unknown): string => {
+  if (typeof value === 'boolean') return value ? 'SI' : 'NO'
+  const raw = String(value ?? '').trim()
+  const normalized = raw.toLowerCase()
+  if (normalized === 'true' || normalized === '1' || normalized === 'si' || normalized === 'sí') return 'SI'
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return 'NO'
+  return raw
+}
+
+const isSiValue = (value?: unknown): boolean => formatSiNoValue(value) === 'SI'
+const isNoValue = (value?: unknown): boolean => formatSiNoValue(value) === 'NO'
 
 const normalizePersonNameKey = (value?: string): string => {
   const raw = (value ?? '').trim().toLowerCase()
@@ -2084,7 +2093,7 @@ const SupervisorSupervisionPage = () => {
                         {showAsStatus ? (
                           <p className={`mt-2 flex items-center gap-2 text-2xl font-semibold sm:text-3xl ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
                             <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
-                            <span className="text-2xl">{item.value}</span>
+                            <span className="text-2xl">{formatSiNoValue(item.value)}</span>
                           </p>
                         ) : (
                           <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">{item.value}</p>
@@ -2130,7 +2139,7 @@ const SupervisorSupervisionPage = () => {
                             {showAsStatus ? (
                               <p className={`mt-2 flex items-center gap-2 text-2xl font-semibold sm:text-3xl ${isSiValue(item.value) ? 'text-emerald-700' : 'text-rose-700'}`}>
                                 <FontAwesomeIcon icon={isSiValue(item.value) ? faCheckCircle : faCameraRetro} className="text-3xl" />
-                                <span className="text-2xl">{item.value}</span>
+                                <span className="text-2xl">{formatSiNoValue(item.value)}</span>
                               </p>
                             ) : (
                               <p className="mt-2 text-2xl font-semibold leading-tight text-slate-900">{item.value}</p>

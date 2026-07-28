@@ -57,6 +57,7 @@ type DetailNavState = {
   idSucursal?: string
   idTipoServicio?: string
   idVenta?: string
+  origenPendienteMaterial?: string
   rowData?: UnknownRecord
 }
 
@@ -133,6 +134,8 @@ const readString = (row: UnknownRecord, keys: string[]): string => {
   if (value === undefined || value === null) return ''
   return typeof value === 'string' ? value : String(value)
 }
+
+const isTorSipValue = (value: string): boolean => value.trim().toUpperCase() === 'SIP'
 
 const readNumber = (row: UnknownRecord, keys: string[]): number | null => {
   const value = readValue(row, keys)
@@ -610,6 +613,7 @@ const OtRealizadaPage = () => {
   const navState = (location.state as DetailNavState | null) ?? null
   const rowData = navState?.rowData ?? null
   const numeroOrden = (navState?.numeroOrden ?? '').trim()
+  const isOrdenPasadaMaterial = (navState?.origenPendienteMaterial ?? '').trim().toUpperCase() === 'ORDEN_PASADA'
   const bootstrapIdSucursal = useMemo(() => {
     const parseSucursal = (value: unknown): number | null => {
       if (typeof value === 'number' && Number.isFinite(value) && value > 0) return Math.trunc(value)
@@ -844,9 +848,10 @@ const OtRealizadaPage = () => {
   }, [rowData, venta])
   const fechaHoy = useMemo(() => todayISO(), [])
   const registroFechaBloqueado = useMemo(() => {
+    if (isOrdenPasadaMaterial) return false
     if (!fechaTrabajo) return true
     return fechaTrabajo !== fechaHoy
-  }, [fechaHoy, fechaTrabajo])
+  }, [fechaHoy, fechaTrabajo, isOrdenPasadaMaterial])
   useEffect(() => {
     const refresh = () => setSessionRemainingMs(getSessionRemainingMs())
     refresh()
@@ -921,7 +926,24 @@ const OtRealizadaPage = () => {
     queryKey: ['catalogos-tipo-servicio-ot-detalle'],
     queryFn: fetchTiposServicio,
   })
+  const effectiveTor = useMemo(() => {
+    const directValues = [
+      navState?.tor ?? '',
+      rowData ? readString(rowData, ['tor', 'TOR', 'prefijo', 'Prefijo']) : '',
+      venta ? readString(venta, ['tor', 'TOR', 'prefijo', 'Prefijo']) : '',
+    ]
+    const direct = directValues.map((value) => value.trim().toUpperCase()).find(Boolean)
+    if (direct) return direct
+    if (!tipoServicioId || tipoServicioId <= 0) return ''
+    const selected = (tiposServicioQuery.data ?? []).find((item) => {
+      const id = readNumber(item, tipoServicioIdKeys)
+      return id !== null && id === tipoServicioId
+    })
+    return readString(selected ?? {}, ['prefijo', 'Prefijo', 'tor', 'TOR', 'codigo', 'Codigo']).trim().toUpperCase()
+  }, [navState?.tor, rowData, tipoServicioId, tiposServicioQuery.data, venta])
+  const isTorSip = isTorSipValue(effectiveTor)
   const tipoServicioUsaNomencladores = useMemo(() => {
+    if (isTorSip) return false
     if (!tipoServicioId || tipoServicioId <= 0) return false
     const row = (tiposServicioQuery.data ?? []).find((item) => {
       const id = readNumber(item, tipoServicioIdKeys)
@@ -929,7 +951,7 @@ const OtRealizadaPage = () => {
     })
     if (!row) return false
     return readBoolean(row, tipoServicioNomencladoresKeys) === true
-  }, [tipoServicioId, tiposServicioQuery.data])
+  }, [isTorSip, tipoServicioId, tiposServicioQuery.data])
   const tipoTecnologiaActual = useMemo(() => {
     const fromVenta = venta ? readString(venta, ['tipoTecnologia', 'TipoTecnologia']).trim() : ''
     if (fromVenta) return fromVenta
@@ -3706,6 +3728,11 @@ const OtRealizadaPage = () => {
     }
     setIsPrevalidating(true)
     try {
+      if (isOrdenPasadaMaterial) {
+        const saldoValido = await validateSaldoRutaDisponible()
+        if (!saldoValido) return false
+        return true
+      }
       const [cierreAgenda, hasCuadreRuta] = await Promise.all([
         validateExisteCierreAlmacen({ fecha: fechaTrabajo, idSucursal: resolvedIdSucursal }),
         validateCuadreRuta({ idRuta: idRutaValidacion, fecha: fechaTrabajo, idSucursal: resolvedIdSucursal }),
@@ -3854,6 +3881,7 @@ const OtRealizadaPage = () => {
       codigoCliente?: number
       fechaEjecucion?: string
       fechaAgenda?: string
+      origenPendienteMaterial?: string
       idEstado: number
       observacion: string
       materiales: {
@@ -3943,6 +3971,7 @@ const OtRealizadaPage = () => {
             codigoCliente: payload.codigoCliente,
             fechaEjecucion: payload.fechaEjecucion,
             fechaAgenda: payload.fechaAgenda,
+            origenPendienteMaterial: payload.origenPendienteMaterial,
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(retryMateriales),
@@ -3955,6 +3984,7 @@ const OtRealizadaPage = () => {
             codigoCliente: payload.codigoCliente,
             fechaEjecucion: payload.fechaEjecucion,
             fechaAgenda: payload.fechaAgenda,
+            origenPendienteMaterial: payload.origenPendienteMaterial,
             idEstado: payload.idEstado,
             observacion: payload.observacion,
             materiales: sanitizeMaterialesForApi(payload.materiales),
@@ -4101,7 +4131,7 @@ const OtRealizadaPage = () => {
       setError('Estado es requerido.')
       return
     }
-    if (materialRows.length === 0 && cargoUsuarioRows.length === 0) {
+    if (!isTorSip && materialRows.length === 0 && cargoUsuarioRows.length === 0) {
       setError('Debes agregar al menos un material o un producto en cargo usuario.')
       return
     }
@@ -4111,13 +4141,19 @@ const OtRealizadaPage = () => {
     if (!rowsAreValid) return
     const cargoRowsAreValid = await prevalidateCargoUsuarioRowsBeforeSubmit()
     if (!cargoRowsAreValid) return
-    const materialSummary = buildMaterialSaveSummary(materialRows)
-    const confirmLines = [
-      'DATOS A GUARDAR, ESTA SEGURO?',
-      `Codigo Cliente: ${clienteVisible || '-'}`,
-      `Total materiales: ${formatSaldoAmount(materialSummary.total)}`,
-      ...materialSummary.lines,
-    ]
+    const materialSummary = buildMaterialSaveSummary(isTorSip ? [] : materialRows)
+    const confirmLines = isTorSip
+      ? [
+          'DATOS A GUARDAR, ESTA SEGURO?',
+          `Codigo Cliente: ${clienteVisible || '-'}`,
+          'TOR SIP: se guardara la OT sin carga de material.',
+        ]
+      : [
+          'DATOS A GUARDAR, ESTA SEGURO?',
+          `Codigo Cliente: ${clienteVisible || '-'}`,
+          `Total materiales: ${formatSaldoAmount(materialSummary.total)}`,
+          ...materialSummary.lines,
+        ]
     const confirmed = window.confirm(confirmLines.join('\n'))
     if (!confirmed) return
     const observacionPayload = normalizeObservacion(observacion)
@@ -4127,9 +4163,10 @@ const OtRealizadaPage = () => {
       codigoCliente: clienteVisible ? Number(clienteVisible.replace(/\D/g, '')) : undefined,
       fechaEjecucion: fechaTrabajo || undefined,
       fechaAgenda: toIsoDateParam(fechaAgenda || todayISO()) || todayISO(),
+      origenPendienteMaterial: isOrdenPasadaMaterial ? 'ORDEN_PASADA' : undefined,
       idEstado: parsedEstado,
       observacion: observacionPayload,
-      materiales: materialRows.map((row) => ({
+      materiales: (isTorSip ? [] : materialRows).map((row) => ({
         idProducto: row.idProducto,
         idTipoMaterial: row.idTipoMaterial,
         serie: row.serie,
@@ -4138,7 +4175,7 @@ const OtRealizadaPage = () => {
         entregado: isRetiredMaterialRow(row) ? false : row.entregado,
         requiresChip: row.requiresChip,
       })),
-      cargoUsuarioItems: cargoUsuarioRows.map((row) => ({
+      cargoUsuarioItems: (isTorSip ? [] : cargoUsuarioRows).map((row) => ({
         idProducto: row.idProducto,
         serie: row.serie,
         chipId: row.chipId,
@@ -4196,19 +4233,21 @@ const OtRealizadaPage = () => {
           </div>
         </FormCard>
 
-        <Tabs
-          items={[
-            { id: 'materiales', label: 'Materiales' },
-            { id: 'cargo-usuario', label: 'Cargo Usuario' },
-          ]}
-          activeId={activeTab}
-          onChange={(id) => {
-            if (formInteractionLocked) return
-            setActiveTab(id as 'materiales' | 'cargo-usuario')
-          }}
-        />
+        {!isTorSip ? (
+          <Tabs
+            items={[
+              { id: 'materiales', label: 'Materiales' },
+              { id: 'cargo-usuario', label: 'Cargo Usuario' },
+            ]}
+            activeId={activeTab}
+            onChange={(id) => {
+              if (formInteractionLocked) return
+              setActiveTab(id as 'materiales' | 'cargo-usuario')
+            }}
+          />
+        ) : null}
 
-        {activeTab === 'materiales' ? (
+        {!isTorSip && activeTab === 'materiales' ? (
           <fieldset disabled={formInteractionLocked} className="m-0 min-w-0 border-0 p-0">
             <FormCard title="" hideHeader compact>
             {error ? (
@@ -4436,7 +4475,7 @@ const OtRealizadaPage = () => {
             </div>
             </FormCard>
           </fieldset>
-        ) : (
+        ) : !isTorSip ? (
           <fieldset disabled={formInteractionLocked} className="m-0 min-w-0 border-0 p-0">
             <FormCard title="Cargo Usuario" description="Carga de productos de cargo usuario.">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
@@ -4612,7 +4651,7 @@ const OtRealizadaPage = () => {
 
             </FormCard>
           </fieldset>
-        )}
+        ) : null}
 
         {headerWarning ? (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{headerWarning}</div>
@@ -4648,7 +4687,7 @@ const OtRealizadaPage = () => {
               ventaQuery.isLoading ||
               !numeroOrden ||
               detalleGuardado ||
-              (materialRows.length === 0 && cargoUsuarioRows.length === 0)
+              (!isTorSip && materialRows.length === 0 && cargoUsuarioRows.length === 0)
             }
           >
             {detalleGuardado ? 'Guardado' : mutation.isPending || isPrevalidating ? 'Guardando...' : 'Guardar'}

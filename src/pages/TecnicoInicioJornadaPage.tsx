@@ -76,12 +76,13 @@ const TecnicoInicioJornadaPage = () => {
     return ''
   }, [estadoQuery.data?.auxiliar, estadoQuery.data?.auxiliarNombre, estadoQuery.data?.idAuxiliar])
   const requiereImagenAuxiliar = Boolean(estadoQuery.data?.idAuxiliar && auxiliarLabel)
+  const puedeMarcarTrabajoSolo = !requiereImagenAuxiliar
 
   const registrarMutation = useMutation({
     mutationFn: () =>
       registrarInicioJornada({
         fechaVencimiento,
-        estoyTrabajandoSolo: estoyTrabajandoSolo ? true : undefined,
+        estoyTrabajandoSolo: puedeMarcarTrabajoSolo ? estoyTrabajandoSolo : false,
         capacitado,
         charla,
         botiquin,
@@ -241,15 +242,17 @@ const TecnicoInicioJornadaPage = () => {
           <Field label="Fecha de vencimiento extintor">
             <input className="input-base" type="date" value={fechaVencimiento} onChange={(event) => setFechaVencimiento(event.target.value)} />
           </Field>
-          <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
-            <input
-              type="checkbox"
-              className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
-              checked={estoyTrabajandoSolo}
-              onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
-            />
-            <span>ESTOY TRABAJANDO SOLO</span>
-          </label>
+          {puedeMarcarTrabajoSolo ? (
+            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
+                checked={estoyTrabajandoSolo}
+                onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
+              />
+              <span>ESTOY TRABAJANDO SOLO</span>
+            </label>
+          ) : null}
         </div>
       </FormCard>
 

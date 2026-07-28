@@ -37,6 +37,7 @@ import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
 import NombresNpsPage from '../pages/NombresNpsPage'
 import NodoZonaPage from '../pages/NodoZonaPage'
 import CruceAgendaMakiroPage from '../pages/CruceAgendaMakiroPage'
+import PedidoMaterialPage from '../pages/PedidoMaterialPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -95,6 +96,7 @@ const AppRoutes = () => {
           <Route path="/digitador/georef" element={<DigitadorGeorefPage />} />
           <Route path="/digitador/cruce-no-finalizado" element={<DigitadorCruceNoFinalizadoPage />} />
           <Route path="/digitador/cortes-tap" element={<DigitadorCortesTapPage />} />
+          <Route path="/pedidos-material" element={<PedidoMaterialPage />} />
           <Route path="/Registro_TOR" element={<RegistroTorPage />} />
           <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
           <Route path="/almacen/cruce-agenda-makiro" element={<CruceAgendaMakiroPage />} />
