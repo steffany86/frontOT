@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faAngleLeft,
   faAngleRight,
   faCalendarDay,
   faChevronRight,
+  faCheck,
   faDownload,
   faFilePdf,
   faFilter,
@@ -14,8 +15,10 @@ import {
   faTableList,
 } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
+import Modal from '../components/common/Modal'
 import { fetchBoletaDigitalArchivo } from '../api/boletaDigitalApi'
-import { fetchCruceAgendaMakiro, type CruceAgendaMakiroRow } from '../api/cruceAgendaMakiroApi'
+import { fetchCruceAgendaMakiro, marcarCruceVerificaBack, type CruceAgendaMakiroRow } from '../api/cruceAgendaMakiroApi'
+import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
 
 const formatLocalDateInput = (date: Date): string => {
@@ -43,6 +46,11 @@ const columnAliasGroups = {
   actualizadoGeo: ['Actualizado_GEO_SI_NO', 'Actualizado_GEO', 'actualizado_geo', 'actualizadoGeo', 'Act_Geo'],
   actualizadoBoleta: ['Actualizado_BOLETA_SI_NO', 'Actualizado_BOLETA', 'actualizado_boleta', 'actualizadoBoleta', 'Act_Boleta'],
   actualizadoDigitacion: ['Actualizado_DIGITACION_SI_NO', 'Actualizado_DIGITACION', 'actualizado_digitacion', 'actualizadoDigitacion', 'Act_Digitacion'],
+  actualizadoVerificaBack: ['Actualizado_VERIFICABACK', 'actualizadoVerificaBack', 'actualizado_verificaback'],
+  usuarioVerificaBack: ['usuarioModificacion_VERIFICABACK', 'usuarioVerificaBack', 'usuario_verificaback'],
+  fechaVerificaBack: ['fechaRegistro_VERIFICABACK', 'fechaVerificaBack', 'fecha_verificaback'],
+  observacionVerificaBack: ['Observacion_VERIFICABACK', 'observacionVerificaBack', 'observacion_verificaback'],
+  idHistorial: ['Id_BO_CITA_MAKIRO_Historial', 'id_BO_CITA_MAKIRO_Historial', 'idBoCitaMakiroHistorial'],
   tieneDetalle: ['TieneDetalle', 'Tiene_Detalle', 'tieneDetalle', 'tiene_detalle'],
   ingresoMaterial: ['IngresoMaterial', 'ingresoMaterial', 'ingreso_material'],
   fechaEjecucion: ['Fecha_Ejecucion', 'fecha_ejecucion', 'fechaEjecucion', 'FechaEjecucion', 'fecha'],
@@ -71,6 +79,13 @@ const readValue = (row: CruceAgendaMakiroRow, keys: string[]): string => {
 }
 
 const normalizeFilterValue = (value: string): string => value.trim().toLowerCase()
+
+const normalizeRoleName = (value: string): string => value.trim().toLowerCase().replace(/[\s_]+/g, '')
+
+const isTruthySqlValue = (value: string): boolean => {
+  const normalized = normalizeFilterValue(value)
+  return ['1', 'true', 'si', 'sí', 'ok', 'yes'].includes(normalized)
+}
 
 const uniqueOptions = (rows: CruceAgendaMakiroRow[], keys: string[]): string[] => {
   const values = new Set<string>()
@@ -237,6 +252,16 @@ const statusBadgeClass = (status: string): string => {
   return 'bg-slate-100 text-slate-700'
 }
 
+const getHistorialId = (row: CruceAgendaMakiroRow): number | null => {
+  const value = readValue(row, [...columnAliasGroups.idHistorial]).trim()
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+const isVerificaBackOk = (row: CruceAgendaMakiroRow): boolean => {
+  return isTruthySqlValue(readValue(row, [...columnAliasGroups.actualizadoVerificaBack]))
+}
+
 type RowCard = {
   tipo: string
   ot: string
@@ -326,6 +351,8 @@ const toRowCard = (row: CruceAgendaMakiroRow): RowCard => {
 }
 
 const CruceAgendaMakiroPage = () => {
+  const queryClient = useQueryClient()
+  const { roleName } = useAuth()
   const [fecha, setFecha] = useState(() => formatLocalDateInput(new Date()))
   const [filtro, setFiltro] = useState('')
   const [tipoCruce, setTipoCruce] = useState('')
@@ -338,19 +365,38 @@ const CruceAgendaMakiroPage = () => {
   const [actualizadoDigitacion, setActualizadoDigitacion] = useState('')
   const [ingresoMaterial, setIngresoMaterial] = useState('')
   const [selectedRowIndex, setSelectedRowIndex] = useState(0)
+  const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [activeDetailTab, setActiveDetailTab] = useState<'resumen' | 'completo' | 'archivo'>('resumen')
   const [page, setPage] = useState(1)
   const [archivoError, setArchivoError] = useState<string | null>(null)
   const [openingArchivo, setOpeningArchivo] = useState(false)
   const [estadoMenuOpen, setEstadoMenuOpen] = useState(false)
+  const [verificaBackRow, setVerificaBackRow] = useState<CruceAgendaMakiroRow | null>(null)
+  const [verificaBackObservacion, setVerificaBackObservacion] = useState('')
+  const [verificaBackError, setVerificaBackError] = useState<string | null>(null)
   const estadoMenuRef = useRef<HTMLDivElement | null>(null)
 
   const pageSize = 10
+  const canManageVerificaBack = ['backoffice', 'backofficev'].includes(normalizeRoleName(roleName))
 
   const query = useQuery({
     queryKey: ['cruce-agenda-makiro', fecha],
     queryFn: () => fetchCruceAgendaMakiro(fecha),
     enabled: Boolean(fecha),
+  })
+
+  const verificaBackMutation = useMutation({
+    mutationFn: ({ idHistorial, observacion }: { idHistorial: number; observacion: string }) =>
+      marcarCruceVerificaBack(idHistorial, observacion),
+    onSuccess: () => {
+      setVerificaBackRow(null)
+      setVerificaBackObservacion('')
+      setVerificaBackError(null)
+      queryClient.invalidateQueries({ queryKey: ['cruce-agenda-makiro', fecha] })
+    },
+    onError: (error) => {
+      setVerificaBackError(getApiErrorMessage(error, 'No se pudo marcar la revision.'))
+    },
   })
 
   const rows = query.data ?? []
@@ -521,6 +567,59 @@ const CruceAgendaMakiroPage = () => {
     }
   }
 
+  const openVerificaBackModal = (row: CruceAgendaMakiroRow) => {
+    setVerificaBackRow(row)
+    setVerificaBackObservacion(readValue(row, [...columnAliasGroups.observacionVerificaBack]))
+    setVerificaBackError(null)
+  }
+
+  const submitVerificaBack = () => {
+    if (!verificaBackRow) return
+    const idHistorial = getHistorialId(verificaBackRow)
+    if (!idHistorial) {
+      setVerificaBackError('Este registro no tiene Id de historial para guardar la revision.')
+      return
+    }
+    const observacion = verificaBackObservacion.trim()
+    if (!observacion) {
+      setVerificaBackError('La observacion es requerida.')
+      return
+    }
+    verificaBackMutation.mutate({ idHistorial, observacion })
+  }
+
+  const renderVerificaBackAction = (row: CruceAgendaMakiroRow) => {
+    const idHistorial = getHistorialId(row)
+    const checked = isVerificaBackOk(row)
+    const usuario = readValue(row, [...columnAliasGroups.usuarioVerificaBack])
+    const fechaRevision = formatCellDate(readValue(row, [...columnAliasGroups.fechaVerificaBack]))
+
+    if (!idHistorial) {
+      return <span className="text-xs font-semibold text-slate-400">Sin id</span>
+    }
+    if (checked) {
+      return (
+        <span className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700" title={[usuario, fechaRevision].filter(Boolean).join(' - ')}>
+          <FontAwesomeIcon icon={faCheck} />
+          Revisado
+        </span>
+      )
+    }
+    return (
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          openVerificaBackModal(row)
+        }}
+        className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-2.5 py-1.5 text-xs font-bold text-blue-700 transition hover:bg-blue-50"
+      >
+        <FontAwesomeIcon icon={faCheck} />
+        Todo OK
+      </button>
+    )
+  }
+
   const detailRows = useMemo(() => {
     if (!selectedRow) return []
     return Object.entries(selectedRow)
@@ -528,24 +627,31 @@ const CruceAgendaMakiroPage = () => {
       .sort((a, b) => a.key.localeCompare(b.key, 'es'))
   }, [selectedRow])
 
+  const openDetailModal = (index: number) => {
+    setSelectedRowIndex(index)
+    setActiveDetailTab('resumen')
+    setArchivoError(null)
+    setDetailModalOpen(true)
+  }
+
   return (
-    <div className="space-y-4 p-4 sm:p-6">
+    <div className="space-y-5 px-5 py-5 sm:p-6">
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
         <div className="flex flex-col gap-4">
           <div>
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-              <div className="flex items-center gap-3 text-blue-700">
-                <FontAwesomeIcon icon={faTableList} />
-                <div>
-                  <h1 className="text-2xl font-bold text-slate-900">Cruce Agenda Makiro</h1>
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+              <div className="flex min-w-0 items-center gap-3 text-blue-700">
+                <FontAwesomeIcon icon={faTableList} className="shrink-0" />
+                <div className="min-w-0">
+                  <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Cruce Agenda Makiro</h1>
                   <p className="mt-1 text-sm text-slate-500">Gestion de OT - SantaCruz</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:min-w-[520px]">
+              <div className="grid w-full grid-cols-[repeat(auto-fit,minmax(128px,1fr))] gap-2 xl:max-w-[560px]">
                 {cruceMetrics.map((item) => (
-                  <div key={item.label} className={`rounded-xl border px-3 py-2 shadow-sm ${item.tone}`}>
-                    <p className="text-[11px] font-semibold uppercase tracking-wide">{item.label}</p>
-                    <p className="mt-0.5 text-lg font-extrabold leading-none">{item.value}</p>
+                  <div key={item.label} className={`min-w-0 rounded-xl border px-3 py-2 shadow-sm ${item.tone}`}>
+                    <p className="truncate text-[11px] font-semibold uppercase">{item.label}</p>
+                    <p className="mt-1 truncate text-lg font-extrabold leading-none">{item.value}</p>
                   </div>
                 ))}
               </div>
@@ -743,16 +849,80 @@ const CruceAgendaMakiroPage = () => {
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="border-b border-slate-200 px-4 py-3 sm:px-5">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-lg font-bold text-slate-900">Listado de Ordenes de Trabajo</h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{filteredRows.length} registros</span>
-            <div className="ml-auto inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 sm:text-lg">Listado de Ordenes de Trabajo</h2>
+              <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{filteredRows.length} registros</span>
+            </div>
+            <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 sm:ml-auto">
               <FontAwesomeIcon icon={faMagnifyingGlass} className="text-slate-400" />
               Vista resumida
             </div>
           </div>
         </div>
-        <div className="max-h-[52vh] overflow-auto">
+        <div className="space-y-3 px-4 pb-4 pt-5 md:hidden">
+          {query.isFetching ? (
+            <div className="px-4 py-8 text-center text-sm text-slate-500">Cargando datos...</div>
+          ) : pageRows.length ? (
+            pageRows.map((row, index) => {
+              const card = toRowCard(row)
+              const isActive = index === selectedRowIndex
+              return (
+                <div
+                  key={`${currentPage}-${index}-mobile`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => openDetailModal(index)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault()
+                      openDetailModal(index)
+                    }
+                  }}
+                  className={`block w-full rounded-xl border px-3 py-3 text-left transition ${
+                    isActive ? 'border-blue-100 bg-blue-50' : 'border-slate-100 bg-white hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-bold uppercase text-slate-500">OT / Cliente</p>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <span className="font-bold text-blue-700">{card.ot}</span>
+                        <span className="font-semibold text-slate-700">{card.clienteCodigo}</span>
+                      </div>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(card.estado)}`}>
+                      {card.estado}
+                    </span>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5">
+                      <p className="font-semibold uppercase text-slate-400">Sucursal</p>
+                      <p className="mt-0.5 truncate font-semibold text-slate-700">{card.sucursal}</p>
+                    </div>
+                    <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5">
+                      <p className="font-semibold uppercase text-slate-400">Tipo</p>
+                      <p className="mt-0.5 truncate font-semibold text-slate-700">{card.tipo}</p>
+                    </div>
+                    <div className="col-span-2 min-w-0 rounded-lg bg-slate-50 px-2 py-1.5">
+                      <p className="font-semibold uppercase text-slate-400">Tecnico</p>
+                      <p className="mt-0.5 truncate font-semibold text-slate-700">{card.tecnico}</p>
+                    </div>
+                  </div>
+                  {canManageVerificaBack ? (
+                    <div className="mt-3 flex justify-end">
+                      {renderVerificaBackAction(row)}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })
+          ) : (
+            <div className="px-4 py-8 text-center text-sm text-slate-500">Sin datos para la fecha seleccionada.</div>
+          )}
+        </div>
+
+        <div className="hidden max-h-[52vh] overflow-auto md:block">
           <table className="min-w-full border-separate border-spacing-0 text-left text-sm">
             <thead className="sticky top-0 z-10 bg-slate-100 text-xs uppercase text-slate-600">
               <tr>
@@ -761,13 +931,16 @@ const CruceAgendaMakiroPage = () => {
                     {displayHeaderLabel(column)}
                   </th>
                 ))}
+                {canManageVerificaBack ? (
+                  <th className="whitespace-nowrap border-b border-slate-200 px-3 py-3 font-bold">VERIF. BACK</th>
+                ) : null}
                 <th className="w-8 border-b border-slate-200 px-3 py-3 font-bold" />
               </tr>
             </thead>
             <tbody>
               {query.isFetching ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={columns.length + 1}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={columns.length + (canManageVerificaBack ? 2 : 1)}>
                     Cargando datos...
                   </td>
                 </tr>
@@ -778,7 +951,7 @@ const CruceAgendaMakiroPage = () => {
                     <tr
                       key={`${currentPage}-${index}`}
                       className={`${isActive ? 'bg-blue-50' : 'odd:bg-white even:bg-slate-50'} cursor-pointer transition hover:bg-blue-50/70`}
-                      onClick={() => setSelectedRowIndex(index)}
+                      onClick={() => openDetailModal(index)}
                     >
                       {columns.map((column) => {
                         const rawValue = renderTableValue(column, row)
@@ -814,6 +987,11 @@ const CruceAgendaMakiroPage = () => {
                           </td>
                         )
                       })}
+                      {canManageVerificaBack ? (
+                        <td className="whitespace-nowrap border-b border-slate-100 px-3 py-3">
+                          {renderVerificaBackAction(row)}
+                        </td>
+                      ) : null}
                       <td className="border-b border-slate-100 px-3 py-3 text-slate-400">
                         <FontAwesomeIcon icon={faChevronRight} />
                       </td>
@@ -822,7 +1000,7 @@ const CruceAgendaMakiroPage = () => {
                 })
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={columns.length + 1}>
+                  <td className="px-3 py-8 text-center text-slate-500" colSpan={columns.length + (canManageVerificaBack ? 2 : 1)}>
                     Sin datos para la fecha seleccionada.
                   </td>
                 </tr>
@@ -830,8 +1008,8 @@ const CruceAgendaMakiroPage = () => {
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-          <p>
+        <div className="flex flex-col items-center gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:justify-between sm:px-5">
+          <p className="text-center sm:text-left">
             Mostrando {pageRows.length ? pageStart + 1 : 0} a {pageStart + pageRows.length} de {filteredRows.length} registros
           </p>
           <div className="flex items-center gap-2">
@@ -858,16 +1036,21 @@ const CruceAgendaMakiroPage = () => {
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 px-4 py-3 sm:px-5">
-          <h2 className="text-lg font-bold text-slate-900">Detalle de la OT</h2>
+      <Modal
+        open={detailModalOpen && Boolean(selectedCard)}
+        title="Detalle de la OT"
+        onClose={() => setDetailModalOpen(false)}
+        maxWidthClass="w-[min(96vw,1200px)]"
+        contentClassName="text-slate-700"
+      >
+        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3">
           <p className="ml-auto text-xl font-bold text-blue-700">{selectedCard?.ot ?? '-'}</p>
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(selectedCard?.estado ?? '')}`}>
             {selectedCard?.estado ?? 'Sin estado'}
           </span>
         </div>
 
-        <div className="border-b border-slate-200 px-4 py-2 sm:px-5">
+        <div className="border-b border-slate-200 py-3">
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -900,7 +1083,7 @@ const CruceAgendaMakiroPage = () => {
         </div>
 
         {activeDetailTab === 'resumen' ? (
-          <div className="space-y-3 p-4 sm:p-5">
+          <div className="space-y-3 pt-4">
             <div className="grid gap-3 lg:grid-cols-2">
               <div className="rounded-xl border border-slate-200 p-3">
                 <p className="text-sm font-bold text-slate-900">Cliente</p>
@@ -989,7 +1172,7 @@ const CruceAgendaMakiroPage = () => {
         ) : null}
 
         {activeDetailTab === 'completo' ? (
-          <div className="p-4 sm:p-5">
+          <div className="pt-4">
             <div className="overflow-auto rounded-xl border border-slate-200">
               <table className="min-w-full text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-600">
@@ -1012,7 +1195,7 @@ const CruceAgendaMakiroPage = () => {
         ) : null}
 
         {activeDetailTab === 'archivo' ? (
-          <div className="p-4 sm:p-5">
+          <div className="pt-4">
             <div className="rounded-xl border border-slate-200 p-4">
               <p className="text-sm font-bold text-slate-900">Documento / Archivo</p>
               <p className="mt-2 break-words text-sm text-slate-700">{selectedCard?.rutaPdf && selectedCard.rutaPdf !== '-' ? selectedCard.rutaPdf : 'Sin archivo asociado en este registro.'}</p>
@@ -1026,7 +1209,63 @@ const CruceAgendaMakiroPage = () => {
             </div>
           </div>
         ) : null}
-      </section>
+      </Modal>
+
+      <Modal
+        open={Boolean(verificaBackRow)}
+        title="Confirmar revision"
+        onClose={() => {
+          if (verificaBackMutation.isPending) return
+          setVerificaBackRow(null)
+          setVerificaBackObservacion('')
+          setVerificaBackError(null)
+        }}
+        maxWidthClass="w-[min(92vw,520px)]"
+        actions={
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setVerificaBackRow(null)
+                setVerificaBackObservacion('')
+                setVerificaBackError(null)
+              }}
+              disabled={verificaBackMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button type="button" onClick={submitVerificaBack} disabled={verificaBackMutation.isPending}>
+              <FontAwesomeIcon icon={faCheck} />
+              {verificaBackMutation.isPending ? 'Guardando...' : 'Confirmar Todo OK'}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <p className="text-xs font-bold uppercase text-slate-500">OT / Cliente</p>
+            <p className="mt-1 font-bold text-slate-900">
+              {verificaBackRow ? toRowCard(verificaBackRow).ot : '-'} / {verificaBackRow ? toRowCard(verificaBackRow).clienteCodigo : '-'}
+            </p>
+          </div>
+          <label className="block text-sm font-semibold text-slate-700">
+            Observacion
+            <textarea
+              value={verificaBackObservacion}
+              onChange={(event) => {
+                setVerificaBackObservacion(event.target.value)
+                setVerificaBackError(null)
+              }}
+              rows={4}
+              className="mt-1 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              placeholder="Escribe la observacion de la revision"
+              disabled={verificaBackMutation.isPending}
+            />
+          </label>
+          {verificaBackError ? <p className="text-sm font-semibold text-rose-600">{verificaBackError}</p> : null}
+        </div>
+      </Modal>
 
       <details className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
         <summary className="cursor-pointer font-semibold">Ver columnas detectadas ({columns.length})</summary>

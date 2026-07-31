@@ -12,6 +12,7 @@ export interface OtSummary {
   usuario?: string
   nombreUsuario?: string
   fechaEjecucion?: string
+  fechaHoraDetalle?: string
   ordenTrabajo?: string
   pendiente?: boolean | string
   [key: string]: unknown

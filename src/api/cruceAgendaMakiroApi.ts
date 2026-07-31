@@ -9,3 +9,16 @@ export const fetchCruceAgendaMakiro = async (fecha: string): Promise<CruceAgenda
   })
   return normalizeArrayResponse<CruceAgendaMakiroRow>(data)
 }
+
+export const marcarCruceVerificaBack = async (
+  idHistorial: number,
+  observacion: string
+): Promise<CruceAgendaMakiroRow> => {
+  const { data } = await api.post(`/supervisor/cruce-ordenes-agenda-makiro/${idHistorial}/verifica-back`, {
+    observacion,
+  })
+  if (data && typeof data === 'object' && 'data' in data && data.data && typeof data.data === 'object') {
+    return data.data as CruceAgendaMakiroRow
+  }
+  return data as CruceAgendaMakiroRow
+}

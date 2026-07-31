@@ -25,14 +25,18 @@ import {
   fetchSupervisionTiposTrabajo,
   fetchSupervisiones,
   fetchSupervisionesPendientes,
+  fetchSupervisores,
   realizarSupervisionPendiente,
 } from '../api/supervisionApi'
+import { fetchConformacionCuadrillaConfirmadas } from '../api/conformacionCuadrillaApi'
+import { fetchSucursales } from '../services/authApi'
 import type {
   SupervisionCreatePayload,
   SupervisionInicioPendiente,
   SupervisionRegistro,
   SupervisionTecnico,
 } from '../types/supervision'
+import type { ConformacionCuadrillaRecord } from '../types/conformacionCuadrilla'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
 
@@ -65,6 +69,8 @@ type SupervisionFiltro = {
   fechaDesde: string
   fechaHasta: string
 }
+
+type AgendaEstadoVista = 'pendientes' | 'completadas'
 
 type JornadaPendienteFiltro = 'hoy' | 'pasados'
 
@@ -143,6 +149,14 @@ const toOptional = (value: string): string | undefined => {
   const trimmed = value.trim()
   return trimmed ? trimmed : undefined
 }
+
+const isSupervisionCompletada = (row: SupervisionRegistro): boolean =>
+  String(row.estadoSup ?? '').trim().toLowerCase().includes('complet')
+
+const supervisionEstadoBadgeClass = (row: SupervisionRegistro): string =>
+  isSupervisionCompletada(row)
+    ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
+    : 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
 
 const formatDateTime = (value?: string): string => {
   if (!value) return '-'
@@ -330,6 +344,55 @@ const formatSiNoValue = (value?: unknown): string => {
 const isSiValue = (value?: unknown): boolean => formatSiNoValue(value) === 'SI'
 const isNoValue = (value?: unknown): boolean => formatSiNoValue(value) === 'NO'
 
+const readCuadrillaValue = (row: ConformacionCuadrillaRecord, keys: string[]): unknown => {
+  for (const key of keys) {
+    const value = row[key as keyof ConformacionCuadrillaRecord]
+    if (value !== undefined && value !== null && value !== '') return value
+  }
+  return undefined
+}
+
+const readCuadrillaText = (row: ConformacionCuadrillaRecord, keys: string[]): string => {
+  return String(readCuadrillaValue(row, keys) ?? '').trim()
+}
+
+const buildInicioTecnicoMap = (rows: SupervisionInicioPendiente[]): Map<string, SupervisionInicioPendiente> => {
+  const map = new Map<string, SupervisionInicioPendiente>()
+  for (const row of rows) {
+    const id = normalizeId(row.idTecnico)
+    if (id && !map.has(id)) {
+      map.set(id, row)
+    }
+  }
+  return map
+}
+
+const buildJornadaDesdeCuadrilla = (
+  row: ConformacionCuadrillaRecord,
+  inicio: SupervisionInicioPendiente | undefined
+): SupervisionInicioPendiente => {
+  const idTecnico = readCuadrillaText(row, ['idTecnico', 'id_tecnico', 'id_vendedor', 'idVendedor', 'IdVendedor', 'Id_Vendedor'])
+  const tecnicoNombre = readCuadrillaText(row, ['tecnico', 'nombreTecnico', 'nombre_tecnico', 'vendedor', 'Tecnico'])
+  const idAuxiliar = readCuadrillaText(row, ['idTecnicoAuxiliar', 'id_tecnico_auxiliar', 'idAuxiliar', 'id_auxiliar'])
+  const auxiliarNombre = readCuadrillaText(row, ['auxiliar', 'nombreAuxiliar', 'nombre_auxiliar', 'tecnicoAuxiliar'])
+  const idSupervisor = readCuadrillaText(row, ['idUsuarioSupervisor', 'id_usuario_supervisor', 'idSupervisor', 'id_supervisor'])
+  const supervisorNombre = readCuadrillaText(row, ['supervisorACargo', 'supervisor', 'nombreSupervisor'])
+  const fecha = readCuadrillaText(row, ['fecha', 'fechaRegistro', 'fecha_registro'])
+
+  return {
+    ...(inicio ?? {}),
+    idInicio: inicio?.idInicio ?? '',
+    idTecnico: idTecnico || inicio?.idTecnico,
+    tecnicoNombre: tecnicoNombre || inicio?.tecnicoNombre,
+    idAuxiliar: idAuxiliar || inicio?.idAuxiliar,
+    auxiliarNombre: auxiliarNombre || inicio?.auxiliarNombre,
+    idSupervisor: idSupervisor || inicio?.idSupervisor,
+    supervisorNombre: supervisorNombre || inicio?.supervisorNombre,
+    fechaRegistro: inicio?.fechaRegistro || fecha || undefined,
+    estado: inicio?.estado || 'SIN INICIO REGISTRADO',
+  }
+}
+
 const normalizePersonNameKey = (value?: string): string => {
   const raw = (value ?? '').trim().toLowerCase()
   if (!raw) return ''
@@ -493,10 +556,14 @@ const SupervisorSupervisionPage = () => {
   const [registroModalOpen, setRegistroModalOpen] = useState(false)
   const [detalleModalOpen, setDetalleModalOpen] = useState(false)
   const [detalleId, setDetalleId] = useState<string>('')
+  const [detalleSupervisorId, setDetalleSupervisorId] = useState<string>('')
   const [errorForm, setErrorForm] = useState<string | null>(null)
   const [successForm, setSuccessForm] = useState<string | null>(null)
   const [tecnicoFilter, setTecnicoFilter] = useState('')
   const [vistaTopbar, setVistaTopbar] = useState<'supervisiones' | 'agenda' | 'aprobacion'>('aprobacion')
+  const [agendaEstadoVista, setAgendaEstadoVista] = useState<AgendaEstadoVista>('pendientes')
+  const [sucursalFiltro, setSucursalFiltro] = useState('')
+  const [supervisorFiltro, setSupervisorFiltro] = useState('')
   const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [inicioPendienteDetalle, setInicioPendienteDetalle] = useState<SupervisionInicioPendiente | null>(null)
@@ -507,6 +574,7 @@ const SupervisorSupervisionPage = () => {
   const [rechazoInicioTecnico, setRechazoInicioTecnico] = useState<string>('')
   const [observacionRechazo, setObservacionRechazo] = useState('')
   const [observacionRechazoError, setObservacionRechazoError] = useState<string | null>(null)
+  const jornadaFechaHoy = getTodayIsoDate()
 
   useEffect(() => {
     return () => {
@@ -541,29 +609,45 @@ const SupervisorSupervisionPage = () => {
     staleTime: 300_000,
   })
 
+  const sucursalesQuery = useQuery({
+    queryKey: ['supervision', 'sucursales-filtro'],
+    queryFn: fetchSucursales,
+    staleTime: 300_000,
+  })
+
+  const supervisoresFiltroQuery = useQuery({
+    queryKey: ['supervision', 'supervisores-filtro', sucursalFiltro],
+    queryFn: () => fetchSupervisores(sucursalFiltro || undefined),
+    staleTime: 300_000,
+  })
+
   const listadoQuery = useQuery({
-    queryKey: ['supervision', 'listado', filtroActivo],
+    queryKey: ['supervision', 'listado', filtroActivo, sucursalFiltro, supervisorFiltro],
     queryFn: () =>
       fetchSupervisiones({
         fechaDesde: filtroActivo.fechaDesde || undefined,
         fechaHasta: filtroActivo.fechaHasta || undefined,
+        sucursal: sucursalFiltro || undefined,
+        idSupervisor: supervisorFiltro || undefined,
         limite: 300,
       }),
   })
 
   const listadoPendientesQuery = useQuery({
-    queryKey: ['supervision', 'listado-pendientes', filtroActivo],
+    queryKey: ['supervision', 'listado-pendientes', filtroActivo, sucursalFiltro, supervisorFiltro],
     queryFn: () =>
       fetchSupervisionesPendientes({
         fechaDesde: filtroActivo.fechaDesde || undefined,
         fechaHasta: filtroActivo.fechaHasta || undefined,
+        sucursal: sucursalFiltro || undefined,
+        idSupervisor: supervisorFiltro || undefined,
         limite: 300,
       }),
   })
 
   const detalleQuery = useQuery({
-    queryKey: ['supervision', 'detalle', detalleId],
-    queryFn: () => fetchSupervisionDetalle(detalleId),
+    queryKey: ['supervision', 'detalle', detalleId, detalleSupervisorId],
+    queryFn: () => fetchSupervisionDetalle(detalleId, detalleSupervisorId || undefined),
     enabled: detalleModalOpen && Boolean(detalleId),
   })
 
@@ -576,6 +660,12 @@ const SupervisorSupervisionPage = () => {
   const iniciosConfirmadosHoyQuery = useQuery({
     queryKey: ['supervision', 'jornada-confirmada-hoy', usuario?.idUsuario ?? 0],
     queryFn: fetchIniciosJornadaConfirmadosHoySupervision,
+    refetchInterval: 20_000,
+    enabled: Boolean(usuario?.idUsuario),
+  })
+  const cuadrillasConfirmadasHoyQuery = useQuery({
+    queryKey: ['supervision', 'cuadrillas-confirmadas-hoy', jornadaFechaHoy, usuario?.idUsuario ?? 0],
+    queryFn: () => fetchConformacionCuadrillaConfirmadas({ fecha: jornadaFechaHoy }),
     refetchInterval: 20_000,
     enabled: Boolean(usuario?.idUsuario),
   })
@@ -594,6 +684,10 @@ const SupervisorSupervisionPage = () => {
       return { ...current, ...jornadaDetalleQuery.data } as SupervisionInicioPendiente
     })
   }, [jornadaDetalleQuery.data])
+
+  useEffect(() => {
+    setSupervisorFiltro('')
+  }, [sucursalFiltro])
 
   const createMutation = useMutation({
     mutationFn: (payload: SupervisionCreatePayload) => createSupervision(payload),
@@ -660,10 +754,15 @@ const SupervisorSupervisionPage = () => {
   const listados = listadoQuery.data ?? []
   const listadosPendientes = listadoPendientesQuery.data ?? []
   const agendaFechaSeleccionada = filtroActivo.fechaDesde || filtroDraft.fechaDesde || getTodayIsoDate()
-  const supervisionesCompletadasAgenda = useMemo(
-    () => listados.filter((row) => String(row.estadoSup ?? '').trim().toLowerCase().includes('complet')).length,
+  const listadosCompletadosAgenda = useMemo(
+    () => listados.filter(isSupervisionCompletada),
     [listados]
   )
+  const supervisionesCompletadasAgenda = listadosCompletadosAgenda.length
+  const agendaRows = agendaEstadoVista === 'completadas' ? listadosCompletadosAgenda : listadosPendientes
+  const agendaRowsLoading = agendaEstadoVista === 'completadas' ? listadoQuery.isLoading : listadoPendientesQuery.isLoading
+  const agendaRowsError = agendaEstadoVista === 'completadas' ? listadoQuery.error : listadoPendientesQuery.error
+  const agendaRowsIsError = agendaEstadoVista === 'completadas' ? listadoQuery.isError : listadoPendientesQuery.isError
   const iniciosPendientes = iniciosPendientesQuery.data ?? []
   const iniciosPendientesHoy = useMemo(
     () => iniciosPendientes.filter(isJornadaToday),
@@ -675,6 +774,26 @@ const SupervisorSupervisionPage = () => {
   )
   const iniciosPendientesFiltrados = jornadaPendienteFiltro === 'pasados' ? iniciosPendientesPasados : iniciosPendientesHoy
   const iniciosConfirmadosHoy = iniciosConfirmadosHoyQuery.data ?? []
+  const cuadrillasConfirmadasHoy = cuadrillasConfirmadasHoyQuery.data ?? []
+  const jornadasConfirmadasDia = useMemo(() => {
+    if (!cuadrillasConfirmadasHoy.length) return []
+
+    const inicioByTecnico = buildInicioTecnicoMap(iniciosConfirmadosHoy)
+    const rows: SupervisionInicioPendiente[] = []
+    const seen = new Set<string>()
+
+    for (const cuadrilla of cuadrillasConfirmadasHoy) {
+      const idTecnico = readCuadrillaText(cuadrilla, ['idTecnico', 'id_tecnico', 'id_vendedor', 'idVendedor', 'IdVendedor', 'Id_Vendedor'])
+      const tecnicoNombre = readCuadrillaText(cuadrilla, ['tecnico', 'nombreTecnico', 'nombre_tecnico', 'vendedor', 'Tecnico'])
+      const key = idTecnico ? `id:${idTecnico}` : `nombre:${normalizePersonNameKey(tecnicoNombre)}`
+      if (!idTecnico && !tecnicoNombre) continue
+      if (seen.has(key)) continue
+      seen.add(key)
+      rows.push(buildJornadaDesdeCuadrilla(cuadrilla, idTecnico ? inicioByTecnico.get(idTecnico) : undefined))
+    }
+
+    return rows
+  }, [cuadrillasConfirmadasHoy, iniciosConfirmadosHoy])
   const tieneCierreJornada = (row: SupervisionInicioPendiente): boolean =>
     Boolean(row.fechaCierre) ||
     Boolean(row.codigoClienteCierre) ||
@@ -683,16 +802,18 @@ const SupervisorSupervisionPage = () => {
     Boolean(row.novedadesTrabajo) ||
     Boolean(row.ubicacionCierreGeoref)
   const iniciosConfirmadosAbiertosHoy = useMemo(
-    () => iniciosConfirmadosHoy.filter((row) => !tieneCierreJornada(row)),
-    [iniciosConfirmadosHoy]
+    () => jornadasConfirmadasDia.filter((row) => !tieneCierreJornada(row)),
+    [jornadasConfirmadasDia]
   )
   const cierresJornadaHoy = useMemo(
-    () => iniciosConfirmadosHoy.filter((row) => tieneCierreJornada(row)),
-    [iniciosConfirmadosHoy]
+    () => jornadasConfirmadasDia.filter((row) => tieneCierreJornada(row)),
+    [jornadasConfirmadasDia]
   )
+  const jornadasDiaLoading = cuadrillasConfirmadasHoyQuery.isLoading || iniciosConfirmadosHoyQuery.isLoading
+  const jornadasDiaFetching = cuadrillasConfirmadasHoyQuery.isFetching || iniciosConfirmadosHoyQuery.isFetching
   const tecnicos = useMemo(
-    () => mergeTecnicosDisponibles(catalogoTecnicos, iniciosPendientes, iniciosConfirmadosHoy),
-    [catalogoTecnicos, iniciosConfirmadosHoy, iniciosPendientes]
+    () => mergeTecnicosDisponibles(catalogoTecnicos, iniciosPendientes, jornadasConfirmadasDia),
+    [catalogoTecnicos, iniciosPendientes, jornadasConfirmadasDia]
   )
   const idsSupervisionesPendientes = useMemo(
     () => new Set(listadosPendientes.map((item) => item.idSupervision)),
@@ -808,18 +929,21 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'acciones',
         header: 'Acciones',
-        render: (row) => (
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'inicio')}>
-              Ver inicio
-            </Button>
-            {tieneCierreJornada(row) ? (
-              <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'cierre')}>
-                Ver cierre
+        render: (row) => {
+          const tieneInicio = Boolean(row.idInicio)
+          return (
+            <div className="flex flex-wrap gap-2">
+              <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'inicio')} disabled={!tieneInicio}>
+                {tieneInicio ? 'Ver inicio' : 'Sin inicio'}
               </Button>
-            ) : null}
-          </div>
-        ),
+              {tieneInicio && tieneCierreJornada(row) ? (
+                <Button type="button" variant="secondary" onClick={() => abrirDetalleJornada(row, 'cierre')}>
+                  Ver cierre
+                </Button>
+              ) : null}
+            </div>
+          )
+        },
       },
     ]
   }, [pendientesColumns])
@@ -949,6 +1073,15 @@ const SupervisorSupervisionPage = () => {
         render: (row) => <span className="text-sm font-medium text-slate-700">{resolveTipoTrabajo(row)}</span>,
       },
       {
+        key: 'estadoSup',
+        header: 'Estado',
+        render: (row) => (
+          <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold ${supervisionEstadoBadgeClass(row)}`}>
+            {isSupervisionCompletada(row) ? 'Completada' : 'Pendiente'}
+          </span>
+        ),
+      },
+      {
         key: 'codigo',
         header: 'Codigo',
         render: (row) => <span className="font-mono text-sm font-medium text-slate-700">{row.codigo || '-'}</span>,
@@ -974,6 +1107,7 @@ const SupervisorSupervisionPage = () => {
               variant="secondary"
               onClick={() => {
                 setDetalleId(row.idSupervision)
+                setDetalleSupervisorId(normalizeId(row.idSupervisor) || supervisorFiltro)
                 setDetalleModalOpen(true)
               }}
             >
@@ -1146,6 +1280,43 @@ const SupervisorSupervisionPage = () => {
         </Button>
       </div>
 
+      {vistaTopbar !== 'aprobacion' ? (
+        <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Sucursal">
+              <select
+                className="input-base"
+                value={sucursalFiltro}
+                onChange={(event) => setSucursalFiltro(event.target.value)}
+                disabled={sucursalesQuery.isLoading}
+              >
+                <option value="">Mi sucursal</option>
+                {(sucursalesQuery.data?.data ?? []).map((item) => (
+                  <option key={item.idSucursal} value={item.sucursal}>
+                    {item.sucursal}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Supervisor">
+              <select
+                className="input-base"
+                value={supervisorFiltro}
+                onChange={(event) => setSupervisorFiltro(event.target.value)}
+                disabled={supervisoresFiltroQuery.isLoading}
+              >
+                <option value="">Todos / mi usuario</option>
+                {(supervisoresFiltroQuery.data ?? []).map((item) => (
+                  <option key={item.idSupervisor} value={item.idSupervisor}>
+                    {item.nombre}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+        </section>
+      ) : null}
+
       {vistaTopbar === 'aprobacion' ? (
         <>
           <FormCard
@@ -1223,8 +1394,11 @@ const SupervisorSupervisionPage = () => {
                 type="button"
                 variant="secondary"
                 className="px-5"
-                onClick={() => iniciosConfirmadosHoyQuery.refetch()}
-                disabled={iniciosConfirmadosHoyQuery.isFetching}
+                onClick={() => {
+                  cuadrillasConfirmadasHoyQuery.refetch()
+                  iniciosConfirmadosHoyQuery.refetch()
+                }}
+                disabled={jornadasDiaFetching}
               >
                 <FontAwesomeIcon icon={faRotateRight} />
                 Recargar confirmadas
@@ -1242,7 +1416,7 @@ const SupervisorSupervisionPage = () => {
                 density="compact"
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
-                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando confirmadas...' : 'NO HAY DATOS PARA LA FECHA'}
+                emptyLabel={jornadasDiaLoading ? 'Cargando confirmadas...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -1255,8 +1429,11 @@ const SupervisorSupervisionPage = () => {
                 type="button"
                 variant="secondary"
                 className="px-5"
-                onClick={() => iniciosConfirmadosHoyQuery.refetch()}
-                disabled={iniciosConfirmadosHoyQuery.isFetching}
+                onClick={() => {
+                  cuadrillasConfirmadasHoyQuery.refetch()
+                  iniciosConfirmadosHoyQuery.refetch()
+                }}
+                disabled={jornadasDiaFetching}
               >
                 <FontAwesomeIcon icon={faRotateRight} />
                 Recargar cierres
@@ -1274,7 +1451,7 @@ const SupervisorSupervisionPage = () => {
                 density="compact"
                 stickyHeader
                 desktopMinWidthClass="min-w-[980px]"
-                emptyLabel={iniciosConfirmadosHoyQuery.isLoading ? 'Cargando cierres...' : 'NO HAY DATOS PARA LA FECHA'}
+                emptyLabel={jornadasDiaLoading ? 'Cargando cierres...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
           </FormCard>
@@ -1382,49 +1559,72 @@ const SupervisorSupervisionPage = () => {
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h3 className="text-lg font-extrabold text-[#081a4b]">Supervisiones pendientes agendadas</h3>
+                <h3 className="text-lg font-extrabold text-[#081a4b]">
+                  Supervisiones {agendaEstadoVista === 'completadas' ? 'completadas' : 'pendientes'} agendadas
+                </h3>
                 <p className="mt-1 text-sm font-medium text-slate-500">
-                  Total: {listadosPendientes.length} supervisiones pendientes del {formatIsoDateDisplay(agendaFechaSeleccionada)}
+                  Total: {agendaRows.length} supervisiones del {formatIsoDateDisplay(agendaFechaSeleccionada)}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                <button
+                  type="button"
+                  onClick={() => setAgendaEstadoVista('pendientes')}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
+                    agendaEstadoVista === 'pendientes'
+                      ? 'border-amber-300 bg-amber-50 text-amber-700'
+                      : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
                   <FontAwesomeIcon icon={faClock} />
                   Pendientes
                   <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">{listadosPendientes.length}</span>
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAgendaEstadoVista('completadas')}
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
+                    agendaEstadoVista === 'completadas'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
                   <FontAwesomeIcon icon={faCheckCircle} />
                   Completadas
                   <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">{supervisionesCompletadasAgenda}</span>
-                </span>
+                </button>
               </div>
             </div>
 
-            {listadoPendientesQuery.isError ? (
+            {agendaRowsIsError ? (
               <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {getApiErrorMessage(listadoPendientesQuery.error, 'No se pudo cargar las supervisiones pendientes.')}
+                {getApiErrorMessage(agendaRowsError, 'No se pudo cargar las supervisiones.')}
               </div>
             ) : null}
 
             <div className="mt-4 space-y-3">
-              {listadoPendientesQuery.isLoading ? (
-                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">Cargando pendientes...</div>
-              ) : listadosPendientes.length === 0 ? (
+              {agendaRowsLoading ? (
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">Cargando supervisiones...</div>
+              ) : agendaRows.length === 0 ? (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-5 text-sm font-medium text-slate-500">NO HAY DATOS PARA LA FECHA</div>
               ) : (
-                listadosPendientes.map((row) => {
+                agendaRows.map((row) => {
                   const { date, time } = formatDateParts(row.fechaRegistro)
                   const supervisor = row.supervisor || row.idSupervisor || '-'
                   const tecnico = row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || row.idTecnicoPrincipal || '-'
                   const auxiliar = row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || row.idTecnicoAuxiliar || '-'
+                  const completada = isSupervisionCompletada(row)
                   return (
                     <article key={row.idSupervision} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-                      <div className="border-l-4 border-amber-400 p-4">
-                        <div className="mb-3">
-                          <span className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700">
-                            <FontAwesomeIcon icon={faClock} />
-                            Pendiente
+                      <div className={`border-l-4 p-4 ${completada ? 'border-emerald-400' : 'border-amber-400'}`}>
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          <span className={`inline-flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-extrabold ${supervisionEstadoBadgeClass(row)}`}>
+                            <FontAwesomeIcon icon={completada ? faCheckCircle : faClock} />
+                            {completada ? 'Completada' : 'Pendiente'}
+                          </span>
+                          <span className="inline-flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1 text-xs font-extrabold text-blue-700">
+                            <FontAwesomeIcon icon={faClipboardList} />
+                            {resolveTipoSupervisionDetalle(row)}
                           </span>
                         </div>
                         <div className="grid gap-4 lg:grid-cols-[1.1fr_1.4fr_1.4fr_1fr_1fr]">
@@ -1465,38 +1665,53 @@ const SupervisorSupervisionPage = () => {
                         </div>
                         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-3">
                           <div className="flex flex-wrap gap-2">
-                            <Button type="button" className="px-4" onClick={() => abrirRealizarPendiente(row)}>
+                            <Button
+                              type="button"
+                              className="px-4"
+                              variant={completada ? 'secondary' : 'primary'}
+                              onClick={() => {
+                                if (completada) {
+                                  setDetalleId(row.idSupervision)
+                                  setDetalleSupervisorId(normalizeId(row.idSupervisor) || supervisorFiltro)
+                                  setDetalleModalOpen(true)
+                                  return
+                                }
+                                abrirRealizarPendiente(row)
+                              }}
+                            >
                               <FontAwesomeIcon icon={faEye} />
                               Ver detalle
                             </Button>
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              className="px-4"
-                              onClick={() => {
-                                setRealizandoPendienteId('')
-                                setForm((prev) => ({
-                                  ...prev,
-                                  idTecnicoPrincipal: normalizeId(row.idTecnicoPrincipal),
-                                  idTecnicoAuxiliar: normalizeId(row.idTecnicoAuxiliar),
-                                  idTipoSupervision: normalizeId(row.idTipoSupervision),
-                                  idTipoTrabajo: normalizeId(row.idTipoTrabajo),
-                                  idTipoPenalizacion: normalizeId(row.idTipoPenalizacion),
-                                  supervisionPor: row.supervisionPor || '',
-                                  tecnologia: row.tecnologia || '',
-                                  codigo: row.codigo || '',
-                                  ordenTrabajo: row.ordenTrabajo || '',
-                                  tipoRevision: row.tipoRevision || '',
-                                  ubicacion: row.ubicacion || '',
-                                }))
-                                setErrorForm(null)
-                                setTecnicoFilter('')
-                                setRegistroModalOpen(true)
-                              }}
-                            >
-                              <FontAwesomeIcon icon={faCalendarDays} />
-                              Reagendar
-                            </Button>
+                            {!completada ? (
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                className="px-4"
+                                onClick={() => {
+                                  setRealizandoPendienteId('')
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    idTecnicoPrincipal: normalizeId(row.idTecnicoPrincipal),
+                                    idTecnicoAuxiliar: normalizeId(row.idTecnicoAuxiliar),
+                                    idTipoSupervision: normalizeId(row.idTipoSupervision),
+                                    idTipoTrabajo: normalizeId(row.idTipoTrabajo),
+                                    idTipoPenalizacion: normalizeId(row.idTipoPenalizacion),
+                                    supervisionPor: row.supervisionPor || '',
+                                    tecnologia: row.tecnologia || '',
+                                    codigo: row.codigo || '',
+                                    ordenTrabajo: row.ordenTrabajo || '',
+                                    tipoRevision: row.tipoRevision || '',
+                                    ubicacion: row.ubicacion || '',
+                                  }))
+                                  setErrorForm(null)
+                                  setTecnicoFilter('')
+                                  setRegistroModalOpen(true)
+                                }}
+                              >
+                                <FontAwesomeIcon icon={faCalendarDays} />
+                                Reagendar
+                              </Button>
+                            ) : null}
                           </div>
                           <button
                             type="button"
@@ -1603,7 +1818,15 @@ const SupervisorSupervisionPage = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo Supervision</p>
-                          <p className="break-words font-semibold text-slate-700">{resolveTipoSupervisionDetalle(row)}</p>
+                          <span className="mt-1 inline-flex max-w-full items-center rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700">
+                            <span className="truncate">{resolveTipoSupervisionDetalle(row)}</span>
+                          </span>
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Estado</p>
+                          <span className={`mt-1 inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${supervisionEstadoBadgeClass(row)}`}>
+                            {isSupervisionCompletada(row) ? 'Completada' : 'Pendiente'}
+                          </span>
                         </div>
                         <div className="min-w-0">
                           <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Tipo Trabajo</p>
@@ -1625,6 +1848,7 @@ const SupervisorSupervisionPage = () => {
                           className="w-full justify-center"
                           onClick={() => {
                             setDetalleId(row.idSupervision)
+                            setDetalleSupervisorId(normalizeId(row.idSupervisor) || supervisorFiltro)
                             setDetalleModalOpen(true)
                           }}
                         >

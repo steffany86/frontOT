@@ -56,6 +56,8 @@ export type SupervisionListParams = {
   fechaDesde?: string
   fechaHasta?: string
   limite?: number
+  sucursal?: string
+  idSupervisor?: string
 }
 
 export type SupervisionTecnicosParams = {
@@ -106,6 +108,8 @@ export type SupervisionInicioPendiente = {
   fechaCierre?: string
   imagen?: string
   imagenAuxiliar?: string
+  tieneImagenInicio?: boolean
+  tieneImagenAuxiliar?: boolean
   firmaInicio?: string
   firmaCierre?: string
   estado?: string
@@ -138,11 +142,16 @@ export type SupervisionJornadaHistorico = {
   tecnicoNombre: string
   idAuxiliar?: string
   auxiliarNombre?: string
+  idAuxiliarCuadrilla?: string
+  auxiliarCuadrilla?: string
+  requiereFotoAuxiliar?: boolean
   fecha?: string
   fechaInicio?: string
   fechaCierre?: string
   imagen?: string
   imagenAuxiliar?: string
+  tieneImagenInicio?: boolean
+  tieneImagenAuxiliar?: boolean
   firmaInicio?: string
   firmaCierre?: string
   sucursal?: string

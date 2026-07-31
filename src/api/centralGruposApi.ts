@@ -1,6 +1,6 @@
 ﻿import api from './http'
 import { normalizeArrayResponse } from './apiResponse'
-import type { CentralGrupo, CentralSupervisor, CentralTecnico, CentralTecnicoAsignado } from '../types/centralGrupos'
+import type { CentralGrupo, CentralGrupoManana, CentralSupervisor, CentralTecnico, CentralTecnicoAsignado } from '../types/centralGrupos'
 
 const BASE_PATH = '/central/grupos'
 
@@ -94,6 +94,15 @@ const mapTecnico = (row: Record<string, unknown>): CentralTecnico => ({
   tecnico: normalizeString(readValue(row, ['tecnico', 'nombre', 'vendedor'])),
 })
 
+const mapGrupoManana = (row: Record<string, unknown>): CentralGrupoManana => ({
+  idGrupo: normalizeString(readValue(row, ['idGrupo', 'id_grupo'])),
+  grupo: normalizeString(readValue(row, ['grupo', 'nombre', 'nombreGrupo'])),
+  idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'idUsuarioSupervisor', 'id_usuario_supervisor'])) || undefined,
+  supervisor: normalizeString(readValue(row, ['supervisor', 'supervisorACargo', 'supervisor_a_cargo'])) || 'Sin supervisor',
+  cantidadTecnicos: toOptionalNumber(readValue(row, ['cantidadTecnicos', 'cantidad_tecnicos'])) ?? 0,
+  fuente: normalizeString(readValue(row, ['fuente'])) || undefined,
+})
+
 const agruparGrupos = (rows: GrupoRow[]): CentralGrupo[] => {
   const grouped = new Map<string, CentralGrupo>()
 
@@ -165,6 +174,12 @@ export const fetchCentralTecnicos = async (sucursal?: string): Promise<CentralTe
   const { data } = await api.get(`${BASE_PATH}/filtros/tecnicos`, { params: { sucursal: sucursal || undefined } })
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapTecnico).filter((item) => item.idTecnico && item.tecnico)
+}
+
+export const fetchCentralGruposManana = async (sucursal?: string): Promise<CentralGrupoManana[]> => {
+  const { data } = await api.get(`${BASE_PATH}/manana`, { params: { sucursal: sucursal || undefined } })
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapGrupoManana).filter((item) => item.grupo)
 }
 
 export const crearCentralGrupo = async (payload: { nombre: string; sucursal?: string }): Promise<Record<string, unknown>> => {

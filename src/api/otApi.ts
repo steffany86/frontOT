@@ -131,6 +131,12 @@ const mapOtSummary = (row: UnknownRecord): OtSummary => {
     'Fecha_Ejecucion',
     'FechaEjecucion',
   ])
+  const fechaHoraDetalle = readString(row, [
+    'fechaHoraDetalle',
+    'FechaHoraDetalle',
+    'fecha_hora_detalle',
+    'Fecha_Hora_Detalle',
+  ])
   const cliente = readString(row, ['cliente', 'Cliente', 'nombreCliente', 'NombreCliente'])
   const tecnico = readString(row, ['tecnico', 'Tecnico', 'nombreUsuario', 'NombreUsuario', 'usuario', 'Usuario'])
   const estado = readString(row, ['estado', 'Estado', 'estadoOt', 'Estado_OT'])
@@ -152,6 +158,7 @@ const mapOtSummary = (row: UnknownRecord): OtSummary => {
     ruta: ruta || undefined,
     idUsuario,
     nombreUsuario: nombreUsuario || undefined,
+    fechaHoraDetalle: fechaHoraDetalle || undefined,
     ordenTrabajo: codigo || undefined,
     pendiente,
   }

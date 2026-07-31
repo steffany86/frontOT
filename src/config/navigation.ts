@@ -226,7 +226,7 @@ export const navigationItems: NavigationItem[] = [
     label: 'Cruce Agenda Makiro',
     to: '/almacen/cruce-agenda-makiro',
     routePatterns: ['/almacen/cruce-agenda-makiro'],
-    allowedRoles: ['almacenero', 'auxiliar de almacen', 'back office', 'backoffice', 'supervisor', 'sistemas', 'admin', 'administrador'],
+    allowedRoles: ['almacenero', 'auxiliar de almacen', 'back office', 'backoffice', 'backoffice_v', 'backofficev', 'supervisor', 'sistemas', 'admin', 'administrador'],
     sidebarLabelFromMenu: false,
     showInSidebar: true,
   },

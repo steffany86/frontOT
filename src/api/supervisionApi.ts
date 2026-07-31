@@ -164,6 +164,8 @@ const sanitizeListParams = (params?: SupervisionListParams): Record<string, unkn
     fechaDesde: params.fechaDesde?.trim() || undefined,
     fechaHasta: params.fechaHasta?.trim() || undefined,
     limite: params.limite && Number.isFinite(params.limite) ? Math.trunc(params.limite) : undefined,
+    sucursal: params.sucursal?.trim() || undefined,
+    idSupervisor: params.idSupervisor?.trim() || undefined,
   }).filter(([, value]) => value !== undefined && value !== null && value !== '')
   return entries.length ? Object.fromEntries(entries) : undefined
 }
@@ -236,8 +238,10 @@ export const fetchBackofficeSupervisionesPorEstado = async (
   return rows.map(mapRegistro).filter((item) => item.idSupervision)
 }
 
-export const fetchSupervisionDetalle = async (idSupervision: string): Promise<SupervisionRegistro> => {
-  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/${idSupervision}`)
+export const fetchSupervisionDetalle = async (idSupervision: string, idSupervisor?: string): Promise<SupervisionRegistro> => {
+  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/${idSupervision}`, {
+    params: idSupervisor?.trim() ? { idSupervisor: idSupervisor.trim() } : undefined,
+  })
   const payload = normalizeObjectResponse<Record<string, unknown>>(data)
   return mapRegistro(payload)
 }
@@ -375,6 +379,12 @@ const normalizeEstadoJornada = (value: unknown): string => {
   return normalizeString(value).trim().toUpperCase().replace(/[\s-]+/g, '_')
 }
 
+const normalizeAuxiliarId = (value: unknown): string | undefined => {
+  const normalized = normalizeString(value)
+  if (!normalized || normalized === '0') return undefined
+  return normalized
+}
+
 const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHistorico => {
   const inicio = mapInicioPendiente(row)
   const noMarcoCierre = readValue(row, ['noMarcoCierre', 'no_marco_cierre'])
@@ -396,6 +406,14 @@ const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHi
       normalizeString(readValue(row, ['tecnicoNombre', 'tecnico', 'nombreTecnico', 'nombre_tecnico', 'nombre'])) ||
       inicio.tecnicoNombre ||
       'Tecnico sin nombre',
+    idAuxiliar: normalizeAuxiliarId(inicio.idAuxiliar),
+    idAuxiliarCuadrilla: normalizeAuxiliarId(readValue(row, ['idAuxiliarCuadrilla', 'id_auxiliar_cuadrilla', 'idTecnicoAuxiliarCuadrilla', 'id_tecnico_auxiliar_cuadrilla'])),
+    auxiliarCuadrilla:
+      normalizeString(readValue(row, ['auxiliarCuadrilla', 'auxiliar_cuadrilla', 'tecnicoAuxiliarCuadrilla', 'nombreAuxiliarCuadrilla'])) ||
+      undefined,
+    requiereFotoAuxiliar: readBooleanLike(readValue(row, ['requiereFotoAuxiliar', 'requiere_foto_auxiliar'])),
+    tieneImagenInicio: readBooleanLike(readValue(row, ['tieneImagenInicio', 'tiene_imagen_inicio'])),
+    tieneImagenAuxiliar: readBooleanLike(readValue(row, ['tieneImagenAuxiliar', 'tiene_imagen_auxiliar'])),
     fecha: normalizeString(readValue(row, ['fecha'])) || undefined,
     fechaInicio: normalizeString(readValue(row, ['fechaInicio', 'fecha_inicio', 'fechaRegistro', 'fecha_registro'])) || inicio.fechaRegistro,
     fechaCierre,

@@ -3091,6 +3091,8 @@ const findVehiculoConflictRecord = (
         parseNumber(draftRow.idUsuarioSupervisor) ??
         toOptionalNumber(normalizedBaseRecord.idUsuarioRegistra),
     })
+    const isSavingAusenteFromPendientes =
+      activeTab === 'general' && normalizeEstadoValue(draftRow.estado) === 'AUSENTE'
     const idRutaRelacion = getRecordRutaId(normalizedDraftRecord) ?? getRecordRutaId(normalizedBaseRecord)
     const idTecnicoAuxiliarRelacionRaw = parseNumber(draftRow.idTecnicoAuxiliar)
     const idTecnicoAuxiliarRelacion = idTecnicoAuxiliarRelacionRaw ?? 0
@@ -3133,6 +3135,35 @@ const findVehiculoConflictRecord = (
       await finalizeDefinitiveSave(
         [targetKey],
         'Cuadrilla confirmada actualizada'
+      )
+      return
+    }
+
+    if (isSavingAusenteFromPendientes) {
+      const currentUserId = parseNumber(currentUserRegistraId)
+      if (currentUserId === null) {
+        setSubmitError('No se pudo resolver idUsuarioRegistra del usuario actual para guardar ausencia.')
+        return
+      }
+
+      const absentPayload = buildUpdatePayloadFromRow(draftRow, currentUserId, sucursalActiva)
+      setIsResolvingReassignments(true)
+      try {
+        if (activeReassignments.length) {
+          await runApprovedReassignments(activeReassignments)
+        }
+        await guardarConformacionCuadrillaConfirmada({ filas: [absentPayload] })
+      } catch (error) {
+        setSubmitError(toApiErrorText(error, 'No se pudo guardar la cuadrilla ausente en BDControlOrdenes.'))
+        setIsResolvingReassignments(false)
+        return
+      } finally {
+        setIsResolvingReassignments(false)
+      }
+
+      await finalizeDefinitiveSave(
+        [targetKey],
+        'Cuadrilla ausente guardada'
       )
       return
     }

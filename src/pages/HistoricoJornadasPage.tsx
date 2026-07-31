@@ -74,7 +74,7 @@ const noMarcoCierre = (row: SupervisionJornadaHistorico): boolean =>
 
 const estadoLabel = (row: SupervisionJornadaHistorico): string => {
   if (esRechazado(row)) return 'Estado rechazado'
-  if (noInicio(row)) return 'Estado no inicio'
+  if (noInicio(row)) return 'Confirmada en cuadrilla pero no inicio'
   if (normalizeEstadoJornada(row.estadoJornada) === 'NO_APROBADO_SUPERVISOR') return 'Estado no aprobado por supervisor'
   if (noMarcoCierre(row)) return 'Estado no marco cierre'
   return 'Estado jornada completa'
@@ -164,6 +164,25 @@ const parseGeoCoords = (value?: string): { lat: number; lng: number } | null => 
 
 const isSiValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'SI'
 const isNoValue = (value?: string): boolean => String(value ?? '').trim().toUpperCase() === 'NO'
+const isEmptyAuxiliarValue = (value?: string | boolean | null): boolean => {
+  const normalized = String(value ?? '').trim()
+  return normalized === '' || normalized === '0'
+}
+const formatOptionalSiNo = (value?: string | boolean): string => {
+  if (typeof value === 'boolean') return value ? 'SI' : 'NO'
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  const normalized = raw.toLowerCase()
+  if (normalized === 'true' || normalized === '1' || normalized === 'si' || normalized === 'sí') return 'SI'
+  if (normalized === 'false' || normalized === '0' || normalized === 'no') return 'NO'
+  return raw
+}
+const requiereFotoAuxiliar = (row: SupervisionJornadaHistorico): boolean =>
+  row.requiereFotoAuxiliar === true && !isEmptyAuxiliarValue(row.idAuxiliarCuadrilla)
+const resolveAuxiliarDisplay = (row: SupervisionJornadaHistorico): string => {
+  const values = [row.auxiliarNombre, row.idAuxiliar, row.auxiliarCuadrilla, row.idAuxiliarCuadrilla]
+  return values.find((value) => !isEmptyAuxiliarValue(value)) ?? ''
+}
 
 const inicioChecklistKeys: Array<keyof SupervisionJornadaHistorico> = [
   'capacitado',
@@ -177,11 +196,36 @@ const inicioChecklistKeys: Array<keyof SupervisionJornadaHistorico> = [
   'anclaje',
 ]
 
-const countInicioObservaciones = (row: SupervisionJornadaHistorico): number => {
-  const camposEnNo = inicioChecklistKeys.filter((key) => isNoValue(row[key] as string | undefined)).length
-  const sinUbicacion = parseGeoCoords(row.ubicacionGeoref) ? 0 : 1
-  const sinImagen = resolveInicioImageSrc(row.imagen) ? 0 : 1
-  return camposEnNo + sinUbicacion + sinImagen
+const inicioChecklistLabels: Partial<Record<keyof SupervisionJornadaHistorico, string>> = {
+  capacitado: 'Capacitado en NO',
+  charla: 'Charla en NO',
+  botiquin: 'Botiquin en NO',
+  extintor: 'Extintor en NO',
+  equipoEpp: 'Equipo EPP en NO',
+  estadoEpp: 'Estado EPP en NO',
+  apr: 'APR en NO',
+  escalera: 'Escalera en NO',
+  anclaje: 'Anclaje en NO',
+}
+
+const hasInicioImage = (row: SupervisionJornadaHistorico): boolean =>
+  row.tieneImagenInicio === true || Boolean(resolveInicioImageSrc(row.imagen))
+
+const hasAuxiliarImage = (row: SupervisionJornadaHistorico): boolean =>
+  row.tieneImagenAuxiliar === true || Boolean(resolveInicioImageSrc(row.imagenAuxiliar))
+
+const getInicioObservaciones = (row: SupervisionJornadaHistorico): string[] => {
+  const observaciones = inicioChecklistKeys
+    .filter((key) => isNoValue(row[key] as string | undefined))
+    .map((key) => inicioChecklistLabels[key] ?? String(key))
+  if (!parseGeoCoords(row.ubicacionGeoref)) observaciones.push('Ubicacion georef faltante')
+  if (row.tieneImagenInicio === false || (row.tieneImagenInicio === undefined && row.imagen && !hasInicioImage(row))) {
+    observaciones.push('Foto inicio faltante')
+  }
+  if (requiereFotoAuxiliar(row) && !hasAuxiliarImage(row)) {
+    observaciones.push('Foto auxiliar faltante')
+  }
+  return observaciones
 }
 
 const cierreChecklistKeys: Array<keyof SupervisionJornadaHistorico> = ['danoMaterial', 'danoPersona', 'novedadesTrabajo']
@@ -327,8 +371,14 @@ const HistoricoJornadasPage = () => {
           idTecnico: row.idTecnico,
           idUsuarioInicio: row.idUsuarioInicio || detalle.idUsuarioInicio || detalle.idTecnico,
           tecnicoNombre: detalle.tecnicoNombre || row.tecnicoNombre,
-          auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre,
+          auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre || detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
           imagen: imagenInicio || detalle.imagen || row.imagen,
+          imagenAuxiliar: detalle.imagenAuxiliar || row.imagenAuxiliar,
+          tieneImagenInicio: detalle.tieneImagenInicio ?? row.tieneImagenInicio,
+          tieneImagenAuxiliar: detalle.tieneImagenAuxiliar ?? row.tieneImagenAuxiliar,
+          idAuxiliarCuadrilla: detalle.idAuxiliarCuadrilla || row.idAuxiliarCuadrilla,
+          auxiliarCuadrilla: detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
+          requiereFotoAuxiliar: detalle.requiereFotoAuxiliar || row.requiereFotoAuxiliar,
         },
         modo,
       })
@@ -365,8 +415,14 @@ const HistoricoJornadasPage = () => {
             idTecnico: row.idTecnico,
             idUsuarioInicio: row.idUsuarioInicio || detalle.idUsuarioInicio || detalle.idTecnico,
             tecnicoNombre: detalle.tecnicoNombre || row.tecnicoNombre,
-            auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre,
+            auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre || detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
             imagen: imagenInicio || detalle.imagen || row.imagen,
+            imagenAuxiliar: detalle.imagenAuxiliar || row.imagenAuxiliar,
+            tieneImagenInicio: detalle.tieneImagenInicio ?? row.tieneImagenInicio,
+            tieneImagenAuxiliar: detalle.tieneImagenAuxiliar ?? row.tieneImagenAuxiliar,
+            idAuxiliarCuadrilla: detalle.idAuxiliarCuadrilla || row.idAuxiliarCuadrilla,
+            auxiliarCuadrilla: detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
+            requiereFotoAuxiliar: detalle.requiereFotoAuxiliar || row.requiereFotoAuxiliar,
           })
         } catch {
           detalleRows.push(row)
@@ -495,14 +551,14 @@ const HistoricoJornadasPage = () => {
         const inicioFields = [
           ['Tecnico', row.tecnicoNombre || row.idTecnico || '-'],
           ['ID usuario inicio', row.idUsuarioInicio || '-'],
-          ['Auxiliar', row.auxiliarNombre || row.idAuxiliar || '-'],
+          ['Auxiliar', resolveAuxiliarDisplay(row) || '-'],
           ['Usuario retirado', row.usuarioRetirado ? 'SI' : 'NO'],
           ['Capacitado', row.capacitado || '-'],
           ['Charla', row.charla || '-'],
           ['Botiquin', row.botiquin || '-'],
           ['Extintor', row.extintor || '-'],
           ['Fecha vencimiento', row.fechaVencimiento || '-'],
-          ['ESTOY TRABAJANDO SOLO', String(row.estoyTrabajandoSolo || '')],
+          ['ESTOY TRABAJANDO SOLO', formatOptionalSiNo(row.estoyTrabajandoSolo)],
           ['Equipo EPP', row.equipoEpp || '-'],
           ['Estado EPP', row.estadoEpp || '-'],
           ['APR', row.apr || '-'],
@@ -591,7 +647,8 @@ const HistoricoJornadasPage = () => {
         header: 'Acciones',
         className: 'w-[10%] text-[11px] leading-tight',
         render: (row) => {
-          const inicioObservaciones = noInicio(row) ? 0 : countInicioObservaciones(row)
+          const inicioObservacionesDetalle = noInicio(row) ? [] : getInicioObservaciones(row)
+          const inicioObservaciones = inicioObservacionesDetalle.length
           const cierreObservaciones = tieneCierreJornada(row) ? countCierreObservaciones(row) : 0
           return (
             <div className="flex flex-wrap gap-2">
@@ -600,7 +657,7 @@ const HistoricoJornadasPage = () => {
                 variant="secondary"
                 className="relative overflow-visible px-2 py-1 text-[10px]"
                 disabled={noInicio(row)}
-                title={inicioObservaciones > 0 ? `${inicioObservaciones} campo(s) incompleto(s) o con NO` : undefined}
+                title={inicioObservaciones > 0 ? inicioObservacionesDetalle.join(', ') : undefined}
                 onClick={() => abrirDetalleJornada(row, 'inicio')}
               >
                 Inicio
@@ -802,19 +859,19 @@ const HistoricoJornadasPage = () => {
                   className="h-36 w-64 bg-white object-contain"
                   onZoom={setZoomImageSrc}
                 />
-                {resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
+                {requiereFotoAuxiliar(detalle) || resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
                   <JornadaImageCard label="Imagen auxiliar" value={detalle.imagenAuxiliar} alt="Auxiliar inicio jornada" onZoom={setZoomImageSrc} />
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
-                  <DetailCard label="Auxiliar" value={detalle.auxiliarNombre || detalle.idAuxiliar} />
+                  <DetailCard label="Auxiliar" value={resolveAuxiliarDisplay(detalle)} />
                   {esRechazado(detalle) ? <DetailCard label="Motivo rechazo" value={detalle.observacionRechazado} wide /> : null}
                   <DetailCard label="Capacitado" value={detalle.capacitado} />
                   <DetailCard label="Charla" value={detalle.charla} />
                   <DetailCard label="Botiquin" value={detalle.botiquin} />
                   <DetailCard label="Extintor" value={detalle.extintor} />
                   <DetailCard label="Fecha vencimiento" value={detalle.fechaVencimiento} />
-                  <DetailCard label="ESTOY TRABAJANDO SOLO" value={String(detalle.estoyTrabajandoSolo || '')} />
+                  <DetailCard label="ESTOY TRABAJANDO SOLO" value={formatOptionalSiNo(detalle.estoyTrabajandoSolo)} />
                   <DetailCard label="Equipo EPP" value={detalle.equipoEpp} />
                   <DetailCard label="Estado EPP" value={detalle.estadoEpp} />
                   <DetailCard label="APR" value={detalle.apr} />

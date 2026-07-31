@@ -11,6 +11,7 @@ import {
   cambiarSupervisorMasivoCentral,
   crearCentralGrupo,
   fetchCentralGrupos,
+  fetchCentralGruposManana,
   fetchCentralSupervisores,
   fetchCentralTecnicos,
   marcarSupervisorAusenteCentral,
@@ -35,6 +36,7 @@ const CentralGruposPage = () => {
   const [openTecnicoModal, setOpenTecnicoModal] = useState(false)
   const [openBackupModal, setOpenBackupModal] = useState(false)
   const [openCambioSupervisorModal, setOpenCambioSupervisorModal] = useState(false)
+  const [openMananaModal, setOpenMananaModal] = useState(false)
   const [idGrupoBackup, setIdGrupoBackup] = useState('')
   const [idTecnicoBackup, setIdTecnicoBackup] = useState('')
   const [supervisoresExpandido, setSupervisoresExpandido] = useState<string[]>([])
@@ -83,6 +85,12 @@ const CentralGruposPage = () => {
     queryKey: ['central-grupos', 'tecnicos', loginSucursal || 'auto'],
     queryFn: () => fetchCentralTecnicos(loginSucursal),
     enabled: canManageGroups,
+  })
+
+  const gruposMananaQuery = useQuery({
+    queryKey: ['central-grupos', 'manana', loginSucursal || 'auto'],
+    queryFn: () => fetchCentralGruposManana(loginSucursal),
+    enabled: canManageGroups && openMananaModal,
   })
 
   const createMutation = useMutation({
@@ -245,6 +253,7 @@ const CentralGruposPage = () => {
   })
 
   const grupos = gruposQuery.data ?? []
+  const gruposManana = gruposMananaQuery.data ?? []
   const supervisores = supervisoresQuery.data ?? []
   const tecnicos = tecnicosQuery.data ?? []
 
@@ -288,6 +297,21 @@ const CentralGruposPage = () => {
     if (!origen) return []
     return grupos.filter((g) => (g.supervisor || '').trim().toLowerCase() === origen.supervisorACargo.trim().toLowerCase())
   }, [grupos, supervisores, idSupervisorOrigen])
+
+  const gruposMananaPorSupervisor = useMemo(() => {
+    const map = new Map<string, { supervisor: string; grupos: typeof gruposManana }>()
+    for (const grupo of gruposManana) {
+      const supervisor = (grupo.supervisor || 'Sin supervisor').trim() || 'Sin supervisor'
+      const key = supervisor.toLowerCase()
+      const current = map.get(key)
+      if (!current) {
+        map.set(key, { supervisor, grupos: [grupo] })
+      } else {
+        current.grupos.push(grupo)
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.supervisor.localeCompare(b.supervisor, 'es', { sensitivity: 'base' }))
+  }, [gruposManana])
 
   const handleCrearGrupo = () => {
     if (!nombreGrupo.trim()) {
@@ -404,6 +428,9 @@ const CentralGruposPage = () => {
           <Button type="button" className="h-11 rounded-2xl px-5" onClick={() => setOpenSupervisorModal(true)} disabled={!canManageGroups || grupos.length === 0}>
             Asignar grupo existente a supervisor
           </Button>
+          <Button type="button" variant="secondary" className="h-11 rounded-2xl px-5" onClick={() => setOpenMananaModal(true)} disabled={!canManageGroups}>
+            Ver cuadrillas de manana
+          </Button>
         </div>
       </FormCard>
 
@@ -519,6 +546,58 @@ const CentralGruposPage = () => {
           </div>
         ) : null}
       </FormCard>
+
+      <Modal
+        open={openMananaModal}
+        onClose={() => setOpenMananaModal(false)}
+        title="Cuadrillas de manana"
+        maxWidthClass="max-w-4xl"
+        actions={
+          <Button type="button" variant="secondary" onClick={() => setOpenMananaModal(false)}>
+            Cerrar
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          {gruposMananaQuery.isLoading ? <p className="text-sm text-slate-500">Cargando proyeccion...</p> : null}
+          {gruposMananaQuery.isError ? (
+            <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              No se pudo cargar la proyeccion de manana.
+            </p>
+          ) : null}
+          {!gruposMananaQuery.isLoading && !gruposMananaQuery.isError && gruposManana.length === 0 ? (
+            <p className="text-sm text-slate-500">Sin grupos para mostrar.</p>
+          ) : null}
+          {!gruposMananaQuery.isLoading && gruposMananaPorSupervisor.length > 0 ? (
+            <div className="grid gap-3">
+              {gruposMananaPorSupervisor.map((bloque) => (
+                <section key={`manana-${bloque.supervisor}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Supervisor</p>
+                      <h4 className="text-lg font-extrabold text-[#081a4b]">{bloque.supervisor}</h4>
+                    </div>
+                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                      {bloque.grupos.length} grupo(s)
+                    </span>
+                  </div>
+                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                    {bloque.grupos.map((grupo) => (
+                      <div key={`manana-grupo-${grupo.idGrupo}-${grupo.grupo}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                        <p className="text-sm font-bold text-slate-900">{grupo.grupo}</p>
+                        <p className="text-xs font-medium text-slate-500">
+                          Tecnicos: {grupo.cantidadTecnicos}
+                          {grupo.fuente === 'conformacion' ? ' | fuente: conformacion actual' : ''}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
 
       <Modal
         open={openCrearModal}

@@ -26,3 +26,12 @@ export type CentralTecnico = {
   idTecnico: string
   tecnico: string
 }
+
+export type CentralGrupoManana = {
+  idGrupo: string
+  grupo: string
+  idSupervisor?: string
+  supervisor: string
+  cantidadTecnicos: number
+  fuente?: string
+}

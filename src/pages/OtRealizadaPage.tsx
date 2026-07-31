@@ -826,6 +826,19 @@ const OtRealizadaPage = () => {
     // Priorizar la fecha enviada desde la tarjeta seleccionada (OT del dia).
     return toIsoDateParam(fromState || fromVenta)
   }, [navState?.fecha, venta])
+  const fechaSaldoMaterial = useMemo(() => {
+    const rows = [venta, rowData, navState].filter(Boolean) as UnknownRecord[]
+    for (const row of rows) {
+      const value = readString(row, [
+        'fechaHoraDetalle',
+        'FechaHoraDetalle',
+        'fecha_hora_detalle',
+        'Fecha_Hora_Detalle',
+      ]).trim()
+      if (value) return toIsoDateParam(value)
+    }
+    return fechaTrabajo
+  }, [fechaTrabajo, navState, rowData, venta])
   const fechaAgenda = useMemo(() => {
     const rows = [venta, rowData].filter(Boolean) as UnknownRecord[]
     for (const row of rows) {
@@ -1215,7 +1228,7 @@ const OtRealizadaPage = () => {
 
           const saldoRows = await fetchSaldoRuta({
             idRuta: idRutaValidacion,
-            fecha: fechaTrabajo,
+            fecha: fechaSaldoMaterial,
             idSucursal: resolvedIdSucursal ?? undefined,
           })
           const saldoMap = new Map<number, number>()
@@ -1293,6 +1306,7 @@ const OtRealizadaPage = () => {
     nomencladoresAutocargaRef.current = true
   }, [
     clienteVisible,
+    fechaSaldoMaterial,
     fechaTrabajo,
     idRutaValidacion,
     tipoMaterialId,
@@ -2782,6 +2796,39 @@ const OtRealizadaPage = () => {
         tipoMaterialOptions.find((option) => option.value === tipoMaterialId)?.label ??
         tipoMaterialLabelByIdFallback[parsedTipoMaterial] ??
         tipoMaterialId
+      if (!isRetiredMaterial) {
+        if (!idRutaValidacion || idRutaValidacion <= 0) {
+          setError('No se pudo resolver la ruta para validar saldo de material.')
+          return
+        }
+        try {
+          const saldoRows = await fetchSaldoRuta({
+            idRuta: idRutaValidacion,
+            fecha: fechaSaldoMaterial,
+            idSucursal: resolvedIdSucursal ?? undefined,
+          })
+          const disponible = saldoRows.reduce((total, row) => {
+            const rowProducto = parseSaldoProductoId(row)
+            if (rowProducto !== parsedProducto) return total
+            const saldoDisponible = parseSaldoValue(row)
+            return total + (saldoDisponible ?? 0)
+          }, 0)
+          const yaAgregado = materialRows.reduce((total, row) => {
+            if (row.idProducto !== parsedProducto || isRetiredMaterialRow(row)) return total
+            return total + row.cantidad
+          }, 0)
+          const requerido = yaAgregado + cantidadNum
+          if (requerido > disponible) {
+            const detalle = `${productoLabel}: disponible ${formatSaldoAmount(disponible)}, requerido ${formatSaldoAmount(requerido)}`
+            setError(`No hay material disponible. ${detalle}.`)
+            return
+          }
+        } catch (saldoError) {
+          console.error('No se pudo validar saldo antes de agregar material.', saldoError)
+          setError(readBackendErrorMessage(saldoError, 'No se pudo validar saldo antes de agregar material.'))
+          return
+        }
+      }
       setMaterialRows((prev) => {
         const next = [
           ...prev,
@@ -3634,7 +3681,7 @@ const OtRealizadaPage = () => {
     if (!idRutaValidacion || idRutaValidacion <= 0) {
       return []
     }
-      const saldoRows = await fetchSaldoRuta({ idRuta: idRutaValidacion, fecha: fechaTrabajo, idSucursal: resolvedIdSucursal ?? undefined })
+      const saldoRows = await fetchSaldoRuta({ idRuta: idRutaValidacion, fecha: fechaSaldoMaterial, idSucursal: resolvedIdSucursal ?? undefined })
     const saldoMap = new Map<number, number>()
 
     saldoRows.forEach((row) => {
@@ -3673,7 +3720,7 @@ const OtRealizadaPage = () => {
         }
       })
       .sort((a, b) => a.saldo - b.saldo || a.producto.localeCompare(b.producto))
-  }, [fechaTrabajo, idRutaValidacion, materialRows, resolvedIdSucursal])
+  }, [fechaSaldoMaterial, idRutaValidacion, materialRows, resolvedIdSucursal])
 
   const validateSaldoRutaDisponible = useCallback(async (): Promise<boolean> => {
     try {
