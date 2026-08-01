@@ -20,6 +20,7 @@
   sucursal?: string
   observacion?: string
   idUsuarioRegistra?: number | null
+  supervisorConfirmo?: string | null
 }
 
 export interface ConformacionCuadrillaRecord extends Omit<ConformacionCuadrillaInput, 'fecha' | 'estado' | 'actividad'> {

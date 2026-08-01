@@ -379,6 +379,9 @@ const HistoricoJornadasPage = () => {
           idAuxiliarCuadrilla: detalle.idAuxiliarCuadrilla || row.idAuxiliarCuadrilla,
           auxiliarCuadrilla: detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
           requiereFotoAuxiliar: detalle.requiereFotoAuxiliar || row.requiereFotoAuxiliar,
+          idUsuarioAproboInicio: detalle.idUsuarioAproboInicio || row.idUsuarioAproboInicio,
+          supervisorAproboInicio: detalle.supervisorAproboInicio || row.supervisorAproboInicio,
+          fechaAprobacionInicio: detalle.fechaAprobacionInicio || row.fechaAprobacionInicio,
         },
         modo,
       })
@@ -423,6 +426,9 @@ const HistoricoJornadasPage = () => {
             idAuxiliarCuadrilla: detalle.idAuxiliarCuadrilla || row.idAuxiliarCuadrilla,
             auxiliarCuadrilla: detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
             requiereFotoAuxiliar: detalle.requiereFotoAuxiliar || row.requiereFotoAuxiliar,
+            idUsuarioAproboInicio: detalle.idUsuarioAproboInicio || row.idUsuarioAproboInicio,
+            supervisorAproboInicio: detalle.supervisorAproboInicio || row.supervisorAproboInicio,
+            fechaAprobacionInicio: detalle.fechaAprobacionInicio || row.fechaAprobacionInicio,
           })
         } catch {
           detalleRows.push(row)
@@ -552,6 +558,8 @@ const HistoricoJornadasPage = () => {
           ['Tecnico', row.tecnicoNombre || row.idTecnico || '-'],
           ['ID usuario inicio', row.idUsuarioInicio || '-'],
           ['Auxiliar', resolveAuxiliarDisplay(row) || '-'],
+          ['Supervisor aprobo', row.supervisorAproboInicio || row.idUsuarioAproboInicio || '-'],
+          ['Fecha aprobacion', formatDateTime(row.fechaAprobacionInicio)],
           ['Usuario retirado', row.usuarioRetirado ? 'SI' : 'NO'],
           ['Capacitado', row.capacitado || '-'],
           ['Charla', row.charla || '-'],
@@ -633,6 +641,12 @@ const HistoricoJornadasPage = () => {
         ),
       },
       { key: 'supervisorNombre', header: 'Supervisor', className: 'w-[18%] text-[11px] leading-tight', render: (row) => row.supervisorNombre || '-' },
+      {
+        key: 'supervisorAproboInicio',
+        header: 'Aprobó',
+        className: 'w-[12%] text-[11px] leading-tight',
+        render: (row) => row.supervisorAproboInicio || row.idUsuarioAproboInicio || '-',
+      },
       { key: 'fechaInicio', header: 'Inicio', className: 'w-[13%] text-[11px] leading-tight', render: (row) => formatDateTime(row.fechaInicio) },
       {
         key: 'fechaCierre',
@@ -865,6 +879,8 @@ const HistoricoJornadasPage = () => {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
                   <DetailCard label="Auxiliar" value={resolveAuxiliarDisplay(detalle)} />
+                  <DetailCard label="Supervisor aprobo" value={detalle.supervisorAproboInicio || detalle.idUsuarioAproboInicio} />
+                  <DetailCard label="Fecha aprobacion" value={formatDateTime(detalle.fechaAprobacionInicio)} />
                   {esRechazado(detalle) ? <DetailCard label="Motivo rechazo" value={detalle.observacionRechazado} wide /> : null}
                   <DetailCard label="Capacitado" value={detalle.capacitado} />
                   <DetailCard label="Charla" value={detalle.charla} />

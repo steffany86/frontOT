@@ -23,6 +23,7 @@ import {
   fetchConformacionVehiculos,
   guardarConformacionCuadrillaConfirmada,
   guardarRelacionCuadrilla,
+  eliminarConformacionCuadrillaConfirmada,
   updateConformacionCuadrilla,
 } from '../api/conformacionCuadrillaApi'
 import type {
@@ -711,12 +712,23 @@ const parseAuxiliarIdForSave = (value: string): number => {
 
 const cleanString = (value: string): string => value.trim()
 
+const resolveAlmacenPorSucursal = (sucursal: string | undefined | null): string => {
+  const normalized = normalizeLookupKey(String(sucursal ?? ''))
+  if (!normalized) return ''
+  if (normalized.includes('montero')) return 'MAKIRO MONTERO'
+  if (normalized.includes('tarija')) return 'MAKIRO TARIJA'
+  if (normalized.includes('santacruz')) return 'MAKIRO SANTA CRUZ'
+  return ''
+}
+
 const optionalString = (value: string): string | undefined => {
   const trimmed = value.trim()
   return trimmed ? trimmed : undefined
 }
 
 const buildPayloadRow = (row: EditableRow): ConformacionCuadrillaInput => {
+  const almacenSucursal = resolveAlmacenPorSucursal(row.sucursal)
+  const tecnicoResolved = cleanString(row.tecnico) || cleanString(row.salesforce)
   return {
     fecha: row.fecha,
     estado: mapEstadoForBackend(cleanString(row.estado)),
@@ -727,11 +739,11 @@ const buildPayloadRow = (row: EditableRow): ConformacionCuadrillaInput => {
     habilidad: optionalString(normalizeHabilidadValue(row.habilidad)),
     vehiculo: optionalString(row.vehiculo),
     grupo: optionalString(row.grupo),
-    almacen: optionalString(row.almacen),
+    almacen: optionalString(almacenSucursal || row.almacen),
     grupoDigitacion: optionalString(row.grupoDigitacion),
     idUsuarioDigitador: parseNumber(row.idUsuarioDigitador) ?? undefined,
     digitador: optionalString(row.digitador),
-    tecnico: optionalString(row.tecnico),
+    tecnico: optionalString(tecnicoResolved),
     idTecnicoAuxiliar: parseAuxiliarIdForSave(row.idTecnicoAuxiliar),
     auxiliar: optionalString(row.auxiliar),
     idUsuarioSupervisor: parseNumber(row.idUsuarioSupervisor) ?? undefined,
@@ -873,7 +885,9 @@ const normalizeListRecord = (row: ConformacionCuadrillaRecord): ConformacionCuad
     toNumericIdString(readValue(row as unknown as CatalogItem, RECORD_ID_SUPERVISOR_KEYS)) ?? toNumericIdString(row.idUsuarioSupervisor)
   const grupo = readRecordString(row, GRUPO_KEYS, row.grupo ?? '')
   const tecnicoRaw = readRecordString(row, RECORD_TECNICO_LABEL_KEYS, row.tecnico ?? '')
-  const tecnico = normalizeLookupKey(tecnicoRaw) === normalizeLookupKey(grupo) ? '' : tecnicoRaw
+  const salesforceRaw = readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? '')
+  const tecnicoFallback = tecnicoRaw || salesforceRaw
+  const tecnico = normalizeLookupKey(tecnicoFallback) === normalizeLookupKey(grupo) ? '' : tecnicoFallback
   const resolvedId = toOptionalNumber(normalizedId ?? row.id)
   const resolvedIdRegistro = toOptionalNumber(normalizedIdRegistro ?? row.idRegistro)
   return {
@@ -896,7 +910,7 @@ const normalizeListRecord = (row: ConformacionCuadrillaRecord): ConformacionCuad
     idUsuarioSupervisor: toOptionalNumber(idUsuarioSupervisor) ?? row.idUsuarioSupervisor,
     supervisorACargo: readRecordString(row, RECORD_SUPERVISOR_LABEL_KEYS, row.supervisorACargo ?? ''),
     cuentaSf: readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? ''),
-    salesforce: readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? ''),
+    salesforce: salesforceRaw,
     vehiculo: readRecordString(row, VEHICULO_KEYS, row.vehiculo ?? ''),
     sucursal: readRecordString(row, RECORD_SUCURSAL_KEYS, row.sucursal ?? ''),
     observacion: readRecordString(row, RECORD_OBSERVACION_KEYS, row.observacion ?? ''),
@@ -913,7 +927,9 @@ const toEditableRow = (row: ConformacionCuadrillaRecord): EditableRow => {
   const resolvedActividad = readRecordString(row, RECORD_ACTIVIDAD_KEYS, row.actividad ?? '')
   const resolvedGrupo = readRecordString(row, GRUPO_KEYS, row.grupo ?? '')
   const resolvedTecnicoRaw = readRecordString(row, RECORD_TECNICO_LABEL_KEYS, row.tecnico ?? '')
-  const resolvedTecnico = normalizeLookupKey(resolvedTecnicoRaw) === normalizeLookupKey(resolvedGrupo) ? '' : resolvedTecnicoRaw
+  const resolvedSalesforce = readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? '')
+  const resolvedTecnicoFallback = resolvedTecnicoRaw || resolvedSalesforce
+  const resolvedTecnico = normalizeLookupKey(resolvedTecnicoFallback) === normalizeLookupKey(resolvedGrupo) ? '' : resolvedTecnicoFallback
   const resolvedAuxiliarId = normalizeAuxiliarComparableId(readRecordId(row, RECORD_ID_AUXILIAR_KEYS, row.idTecnicoAuxiliar))
   const resolvedAuxiliar = sanitizeAuxiliarLabel(readRecordString(row, RECORD_AUXILIAR_LABEL_KEYS, row.auxiliar ?? ''))
   const resolvedDigitadorId = normalizeDigitadorComparableId(readRecordId(row, RECORD_ID_DIGITADOR_KEYS, row.idUsuarioDigitador))
@@ -926,7 +942,7 @@ const toEditableRow = (row: ConformacionCuadrillaRecord): EditableRow => {
     actividad: resolvedActividad,
     idTecnico: readRecordId(row, RECORD_ID_TECNICO_KEYS, row.idTecnico),
     cuentaSf: readRecordString(row, CUENTA_SF_KEYS, row.cuentaSf ?? ''),
-    salesforce: readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? ''),
+    salesforce: resolvedSalesforce,
     habilidad: normalizeHabilidadValue(readRecordString(row, HABILIDAD_KEYS, row.habilidad ?? '')),
     vehiculo: readRecordString(row, VEHICULO_KEYS, row.vehiculo ?? ''),
     grupo: resolvedGrupo,
@@ -1000,6 +1016,7 @@ const getRowIssues = (row: EditableRow): RowIssue => {
 }
 
 const resolveEstadoForList = (row: ConformacionCuadrillaRecord): string => {
+  if (row.confirmada === true) return 'CONFIRMADA'
   const rawEstado = readRecordString(row, RECORD_ESTADO_KEYS, row.estado ?? '').trim().toUpperCase()
   if (rawEstado === 'AUSENTE' || rawEstado === 'INACTIVO') return 'AUSENTE'
   if (rawEstado === 'ACTIVO') return 'ACTIVO'
@@ -1550,12 +1567,20 @@ const ConformacionCuadrillaPage = () => {
     })
   }, [modalOpen, auxiliarById, auxiliarByLabel, digitadorById, digitadorByLabel, supervisorById, supervisorByLabel])
 
+  const resolveTecnicoCatalogLabel = (idTecnico: unknown): string => {
+    const tecnicoId = normalizeTecnicoComparableId(idTecnico as string | number | null | undefined)
+    if (!tecnicoId) return ''
+    return tecnicoById.get(tecnicoId)?.label ?? ''
+  }
+
   const resolveTecnicoListLabel = (row: ConformacionCuadrillaRecord): string => {
     const direct = readRecordString(row, RECORD_TECNICO_LABEL_KEYS, row.tecnico ?? '')
-    return toVisualLabel(direct, 'Sin tecnico')
+    const salesforce = readRecordString(row, SALESFORCE_KEYS, row.salesforce ?? '')
+    const idTecnico = readRecordId(row, RECORD_ID_TECNICO_KEYS, row.idTecnico)
+    return toVisualLabel(direct || resolveTecnicoCatalogLabel(idTecnico) || salesforce, 'Sin tecnico')
   }
   const resolveTecnicoEditableLabel = (row: EditableRow | null | undefined): string => {
-    return toVisualLabel(row?.tecnico, 'Sin tecnico')
+    return toVisualLabel(row?.tecnico || resolveTecnicoCatalogLabel(row?.idTecnico), 'Sin tecnico')
   }
   const buildRowTecnicoPrefix = (rowIndex: number, tecnicoLabel: string): string => {
     return `Fila ${rowIndex + 1} | Tecnico: ${tecnicoLabel}`
@@ -2007,8 +2032,13 @@ const ConformacionCuadrillaPage = () => {
         const habilidadLabel = resolveHabilidadListLabel(row)
         const cuentaSfLabel = resolveCuentaSfListLabel(row)
         const salesforceLabel = resolveSalesforceListLabel(row)
+        const supervisorConfirmoLabel = toVisualLabel(
+          readRecordString(row, ['supervisorConfirmo', 'supervisor_confirmo', 'usuarioSupervisorConfirmo', 'usuario_supervisor_confirmo'], row.supervisorConfirmo ?? ''),
+          'N/D'
+        )
+        const estadoOperativo = readRecordString(row, RECORD_ESTADO_KEYS, row.estado ?? '').trim().toUpperCase()
         const canToggleActive = canConfirmInActiveTab && canAsignarTecnicoGrupo
-        const activeChecked = canConfirmInActiveTab ? isSelected : resolveEstadoForList(row) === 'ACTIVO'
+        const activeChecked = canConfirmInActiveTab ? isSelected : estadoOperativo === 'ACTIVO'
         const rowDetailLoading = isRowDetailLoading(row)
         const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
         const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
@@ -2018,7 +2048,11 @@ const ConformacionCuadrillaPage = () => {
               <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
                 <div>
                   <span className={`inline-flex rounded-md px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${
-                    resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                    resolveEstadoForList(row) === 'CONFIRMADA'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : resolveEstadoForList(row) === 'ACTIVO'
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-slate-100 text-slate-700'
                   }`}>
                     {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
                   </span>
@@ -2048,7 +2082,7 @@ const ConformacionCuadrillaPage = () => {
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</p>
                   <p className="text-slate-700">{salesforceLabel}</p>
                 </div>
-                {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+                {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel} | Confirmo: {supervisorConfirmoLabel}</p> : null}
               </div>
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-2.5">
@@ -2071,6 +2105,17 @@ const ConformacionCuadrillaPage = () => {
               >
                 {rowDetailLoading ? '...' : '✎'}
               </Button>
+              {activeTab === 'confirmadas' ? (
+                <Button
+                  variant="secondary"
+                  type="button"
+                  onClick={() => handleEliminarConfirmada(row)}
+                  disabled={!canAsignarTecnicoGrupo || eliminarConfirmadaMutation.isPending}
+                  className="h-10 rounded-xl border-rose-200 px-3 text-xs font-extrabold text-rose-700 hover:bg-rose-50"
+                >
+                  Eliminar
+                </Button>
+              ) : null}
             </div>
           </div>
         )
@@ -2085,6 +2130,33 @@ const ConformacionCuadrillaPage = () => {
     } catch {
       return false
     }
+  }
+
+  const eliminarConfirmadaMutation = useMutation({
+    mutationFn: eliminarConformacionCuadrillaConfirmada,
+    onSuccess: async () => {
+      await refreshCuadrillaListAfterWrite()
+      setSubmitError(null)
+      setSuccess('Cuadrilla eliminada. Si sigue en el origen, volvera a General (pendientes).')
+    },
+    onError: (err) => {
+      setSuccess(null)
+      setSubmitError(toApiErrorText(err, 'No se pudo eliminar la cuadrilla confirmada.'))
+    },
+  })
+
+  const handleEliminarConfirmada = (row: ConformacionCuadrillaRecord) => {
+    const id = getRecordControlOrdenesId(row) ?? getRecordRealId(row)
+    if (id === null) {
+      setSubmitError('No se pudo resolver el id de la cuadrilla confirmada para eliminar.')
+      return
+    }
+    const tecnicoLabel = resolveTecnicoListLabel(row)
+    const ok = window.confirm(`Se marcara como eliminada la cuadrilla confirmada de ${tecnicoLabel}. Continuar?`)
+    if (!ok) return
+    setSubmitError(null)
+    setSuccess(null)
+    eliminarConfirmadaMutation.mutate(id)
   }
 
   const finalizeDefinitiveSave = async (confirmedKeys: string[], successMessage: string) => {
@@ -2151,19 +2223,33 @@ const ConformacionCuadrillaPage = () => {
       rows.map(async (row) => {
         const needsCuenta = !hasText(row.cuentaSf)
         const needsSalesforce = !hasText(row.salesforce)
-        if (!needsCuenta && !needsSalesforce) return row
+        const needsTecnico = !hasText(row.tecnico)
+        const needsGrupo = !hasText(row.grupo)
+        if (!needsCuenta && !needsSalesforce && !needsTecnico && !needsGrupo) return row
 
         const tecnicoId = toTecnicoId(row.idTecnico)
-        if (!tecnicoId) return row
+        if (!tecnicoId) {
+          return {
+            ...row,
+            tecnico: hasText(row.tecnico) ? row.tecnico : row.salesforce,
+          }
+        }
         const detail = await resolveDetail(tecnicoId)
-        if (!detail) return row
+        if (!detail) {
+          return {
+            ...row,
+            tecnico: hasText(row.tecnico) ? row.tecnico : row.salesforce,
+          }
+        }
 
         const option = tecnicoById.get(String(tecnicoId))
         const resolved = resolveTecnicoFields(detail, option)
         return {
           ...row,
+          tecnico: hasText(row.tecnico) ? row.tecnico : resolved.tecnico || row.salesforce || row.tecnico,
           cuentaSf: hasText(row.cuentaSf) ? row.cuentaSf : resolved.cuentaSf || row.cuentaSf,
           salesforce: hasText(row.salesforce) ? row.salesforce : resolved.salesforce || row.salesforce,
+          grupo: hasText(row.grupo) ? row.grupo : resolved.grupo || row.grupo,
         }
       })
     )
@@ -2398,6 +2484,7 @@ const findVehiculoConflictRecord = (
 
   function applyMandatoryRowRules(row: EditableRow): EditableRow {
     const nextSucursal = sucursalActiva || row.sucursal
+    const almacenSucursal = resolveAlmacenPorSucursal(nextSucursal)
     const fallbackSupervisorId = currentUserRegistraId
     const resolvedSupervisorId = row.idUsuarioSupervisor || fallbackSupervisorId
     const resolvedSupervisorNombre = row.supervisorACargo || session?.nombre || ''
@@ -2407,6 +2494,7 @@ const findVehiculoConflictRecord = (
       estado: normalizeEstadoValue(row.estado),
       habilidad: normalizeHabilidadValue(row.habilidad),
       sucursal: toSucursalActiva(nextSucursal),
+      almacen: almacenSucursal || row.almacen,
       idUsuarioSupervisor: resolvedSupervisorId,
       supervisorACargo: resolvedSupervisorNombre,
       idUsuarioRegistra: row.idUsuarioRegistra || currentUserRegistraId,
@@ -2415,6 +2503,7 @@ const findVehiculoConflictRecord = (
 
   const resolveTecnicoFields = (detail: CatalogItem, option?: SelectOption) => {
     const fallbackItem = option?.item
+    const almacenSucursal = resolveAlmacenPorSucursal(sucursalActiva)
     const resolveValue = (keys: string[]): string => {
       const value = readString(detail, keys)
       if (value) return value
@@ -2432,7 +2521,7 @@ const findVehiculoConflictRecord = (
       habilidad: normalizeHabilidadValue(resolveValue(HABILIDAD_KEYS)),
       vehiculo: resolveValue(VEHICULO_KEYS),
       grupo: resolveValue(GRUPO_KEYS),
-      almacen: resolveValue(ALMACEN_KEYS),
+      almacen: almacenSucursal || resolveValue(ALMACEN_KEYS),
       grupoDigitacion: resolveValue(GRUPO_DIGITACION_KEYS),
     }
   }
@@ -2648,19 +2737,18 @@ const findVehiculoConflictRecord = (
           salesforce: '',
           habilidad: '',
           vehiculo: '',
-          grupo: '',
-          almacen: '',
+          almacen: resolveAlmacenPorSucursal(sucursalActiva || row.sucursal),
           grupoDigitacion: '',
         }
       }
+      const almacenSucursal = resolveAlmacenPorSucursal(sucursalActiva || row.sucursal)
       const clearedFields = {
         tecnico: '',
         cuentaSf: '',
         salesforce: '',
         habilidad: '',
         vehiculo: '',
-        grupo: '',
-        almacen: '',
+        almacen: almacenSucursal || row.almacen,
         grupoDigitacion: '',
       }
       const prefill = option ? resolveTecnicoFields(option.item, option) : null
@@ -2669,6 +2757,7 @@ const findVehiculoConflictRecord = (
         idTecnico: normalizedValue,
         ...clearedFields,
         ...(prefill ?? {}),
+        almacen: almacenSucursal || prefill?.almacen || row.almacen,
       }
     })
 
@@ -2680,9 +2769,11 @@ const findVehiculoConflictRecord = (
         updateRow(index, (row) => {
           if (row.idTecnico !== normalizedValue) return row
           const resolved = resolveTecnicoFields(detail, option)
+          const almacenSucursal = resolveAlmacenPorSucursal(sucursalActiva || row.sucursal)
           return {
             ...row,
             ...resolved,
+            almacen: almacenSucursal || resolved.almacen || row.almacen,
           }
         })
       })
@@ -2691,9 +2782,11 @@ const findVehiculoConflictRecord = (
         updateRow(index, (row) => {
           if (row.idTecnico !== normalizedValue) return row
           const resolved = resolveTecnicoFields(option.item, option)
+          const almacenSucursal = resolveAlmacenPorSucursal(sucursalActiva || row.sucursal)
           return {
             ...row,
             ...resolved,
+            almacen: almacenSucursal || resolved.almacen || row.almacen,
           }
         })
       })
@@ -3064,6 +3157,7 @@ const findVehiculoConflictRecord = (
     }
 
     const normalizedBaseRecord = normalizeListRecord(targetBaseRecord)
+    const draftTecnico = cleanString(draftRow.tecnico) || resolveTecnicoCatalogLabel(draftRow.idTecnico)
     const normalizedDraftRecord = normalizeListRecord({
       ...normalizedBaseRecord,
       fecha: toISODate(draftRow.fecha) || normalizedBaseRecord.fecha || todayISO(),
@@ -3079,7 +3173,7 @@ const findVehiculoConflictRecord = (
       grupoDigitacion: cleanString(draftRow.grupoDigitacion),
       idUsuarioDigitador: parseNumber(draftRow.idUsuarioDigitador) ?? undefined,
       digitador: cleanString(draftRow.digitador),
-      tecnico: cleanString(draftRow.tecnico),
+      tecnico: draftTecnico,
       idTecnicoAuxiliar: parseNumber(draftRow.idTecnicoAuxiliar) ?? undefined,
       auxiliar: cleanString(draftRow.auxiliar),
       idUsuarioSupervisor: parseNumber(draftRow.idUsuarioSupervisor) ?? undefined,
@@ -3552,6 +3646,10 @@ const findVehiculoConflictRecord = (
                   const activeChecked = canConfirmInActiveTab ? isSelected : resolveEstadoForList(row) === 'ACTIVO'
                   const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
                   const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
+                  const supervisorConfirmoLabel = toVisualLabel(
+                    readRecordString(row, ['supervisorConfirmo', 'supervisor_confirmo', 'usuarioSupervisorConfirmo', 'usuario_supervisor_confirmo'], row.supervisorConfirmo ?? ''),
+                    'N/D'
+                  )
                   return (
                     <div key={`mobile-card-${selectionKey}-${index}`} className="overflow-hidden rounded-3xl border border-slate-300 bg-white text-slate-900 shadow-sm">
                       <div className="p-4">
@@ -3573,7 +3671,7 @@ const findVehiculoConflictRecord = (
                           <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Habilidad</span><span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold">{habilidadLabel}</span></p>
                           <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">CuentaSF</span>{cuentaSfLabel}</p>
                           <p className="col-span-2"><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</span>{salesforceLabel}</p>
-                          {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+                          {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel} | Confirmo: {supervisorConfirmoLabel}</p> : null}
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3">

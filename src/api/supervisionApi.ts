@@ -316,6 +316,18 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
     ) || undefined,
   idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'id_encargado'])) || undefined,
   supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'nombreSupervisor'])) || undefined,
+  idUsuarioAproboInicio:
+    normalizeString(readValue(row, ['idUsuarioAproboInicio', 'id_usuario_aprobo_inicio', 'idUsuarioAprobador', 'idSupervisorAprobador'])) || undefined,
+  supervisorAproboInicio:
+    normalizeString(readValue(row, ['supervisorAproboInicio', 'supervisor_aprobo_inicio', 'supervisorAprobador', 'usuarioAproboInicio'])) || undefined,
+  fechaAprobacionInicio:
+    normalizeString(readValue(row, ['fechaAprobacionInicio', 'fecha_aprobacion_inicio', 'fechaAprobacion'])) || undefined,
+  idUsuarioRechazoInicio:
+    normalizeString(readValue(row, ['idUsuarioRechazoInicio', 'id_usuario_rechazo_inicio', 'idUsuarioRechazador', 'idSupervisorRechazador'])) || undefined,
+  supervisorRechazoInicio:
+    normalizeString(readValue(row, ['supervisorRechazoInicio', 'supervisor_rechazo_inicio', 'supervisorRechazador', 'usuarioRechazoInicio'])) || undefined,
+  fechaRechazoInicio:
+    normalizeString(readValue(row, ['fechaRechazoInicio', 'fecha_rechazo_inicio', 'fechaRechazo'])) || undefined,
   fechaRegistro: normalizeString(readValue(row, ['fechaRegistro', 'fecha_registro'])) || undefined,
   fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
   imagen: normalizeString(readValue(row, ['imagen', 'Imagen', 'imagen_inicio', 'imagenInicio', 'foto_inicio', 'fotoInicio'])) || undefined,

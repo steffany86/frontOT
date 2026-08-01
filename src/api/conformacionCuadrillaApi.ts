@@ -196,7 +196,7 @@ const isRecoverableLegacyGuardarError = (error: unknown): boolean => {
 }
 
 const requestLegacyWriteFromCandidates = async <T>(args: {
-  method: 'post' | 'put'
+  method: 'post' | 'put' | 'delete'
   paths: string[]
   params?: Record<string, unknown>
   body?: unknown
@@ -209,6 +209,12 @@ const requestLegacyWriteFromCandidates = async <T>(args: {
       if (args.method === 'post') {
         const { data } = await api.post(path, args.body, {
           headers: { 'Content-Type': 'application/json' },
+          ...(requestParams ? { params: requestParams } : {}),
+        })
+        return data as T
+      }
+      if (args.method === 'delete') {
+        const { data } = await api.delete(path, {
           ...(requestParams ? { params: requestParams } : {}),
         })
         return data as T
@@ -386,6 +392,10 @@ const LEGACY_RELACIONES_CUADRILLA_PATHS = buildCandidatePaths(CONFORMACION_LEGAC
 
 const buildLegacyIdPaths = (id: number): string[] => {
   return buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, [`/${id}`])
+}
+
+const buildLegacyDeleteIdPaths = (id: number): string[] => {
+  return buildCandidatePaths(CONFORMACION_LEGACY_BASE_PATHS, [`/${id}/eliminar`, `/${id}/eliminado`])
 }
 
 const toBooleanLike = (value: unknown): boolean | undefined => {
@@ -698,6 +708,30 @@ export const updateConformacionCuadrilla = async (
     method: 'put',
     paths: buildLegacyIdPaths(id),
     body: normalizedPayload,
+  })
+}
+
+export const eliminarConformacionCuadrillaConfirmada = async (id: number): Promise<void> => {
+  const parsed = normalizeOptionalNumber(id)
+  if (parsed === undefined || parsed <= 0) {
+    throw new Error('id invalido para eliminar conformacion confirmada.')
+  }
+  const idValue = Math.trunc(parsed)
+  try {
+    await requestLegacyWriteFromCandidates<unknown>({
+      method: 'post',
+      paths: buildLegacyDeleteIdPaths(idValue),
+    })
+    return
+  } catch (error) {
+    if (!isFallbackRouteError(error)) {
+      throw error
+    }
+  }
+
+  await requestLegacyWriteFromCandidates<unknown>({
+    method: 'delete',
+    paths: buildLegacyIdPaths(idValue),
   })
 }
 

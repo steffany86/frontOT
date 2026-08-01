@@ -850,6 +850,11 @@ const SupervisorSupervisionPage = () => {
     return [
       ...baseColumns,
       {
+        key: 'supervisorAproboInicio',
+        header: 'Aprobó',
+        render: (row) => row.supervisorAproboInicio || row.idUsuarioAproboInicio || '-',
+      },
+      {
         key: 'acciones',
         header: 'Acciones',
         render: (row) => {
@@ -2219,6 +2224,8 @@ const SupervisorSupervisionPage = () => {
                   {[
                     { label: 'Tecnico', value: inicioPendienteDetalle.tecnicoNombre || inicioPendienteDetalle.idTecnico || '-' },
                     { label: 'Auxiliar', value: inicioPendienteDetalle.auxiliarNombre || inicioPendienteDetalle.idAuxiliar || '-' },
+                    { label: 'Supervisor aprobó', value: inicioPendienteDetalle.supervisorAproboInicio || inicioPendienteDetalle.idUsuarioAproboInicio || '-' },
+                    { label: 'Fecha aprobación', value: formatDateTime(inicioPendienteDetalle.fechaAprobacionInicio) },
                     { label: 'Capacitado', value: inicioPendienteDetalle.capacitado || '-' },
                     { label: 'Charla', value: inicioPendienteDetalle.charla || '-' },
                     { label: 'Botiquin', value: inicioPendienteDetalle.botiquin || '-' },
