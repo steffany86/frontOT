@@ -39,6 +39,27 @@ export type CuadreTecnicoActual = {
   resumen: Record<string, number>
 }
 
+export type CuadreAutomaticoResultado = {
+  idRuta: number | null
+  ruta: string
+  idVendedor?: number | null
+  vendedor?: string | null
+  fecha: string
+  estado: string
+  mensaje: string
+  idCuadre?: number | null
+  cantidadOt?: number
+  resumen?: Record<string, number>
+}
+
+export type CuadreAutomaticoResponse = {
+  fecha: string
+  idSucursal: number
+  idUsuarioRegistro?: number
+  rutas: CuadreAutomaticoResultado[]
+  resumen: Record<string, number>
+}
+
 const unwrap = <T,>(payload: unknown): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return (payload as { data: T }).data
@@ -59,4 +80,20 @@ export const registrarCuadreTecnico = async (params: {
 }): Promise<Record<string, unknown>> => {
   const response = await api.post('/cuadre/tecnico/registrar', null, { params })
   return unwrap<Record<string, unknown>>(response.data)
+}
+
+export const fetchCuadreAutomaticoPreview = async (params: {
+  fecha?: string
+  idSucursal: number
+}): Promise<CuadreAutomaticoResponse> => {
+  const response = await api.get('/cuadre/sistemas/automatico/preview', { params })
+  return unwrap<CuadreAutomaticoResponse>(response.data)
+}
+
+export const ejecutarCuadreAutomatico = async (params: {
+  fecha?: string
+  idSucursal: number
+}): Promise<CuadreAutomaticoResponse> => {
+  const response = await api.post('/cuadre/sistemas/automatico/ejecutar', null, { params })
+  return unwrap<CuadreAutomaticoResponse>(response.data)
 }

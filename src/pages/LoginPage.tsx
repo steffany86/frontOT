@@ -18,9 +18,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
+import Modal from '../components/common/Modal'
 import { useAuth } from '../context/AuthContext'
 import { fetchSucursales } from '../services/authApi'
-import { getApiErrorMessage } from '../services/httpClient'
+import { getApiErrorMessage, isMaintenanceError } from '../services/httpClient'
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -31,6 +32,7 @@ const LoginPage = () => {
   const [idSucursal, setIdSucursal] = useState('')
   const [rememberDevice, setRememberDevice] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [maintenanceMessage, setMaintenanceMessage] = useState<string | null>(null)
 
   const sucursalesQuery = useQuery({
     queryKey: ['sucursales'],
@@ -41,6 +43,11 @@ const LoginPage = () => {
   const mutation = useMutation({
     mutationFn: signIn,
     onError: (err) => {
+      if (isMaintenanceError(err)) {
+        setMaintenanceMessage(getApiErrorMessage(err, 'CAMBIOS DE SISTEMAS EN PROCESO'))
+        setError(null)
+        return
+      }
       if (axios.isAxiosError(err) && err.response?.status === 401) {
         const payload = err.response?.data as { code?: string; message?: string } | undefined
         const text = `${payload?.code ?? ''} ${payload?.message ?? ''}`.toLowerCase()
@@ -68,6 +75,7 @@ const LoginPage = () => {
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault()
     setError(null)
+    setMaintenanceMessage(null)
     if (!idSucursal) {
       setError('Selecciona una sucursal antes de continuar.')
       return
@@ -188,6 +196,18 @@ const LoginPage = () => {
 
         <div className="pt-5 text-center text-sm text-[#6f82aa]">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
       </div>
+      <Modal
+        open={Boolean(maintenanceMessage)}
+        title="CAMBIOS EN PROCESO"
+        onClose={() => setMaintenanceMessage(null)}
+        maxWidthClass="max-w-md"
+      >
+        <div className="space-y-3 text-center">
+          <p className="text-xl font-black uppercase tracking-wide text-red-600">CAMBIOS EN PROCESO</p>
+          <p className="text-sm font-semibold text-slate-700">{maintenanceMessage || 'CAMBIOS DE SISTEMAS EN PROCESO'}</p>
+          <p className="text-xs text-slate-500">Intenta nuevamente cuando sistemas termine los cambios.</p>
+        </div>
+      </Modal>
     </div>
   )
 }

@@ -11,8 +11,10 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { matchPath } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../config/navigation'
+import { fetchMaintenanceStatus } from '../api/maintenanceApi'
 import { fetchMe, fetchPermisos, login as loginRequest } from '../services/authApi'
-import { getApiErrorMessage, isAuthError, setUnauthorizedHandler } from '../services/httpClient'
+import { getApiErrorMessage, isAuthError, listenMaintenanceActive, notifyMaintenanceActive, setUnauthorizedHandler } from '../services/httpClient'
+import Modal from '../components/common/Modal'
 import { useSessionStore } from '../store/sessionStore'
 import type { LoginRequest, SessionData } from '../types/auth'
 import type { MenuPermiso, PermisosUsuario } from '../types/permisos'
@@ -88,6 +90,9 @@ const almaceneroCruceNavigationItem: NavigationItem = {
 const hasCruceAgendaAccessByRole = (roleName: string): boolean =>
   ['almacenero', 'auxiliardealmacen', 'backoffice', 'backofficev', 'supervisor', 'sistemas', 'admin', 'administrador'].includes(normalizeRoleName(roleName))
 
+const isSistemasRole = (roleName: string): boolean => normalizeRoleName(roleName) === 'sistemas'
+const isSistemasPath = (pathname: string): boolean => pathname.trim().startsWith('/sistemas/')
+
 const resolveRoleData = (usuario: UsuarioSesion | null, permisos: PermisosUsuario | null): { roleName: string; roleId: number } => {
   const roleName = (permisos?.rol ?? usuario?.rol ?? '').trim()
   const roleId = permisos?.idRol ?? usuario?.idRol ?? 0
@@ -114,6 +119,10 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(() => mapSessionToUser(initialSession))
   const [permisos, setPermisos] = useState<PermisosUsuario | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(Boolean(initialSession?.sessionToken))
+  const [maintenanceModal, setMaintenanceModal] = useState<{ open: boolean; message: string }>({
+    open: false,
+    message: 'CAMBIOS DE SISTEMAS EN PROCESO',
+  })
   const loadedPermisosTokenRef = useRef<string | null>(null)
 
   const resetAuthState = useCallback(() => {
@@ -223,6 +232,15 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [resetAuthState])
 
   useEffect(() => {
+    return listenMaintenanceActive((message) => {
+      setMaintenanceModal({
+        open: true,
+        message: message?.trim() || 'CAMBIOS DE SISTEMAS EN PROCESO',
+      })
+    })
+  }, [])
+
+  useEffect(() => {
     let isMounted = true
     if (!token) {
       setIsBootstrapping(false)
@@ -261,6 +279,26 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     () => Number.isFinite(roleId) && roleId > 0,
     [roleId]
   )
+
+  useEffect(() => {
+    if (!token || isSistemasRole(roleName)) return undefined
+    const verifyMaintenance = async () => {
+      try {
+        const status = await fetchMaintenanceStatus()
+        if (!status.active) return
+        notifyMaintenanceActive(status.message || 'CAMBIOS DE SISTEMAS EN PROCESO')
+        resetAuthState()
+        if (window.location.pathname !== '/login') {
+          window.setTimeout(() => window.location.assign('/login'), 900)
+        }
+      } catch {
+        // La caida del backend ya se maneja en las llamadas normales del sistema.
+      }
+    }
+    verifyMaintenance()
+    const intervalId = window.setInterval(verifyMaintenance, 3000)
+    return () => window.clearInterval(intervalId)
+  }, [resetAuthState, roleName, token])
 
   const administrador = permisos?.administrador ?? false
   const mustChangePassword = useMemo(
@@ -339,6 +377,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   }, [canAccessNavigationItem, roleName])
 
   const defaultPrivatePath = useMemo(() => {
+    if (isSistemasRole(roleName)) {
+      return '/sistemas/produccion'
+    }
     if (hasCruceAgendaAccessByRole(roleName)) {
       return '/almacen/cruce-agenda-makiro'
     }
@@ -348,6 +389,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const canAccessPath = useCallback(
     (pathname: string): boolean => {
       if (!token) return false
+      if (isSistemasRole(roleName) && isSistemasPath(pathname)) return true
       if (!permisos) return false
       const normalizedPath = pathname.trim() || '/'
 
@@ -410,7 +452,23 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     ]
   )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <Modal
+        open={maintenanceModal.open}
+        title="CAMBIOS EN PROCESO"
+        onClose={() => setMaintenanceModal((current) => ({ ...current, open: false }))}
+        maxWidthClass="max-w-md"
+      >
+        <div className="space-y-3 text-center">
+          <p className="text-xl font-black uppercase tracking-wide text-red-600">CAMBIOS EN PROCESO</p>
+          <p className="text-sm font-semibold text-slate-700">{maintenanceModal.message}</p>
+          <p className="text-xs text-slate-500">El acceso volvera cuando sistemas desactive el bloqueo.</p>
+        </div>
+      </Modal>
+    </AuthContext.Provider>
+  )
 }
 
 export const useAuth = (): AuthContextValue => {

@@ -105,6 +105,7 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
     const key = `${item.label} ${item.to}`.toLowerCase()
     if (key.includes('gestion') || key.includes('/ot')) return faClipboardCheck
     if (key.includes('historico') || key.includes('jornada')) return faHelmetSafety
+    if (key.includes('cuadre automatico')) return faCalculator
     if (key.includes('conform') || key.includes('cuadrilla')) return faUsers
     if (key.includes('cuadre')) return faCalculator
     if (key.includes('llamada') || key.includes('seguimiento') || key.includes('control operativo')) return faBell
@@ -119,6 +120,7 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
     if (key.includes('grupos') || key.includes('central')) return faPeopleGroup
     if (key.includes('cruce agenda') || key.includes('makiro')) return faCalendarCheck
     if (key.includes('privileg')) return faUserShield
+    if (key.includes('produccion') || key.includes('sistemas')) return faGear
     if (key.includes('supervision')) return faHand
     if (key.includes('ruta')) return faMapLocationDot
     if (key.includes('almacen')) return faTruckRampBox
@@ -173,32 +175,34 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
               Cerrar
             </button>
           </div>
-          <nav className={hasLimitedFunctions ? 'flex flex-col gap-2.5' : 'grid grid-cols-2 gap-2.5'}>
-            {sidebarItems.map((item, index) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => onClose?.()}
-                className={({ isActive }) =>
-                  `rounded-xl border px-2.5 py-3 text-sm font-semibold transition ${
-                    isActive
-                      ? 'border-blue-500 bg-blue-600 text-white shadow-lg'
-                      : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
-                  }`
-                }
-                style={!hasLimitedFunctions && index === 0 ? { gridColumn: '1 / -1' } : undefined}
-              >
-                <div className={`flex ${index === 0 ? 'items-center' : 'flex-col items-start'} gap-2`}>
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                    <FontAwesomeIcon icon={getItemIcon(item)} className="text-xs" />
-                  </span>
-                  <span className={`${index === 0 ? 'text-base' : 'w-full text-[12px] leading-4'} whitespace-normal break-words`}>
-                    {resolveSidebarLabel(item)}
-                  </span>
-                </div>
-              </NavLink>
-            ))}
-          </nav>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <nav className={hasLimitedFunctions ? 'flex flex-col gap-2.5' : 'grid grid-cols-2 gap-2.5'}>
+              {sidebarItems.map((item, index) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => onClose?.()}
+                  className={({ isActive }) =>
+                    `rounded-xl border px-2.5 py-3 text-sm font-semibold transition ${
+                      isActive
+                        ? 'border-blue-500 bg-blue-600 text-white shadow-lg'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300'
+                    }`
+                  }
+                  style={!hasLimitedFunctions && index === 0 ? { gridColumn: '1 / -1' } : undefined}
+                >
+                  <div className={`flex ${index === 0 ? 'items-center' : 'flex-col items-start'} gap-2`}>
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                      <FontAwesomeIcon icon={getItemIcon(item)} className="text-xs" />
+                    </span>
+                    <span className={`${index === 0 ? 'text-base' : 'w-full text-[12px] leading-4'} whitespace-normal break-words`}>
+                      {resolveSidebarLabel(item)}
+                    </span>
+                  </div>
+                </NavLink>
+              ))}
+            </nav>
+          </div>
           <div className="mt-auto space-y-2 rounded-2xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
             <div className="flex items-center gap-3">
               <div className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 font-bold text-white">{initials}</div>

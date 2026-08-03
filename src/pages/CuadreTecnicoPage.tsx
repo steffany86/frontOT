@@ -9,14 +9,23 @@ import { getApiErrorMessage } from '../services/httpClient'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
-const quantity = (value: number) =>
-  value.toLocaleString('es-BO', { maximumFractionDigits: 2 })
+const toNumber = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string') {
+    const parsed = Number(value.trim())
+    if (Number.isFinite(parsed)) return parsed
+  }
+  return 0
+}
+
+const quantity = (value: unknown) =>
+  toNumber(value).toLocaleString('es-BO', { maximumFractionDigits: 2 })
 
 const byProductName = <T extends { producto: string }>(a: T, b: T) =>
   a.producto.localeCompare(b.producto, 'es', { sensitivity: 'base' })
 
-const sumBy = <T,>(items: T[], selector: (item: T) => number) =>
-  items.reduce((total, item) => total + selector(item), 0)
+const sumBy = <T,>(items: T[], selector: (item: T) => unknown) =>
+  items.reduce((total, item) => total + toNumber(selector(item)), 0)
 
 const CuadreTecnicoPage = () => {
   const { roleId, roleName } = useAuth()
@@ -66,7 +75,7 @@ const CuadreTecnicoPage = () => {
   const mutation = useMutation({
     mutationFn: () => registrarCuadreTecnico({
       idRuta: ruta!.idRuta,
-      cantidadOt: ruta!.cantidadOt,
+      cantidadOt: toNumber(ruta!.cantidadOt),
       fecha,
       observacion: observacion.trim() || undefined,
     }),

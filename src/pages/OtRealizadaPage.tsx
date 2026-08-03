@@ -93,6 +93,7 @@ type SaldoPreviewRow = {
   idProducto: number
   producto: string
   disponible: number
+  usadoHoy: number
   registrado: number
   saldo: number
 }
@@ -296,6 +297,26 @@ const parseSaldoValue = (row: UnknownRecord): number | null => {
   const saldoBruto = readNumber(row, ['SaldoDia', 'SaldoDiaHoy', 'Saldo', 'Cantidad', 'Existencia', 'saldo', 'cantidad'])
   const usadoHoy = readNumber(row, ['UsadoHoy', 'usadoHoy', 'Venta', 'venta']) ?? 0
   return saldoBruto === null ? null : Math.max(0, saldoBruto - usadoHoy)
+}
+
+const parseSaldoUsadoHoy = (row: UnknownRecord): number => {
+  return readNumber(row, ['UsadoHoy', 'usadoHoy', 'Venta', 'venta']) ?? 0
+}
+
+const formatSaldoDetalle = (item: {
+  producto?: string
+  disponible: number
+  usadoHoy?: number
+  registrado: number
+  ingresadoAhora?: number
+}): string => {
+  const nombre = item.producto || 'Producto'
+  const totalFormulario = formatSaldoAmount(item.registrado)
+  const ingresoActual = item.ingresadoAhora
+  if (ingresoActual !== undefined && ingresoActual !== item.registrado) {
+    return `${nombre}: saldo disponible ${formatSaldoAmount(item.disponible)}, saldo usado hoy ${formatSaldoAmount(item.usadoHoy ?? 0)}, cantidad ingresada ${formatSaldoAmount(ingresoActual)}, total en formulario ${totalFormulario}`
+  }
+  return `${nombre}: saldo disponible ${formatSaldoAmount(item.disponible)}, saldo usado hoy ${formatSaldoAmount(item.usadoHoy ?? 0)}, intentando registrar ${totalFormulario}`
 }
 
 const parseSaldoProductoId = (row: UnknownRecord): number | null => {
@@ -1237,13 +1258,16 @@ const OtRealizadaPage = () => {
             fecha: fechaSaldoMaterial,
             idSucursal: resolvedIdSucursal ?? undefined,
           })
-          const saldoMap = new Map<number, number>()
+          const saldoMap = new Map<number, { disponible: number; usadoHoy: number }>()
           saldoRows.forEach((row) => {
             const idProducto = parseSaldoProductoId(row)
             const saldoDisponible = parseSaldoValue(row)
             if (idProducto === null || saldoDisponible === null) return
-            const current = saldoMap.get(idProducto) ?? 0
-            saldoMap.set(idProducto, current + saldoDisponible)
+            const current = saldoMap.get(idProducto) ?? { disponible: 0, usadoHoy: 0 }
+            saldoMap.set(idProducto, {
+              disponible: current.disponible + saldoDisponible,
+              usadoHoy: current.usadoHoy + parseSaldoUsadoHoy(row),
+            })
           })
 
           const requestedByProduct = new Map<number, { producto: string; cantidad: number }>()
@@ -1260,12 +1284,14 @@ const OtRealizadaPage = () => {
           })
 
           const saldoEvaluado = Array.from(requestedByProduct.entries()).map(([idProducto, value]) => {
-            const disponible = saldoMap.get(idProducto) ?? 0
+            const saldoInfo = saldoMap.get(idProducto) ?? { disponible: 0, usadoHoy: 0 }
+            const disponible = saldoInfo.disponible
             const saldo = disponible - value.cantidad
             return {
               idProducto,
               producto: value.producto,
               disponible,
+              usadoHoy: saldoInfo.usadoHoy,
               registrado: value.cantidad,
               saldo,
             }
@@ -1276,10 +1302,7 @@ const OtRealizadaPage = () => {
 
           if (generatedRowsConSaldo.length === 0) {
             const detalle = deficits
-              .map((item) => {
-                const nombre = item.producto || 'Producto'
-                return `${nombre}: disponible ${formatSaldoAmount(item.disponible)}, registrado ${formatSaldoAmount(item.registrado)}`
-              })
+              .map(formatSaldoDetalle)
               .join(' | ')
             setError(`No se agregaron nomencladores por saldo insuficiente. ${detalle}.`)
             return
@@ -1287,10 +1310,7 @@ const OtRealizadaPage = () => {
 
           if (deficits.length > 0) {
             const detalle = deficits
-              .map((item) => {
-                const nombre = item.producto || 'Producto'
-                return `${nombre}: disponible ${formatSaldoAmount(item.disponible)}, registrado ${formatSaldoAmount(item.registrado)}`
-              })
+              .map(formatSaldoDetalle)
               .join(' | ')
             setError(`Se agregaron nomencladores con saldo disponible. Se omitieron: ${detalle}.`)
           } else {
@@ -2813,19 +2833,32 @@ const OtRealizadaPage = () => {
             fecha: fechaSaldoMaterial,
             idSucursal: resolvedIdSucursal ?? undefined,
           })
-          const disponible = saldoRows.reduce((total, row) => {
-            const rowProducto = parseSaldoProductoId(row)
-            if (rowProducto !== parsedProducto) return total
-            const saldoDisponible = parseSaldoValue(row)
-            return total + (saldoDisponible ?? 0)
-          }, 0)
+          const saldoProducto = saldoRows.reduce<{ disponible: number; usadoHoy: number }>(
+            (total, row) => {
+              const rowProducto = parseSaldoProductoId(row)
+              if (rowProducto !== parsedProducto) return total
+              const saldoDisponible = parseSaldoValue(row)
+              return {
+                disponible: total.disponible + (saldoDisponible ?? 0),
+                usadoHoy: total.usadoHoy + parseSaldoUsadoHoy(row),
+              }
+            },
+            { disponible: 0, usadoHoy: 0 }
+          )
+          const disponible = saldoProducto.disponible
           const yaAgregado = materialRows.reduce((total, row) => {
             if (row.idProducto !== parsedProducto || isRetiredMaterialRow(row)) return total
             return total + row.cantidad
           }, 0)
           const requerido = yaAgregado + cantidadNum
           if (requerido > disponible) {
-            const detalle = `${productoLabel}: disponible ${formatSaldoAmount(disponible)}`
+            const detalle = formatSaldoDetalle({
+              producto: productoLabel,
+              disponible,
+              usadoHoy: saldoProducto.usadoHoy,
+              registrado: requerido,
+              ingresadoAhora: cantidadNum,
+            })
             setError(`No hay material disponible. ${detalle}.`)
             return
           }
@@ -3688,14 +3721,17 @@ const OtRealizadaPage = () => {
       return []
     }
       const saldoRows = await fetchSaldoRuta({ idRuta: idRutaValidacion, fecha: fechaSaldoMaterial, idSucursal: resolvedIdSucursal ?? undefined })
-    const saldoMap = new Map<number, number>()
+    const saldoMap = new Map<number, { disponible: number; usadoHoy: number }>()
 
     saldoRows.forEach((row) => {
       const idProducto = parseSaldoProductoId(row)
       const saldoDisponible = parseSaldoValue(row)
       if (idProducto === null || saldoDisponible === null) return
-      const current = saldoMap.get(idProducto) ?? 0
-      saldoMap.set(idProducto, current + saldoDisponible)
+      const current = saldoMap.get(idProducto) ?? { disponible: 0, usadoHoy: 0 }
+      saldoMap.set(idProducto, {
+        disponible: current.disponible + saldoDisponible,
+        usadoHoy: current.usadoHoy + parseSaldoUsadoHoy(row),
+      })
     })
 
     const requestedByProduct = new Map<number, { producto: string; cantidad: number }>()
@@ -3715,12 +3751,14 @@ const OtRealizadaPage = () => {
 
     return Array.from(requestedByProduct.entries())
       .map(([idProducto, value]) => {
-        const disponible = saldoMap.get(idProducto) ?? 0
+        const saldoInfo = saldoMap.get(idProducto) ?? { disponible: 0, usadoHoy: 0 }
+        const disponible = saldoInfo.disponible
         const saldo = disponible - value.cantidad
         return {
           idProducto,
           producto: value.producto,
           disponible,
+          usadoHoy: saldoInfo.usadoHoy,
           registrado: value.cantidad,
           saldo,
         }
@@ -3735,10 +3773,7 @@ const OtRealizadaPage = () => {
       const deficits = previewRows.filter((row) => row.saldo < 0)
       if (deficits.length > 0) {
         const detalle = deficits
-          .map((item) => {
-            const nombre = item.producto || 'Producto'
-            return `${nombre}: disponible ${formatSaldoAmount(item.disponible)}, registrado ${formatSaldoAmount(item.registrado)}`
-          })
+          .map(formatSaldoDetalle)
           .join(' | ')
         showSaldoPopup({
           kind: 'warning',

@@ -17,6 +17,8 @@ const apiIssueLogsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_LOG_
 
 let unauthorizedHandler: (() => void) | null = null
 
+const MAINTENANCE_EVENT = 'system-maintenance-active'
+
 const maskToken = (token: string): string => {
   if (token.length <= 10) return '***'
   return `${token.slice(0, 6)}...${token.slice(-4)}`
@@ -258,6 +260,27 @@ export const isAuthError = (error: unknown): boolean => {
   return status === 401 || status === 403
 }
 
+export const isMaintenanceError = (error: unknown): boolean => {
+  if (!axios.isAxiosError(error)) return false
+  const payload = error.response?.data
+  if (!isRecord(payload)) return false
+  return payload.code === 'MAINTENANCE_ACTIVE'
+}
+
+export const notifyMaintenanceActive = (message?: string): void => {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent(MAINTENANCE_EVENT, { detail: { message } }))
+}
+
+export const listenMaintenanceActive = (handler: (message?: string) => void): (() => void) => {
+  const listener = (event: Event) => {
+    const customEvent = event as CustomEvent<{ message?: string }>
+    handler(customEvent.detail?.message)
+  }
+  window.addEventListener(MAINTENANCE_EVENT, listener)
+  return () => window.removeEventListener(MAINTENANCE_EVENT, listener)
+}
+
 export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
   unauthorizedHandler = handler
 }
@@ -366,12 +389,17 @@ httpClient.interceptors.response.use(
         response: error.response?.data ?? null,
       })
     }
+    const maintenanceActive = isMaintenanceError(error)
+    if (maintenanceActive) {
+      const payload = isRecord(error.response?.data) ? error.response?.data : null
+      notifyMaintenanceActive(typeof payload?.message === 'string' ? payload.message : undefined)
+    }
     if (status === 401 && !isLogin401) {
       clearSessionStorage()
       useSessionStore.getState().clearSession()
       unauthorizedHandler?.()
       if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
+        window.setTimeout(() => window.location.assign('/login'), maintenanceActive ? 900 : 0)
       }
     } else if (status === 403 && apiIssueLogsEnabled) {
       console.warn('[API 403]', requestPath || '(ruta desconocida)', 'Se mantiene la sesion local.')

@@ -231,6 +231,20 @@ export const navigationItems: NavigationItem[] = [
     showInSidebar: true,
   },
   {
+    label: 'Poner en produccion',
+    to: '/sistemas/produccion',
+    routePatterns: ['/sistemas/produccion'],
+    allowedRoles: ['sistemas'],
+    showInSidebar: true,
+  },
+  {
+    label: 'Cuadre automatico',
+    to: '/sistemas/cuadre-automatico',
+    routePatterns: ['/sistemas/cuadre-automatico'],
+    allowedRoles: ['sistemas'],
+    showInSidebar: true,
+  },
+  {
     label: 'Pool de Privilegios',
     to: '/admin/privilegios',
     routePatterns: ['/admin/privilegios'],

@@ -38,6 +38,8 @@ import NombresNpsPage from '../pages/NombresNpsPage'
 import NodoZonaPage from '../pages/NodoZonaPage'
 import CruceAgendaMakiroPage from '../pages/CruceAgendaMakiroPage'
 import PedidoMaterialPage from '../pages/PedidoMaterialPage'
+import SistemasProduccionPage from '../pages/SistemasProduccionPage'
+import SistemasCuadreAutomaticoPage from '../pages/SistemasCuadreAutomaticoPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -100,6 +102,8 @@ const AppRoutes = () => {
           <Route path="/Registro_TOR" element={<RegistroTorPage />} />
           <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
           <Route path="/almacen/cruce-agenda-makiro" element={<CruceAgendaMakiroPage />} />
+          <Route path="/sistemas/produccion" element={<SistemasProduccionPage />} />
+          <Route path="/sistemas/cuadre-automatico" element={<SistemasCuadreAutomaticoPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>
