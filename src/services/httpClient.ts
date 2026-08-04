@@ -11,7 +11,7 @@ type ApiEnvelope<T> = {
 
 type UnknownRecord = Record<string, unknown>
 
-const baseURL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? '/api')
+export const apiBaseURL = import.meta.env.PROD ? '/api' : (import.meta.env.VITE_API_URL ?? '/api')
 const apiVerboseEnabled = import.meta.env.VITE_API_DEBUG === 'true'
 const apiIssueLogsEnabled = import.meta.env.DEV || import.meta.env.VITE_API_LOG_ISSUES === 'true'
 
@@ -286,7 +286,7 @@ export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
 }
 
 const httpClient = axios.create({
-  baseURL,
+  baseURL: apiBaseURL,
 })
 
 httpClient.interceptors.request.use((config) => {

@@ -17,6 +17,7 @@ import {
   validateExisteCierreAlmacen,
 } from '../api/otApi'
 import { getApiErrorMessage } from '../services/httpClient'
+import { MAX_UPLOAD_BYTES, useFileSizeLimitModal } from '../hooks/useFileSizeLimitModal'
 import { useSessionStore } from '../store/sessionStore'
 import { todayISO } from '../utils/dates'
 import { getSessionSucursalId } from '../utils/storage'
@@ -47,8 +48,8 @@ const GEO_MIN_SAMPLES = 2
 const GEO_MAX_SAMPLES = 5
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
-const PDF_MAX_BYTES = 10 * 1024 * 1024
-const IMAGE_MAX_BYTES = 10 * 1024 * 1024
+const PDF_MAX_BYTES = MAX_UPLOAD_BYTES
+const IMAGE_MAX_BYTES = MAX_UPLOAD_BYTES
 const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
 const IMAGE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/pjpeg', 'image/png', 'image/x-png', 'application/octet-stream']
 const FORM_STEPS = ['Cabecera', 'Red', 'Observacion', 'Archivo'] as const
@@ -565,6 +566,7 @@ const isDuplicateOrdenError = (message: string): boolean => {
 }
 
 const RegistrarOTAgendaPage = () => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const navigate = useNavigate()
   const location = useLocation()
   const session = useSessionStore((state) => state.session)
@@ -2386,7 +2388,7 @@ const RegistrarOTAgendaPage = () => {
                   const maxBytes = tipoArchivoProtw === 'IMAGEN' ? IMAGE_MAX_BYTES : PDF_MAX_BYTES
                   if (file.size > maxBytes) {
                     setPdfFile(null)
-                    setSubmitError(`El archivo ${archivoAdjuntoLabel} supera el limite de 10MB.`)
+                    validateFileSize(file)
                     event.target.value = ''
                     return
                   }
@@ -2617,6 +2619,7 @@ const RegistrarOTAgendaPage = () => {
       >
         <p className="max-w-full overflow-x-hidden whitespace-pre-wrap break-all">{successModalMessage || success || 'Registro exitoso.'}</p>
       </Modal>
+      <FileSizeLimitModal />
     </div>
   )
 }

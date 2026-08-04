@@ -16,6 +16,7 @@ import {
 import { getApiErrorMessage } from '../services/httpClient'
 import { startOfMonthISO, todayISO } from '../utils/dates'
 import type { BoletaDigitalOt } from '../types/boletaDigital'
+import { useFileSizeLimitModal } from '../hooks/useFileSizeLimitModal'
 
 const PAGE_SIZE = 100
 const defaultFechaInicio = startOfMonthISO()
@@ -226,6 +227,7 @@ const getBoletaDigitalErrorMessage = async (error: unknown, fallback: string): P
 }
 
 const VerificacionBoletaDigitalPage = () => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'iguales' | 'diferentes' | 'sin_pdf' | 'imagenes' | 'editados'>('all')
   const [fechaInicio, setFechaInicio] = useState(defaultFechaInicio)
@@ -519,6 +521,10 @@ const VerificacionBoletaDigitalPage = () => {
     const row = selectedUploadRow
     event.target.value = ''
     if (!file || !row) return
+    if (!validateFileSize(file)) {
+      setSelectedUploadRow(null)
+      return
+    }
     const isImageUpload = isImageRow(row)
     const lowerName = file.name.toLowerCase()
     const validFile = isImageUpload ? hasExtension(lowerName, IMAGE_EXTENSIONS) : lowerName.endsWith('.pdf')
@@ -748,6 +754,7 @@ const VerificacionBoletaDigitalPage = () => {
           </div>
         )}
       </Modal>
+      <FileSizeLimitModal />
       <Modal
         open={Boolean(selectedDetailRow)}
         title={`Detalle de boleta ${selectedDetailRow?.id || selectedDetailRow?.ot || ''}`}

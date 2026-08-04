@@ -13,6 +13,7 @@ import {
   type CorteTapRow,
 } from '../../api/corteTapApi'
 import { getApiErrorMessage } from '../../services/httpClient'
+import { useFileSizeLimitModal } from '../../hooks/useFileSizeLimitModal'
 
 type DetailMode = 'digitador' | 'tecnico'
 
@@ -79,8 +80,10 @@ const Field = ({ label, value }: { label: string; value: string }) => (
 )
 
 const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const queryClient = useQueryClient()
   const [nodoTapBoca, setNodoTapBoca] = useState('')
+  const [nodoTapBocaAntiguo, setNodoTapBocaAntiguo] = useState('')
   const [zonaHfc, setZonaHfc] = useState('')
   const [ordenTrabajo, setOrdenTrabajo] = useState('')
   const [observacion, setObservacion] = useState('')
@@ -116,6 +119,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
   useEffect(() => {
     if (!row) return
     setNodoTapBoca(readText(row, ['NodoTapBoca_D2']))
+    setNodoTapBocaAntiguo(readText(row, ['NodoTapBocaAntiguo_D2', 'nodoTapBocaAntiguo_D2']))
     setZonaHfc(readText(row, ['Zona_HFC_D2']))
     setOrdenTrabajo(readText(row, ['OrdenTrabajo_T3']))
     setObservacion(readText(row, ['Observacion_T3']))
@@ -136,10 +140,10 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
   }
 
   const digitacionMutation = useMutation({
-    mutationFn: () => guardarCorteTapDigitacion(id as number, { zonaHfc }),
+    mutationFn: () => guardarCorteTapDigitacion(id as number, { nodoTapBocaAntiguo, zonaHfc }),
     onSuccess: async () => {
       setError(null)
-      setSuccess('Datos del digitador guardados. El Corte TAP ya esta disponible para el tecnico.')
+      setSuccess('Datos del digitador guardados. El Corte TAP ya se puede finalizar.')
       await refreshLists()
     },
     onError: (value) => {
@@ -182,15 +186,13 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
 
   const handlePhoto = async (slot: 1 | 2, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
     if (!file.type.startsWith('image/')) {
       setError('Solo se permiten archivos de imagen.')
       return
     }
-    if (file.size > 5_500_000) {
-      setError('Cada foto debe pesar menos de 5 MB.')
-      return
-    }
+    if (!validateFileSize(file)) return
     try {
       const value = await toDataUrl(file)
       if (slot === 1) setFoto1(value)
@@ -222,6 +224,8 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
             <Field label="Estado" value={readText(row, ['Estado'])} />
             <Field label="Tecnico" value={readText(row, ['Tecnico1_OT1'])} />
             <Field label="Sucursal" value={readText(row, ['Sucursal_OT1'])} />
+            <Field label="Nodo/TAP/Boca nuevo" value={nodoTapBoca} />
+            <Field label="Nodo/TAP/Boca antiguo" value={nodoTapBocaAntiguo} />
             <Field label="Etapa digitador" value={digitado ? 'COMPLETADA' : 'PENDIENTE'} />
           </dl>
 
@@ -233,13 +237,23 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
               <h4 className="text-base font-bold text-slate-900">Datos de digitacion</h4>
               <div className="mt-3 grid gap-4 sm:grid-cols-2">
                 <label className="text-sm font-semibold text-slate-700">
-                  Nodo / TAP / Boca
+                  Nodo / TAP / Boca nuevo
                   <input
                     className="input-base mt-1"
                     value={nodoTapBoca}
                     readOnly
                     placeholder="Dato recibido de la OT"
                     disabled
+                  />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">
+                  Nodo / TAP / Boca antiguo
+                  <input
+                    className="input-base mt-1"
+                    value={nodoTapBocaAntiguo}
+                    onChange={(event) => setNodoTapBocaAntiguo(event.target.value.toUpperCase())}
+                    placeholder="Escribe el nodo anterior"
+                    disabled={cerrado}
                   />
                 </label>
                 <label className="text-sm font-semibold text-slate-700">
@@ -301,16 +315,18 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                   <Button
                     type="button"
                     onClick={() => digitacionMutation.mutate()}
-                    disabled={saving || !zonaHfc.trim()}
+                    disabled={saving || !zonaHfc.trim() || !nodoTapBocaAntiguo.trim()}
                   >
                     <FontAwesomeIcon icon={faFloppyDisk} />
                     Guardar digitacion
                   </Button>
                 </div>
               ) : null}
-              {ejecutado && tecnicoCompleto ? (
+              {digitado && !finalizado ? (
                 <div className="mt-5 flex flex-col gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <p className="font-medium text-emerald-800">El tecnico completo los datos finales. El Corte TAP esta listo para finalizar.</p>
+                  <p className="font-medium text-emerald-800">
+                    {tecnicoCompleto ? 'El tecnico completo los datos finales.' : 'La digitacion esta completa.'} El Corte TAP esta listo para finalizar.
+                  </p>
                   <Button type="button" onClick={() => finalizacionMutation.mutate()} disabled={saving}>
                     <FontAwesomeIcon icon={faCheck} />
                     Finalizar Corte TAP
@@ -326,7 +342,8 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
           ) : (
             <section>
               <div className="grid gap-4 rounded-lg bg-slate-100 p-4 sm:grid-cols-2">
-                <Field label="Nodo / TAP / Boca" value={readText(row, ['NodoTapBoca_D2'])} />
+                <Field label="Nodo / TAP / Boca antiguo" value={nodoTapBocaAntiguo} />
+                <Field label="Nodo / TAP / Boca nuevo" value={nodoTapBoca} />
                 <Field label="Zona HFC" value={readText(row, ['Zona_HFC_D2'])} />
                 <Field label="Zona" value={readText(row, ['Zona_D2'])} />
                 <Field label="Distrito" value={readText(row, ['Distrito_D2'])} />
@@ -387,6 +404,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
           )}
         </div>
       )}
+      <FileSizeLimitModal />
     </Modal>
   )
 }

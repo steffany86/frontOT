@@ -13,6 +13,7 @@ export type CorteTapCrearPayload = {
 }
 
 export type CorteTapDigitacionPayload = {
+  nodoTapBocaAntiguo: string
   zonaHfc: string
 }
 

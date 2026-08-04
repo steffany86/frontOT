@@ -1,4 +1,5 @@
 import api from './http'
+import { apiBaseURL } from '../services/httpClient'
 
 export type CuadreDetalle = {
   idProducto: number | null
@@ -60,6 +61,29 @@ export type CuadreAutomaticoResponse = {
   resumen: Record<string, number>
 }
 
+export type CuadreAutomaticoJobStart = {
+  jobId: string
+  estado: string
+  fecha?: string
+  idSucursal?: number | null
+}
+
+export type CuadreAutomaticoProgressEvent = {
+  type: 'progress' | 'route' | 'complete' | 'error' | string
+  status: 'pending' | 'running' | 'success' | 'warning' | 'error' | string
+  step: string
+  message: string
+  timestamp?: string
+  rutaIndex?: number | null
+  totalRutas?: number | null
+  idRuta?: number | null
+  ruta?: string | null
+  codigo?: string | null
+  resultadoRuta?: CuadreAutomaticoResultado
+  resultado?: CuadreAutomaticoResponse
+  error?: string
+}
+
 const unwrap = <T,>(payload: unknown): T => {
   if (payload && typeof payload === 'object' && 'data' in payload) {
     return (payload as { data: T }).data
@@ -96,4 +120,18 @@ export const ejecutarCuadreAutomatico = async (params: {
 }): Promise<CuadreAutomaticoResponse> => {
   const response = await api.post('/cuadre/sistemas/automatico/ejecutar', null, { params })
   return unwrap<CuadreAutomaticoResponse>(response.data)
+}
+
+export const iniciarCuadreAutomatico = async (params: {
+  fecha?: string
+  idSucursal: number
+}): Promise<CuadreAutomaticoJobStart> => {
+  const response = await api.post('/cuadre/sistemas/automatico/iniciar', null, { params })
+  return unwrap<CuadreAutomaticoJobStart>(response.data)
+}
+
+export const buildCuadreAutomaticoProgressUrl = (jobId: string): string => {
+  const base = apiBaseURL.replace(/\/+$/, '')
+  const path = `/cuadre/sistemas/automatico/progreso/${encodeURIComponent(jobId)}`
+  return `${base}${path}`
 }

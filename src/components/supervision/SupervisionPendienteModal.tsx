@@ -28,6 +28,7 @@ import {
 } from '../../api/supervisionApi'
 import { fetchSucursales } from '../../services/authApi'
 import { getApiErrorMessage } from '../../services/httpClient'
+import { useFileSizeLimitModal } from '../../hooks/useFileSizeLimitModal'
 
 type SupervisionForm = {
   idSupervisorAsignado: string
@@ -129,6 +130,7 @@ interface SupervisionPendienteModalProps {
 }
 
 const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPendienteModalProps) => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const { usuario } = useAuth()
   const queryClient = useQueryClient()
   const [form, setForm] = useState<SupervisionForm>(emptyForm)
@@ -222,7 +224,9 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
 
   const handlePhotoChange = async (field: keyof SupervisionForm, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await toDataUrl(file)
       setForm((prev) => ({ ...prev, [field]: dataUrl }))
@@ -572,6 +576,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
       </Modal>
 
       {zoomImageSrc && <ImageLightbox open={Boolean(zoomImageSrc)} src={zoomImageSrc} alt="Imagen ampliada" onClose={() => setZoomImageSrc(null)} />}
+      <FileSizeLimitModal />
     </>
   )
 }

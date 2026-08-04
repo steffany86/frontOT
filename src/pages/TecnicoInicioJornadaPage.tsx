@@ -8,6 +8,7 @@ import SignaturePad from '../components/common/SignaturePad'
 import { cerrarJornada, fetchCierreJornadaEstado, fetchInicioJornadaEstado, registrarInicioJornada } from '../api/inicioJornadaApi'
 import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
+import { useFileSizeLimitModal } from '../hooks/useFileSizeLimitModal'
 
 type SiNo = 'SI' | 'NO'
 
@@ -20,6 +21,7 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
   })
 
 const TecnicoInicioJornadaPage = () => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const { usuario, defaultPrivatePath, roleId, roleName } = useAuth()
@@ -142,6 +144,7 @@ const TecnicoInicioJornadaPage = () => {
 
   const handleImageChange = async (file: File | null) => {
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
       setImagen(dataUrl)
@@ -152,6 +155,7 @@ const TecnicoInicioJornadaPage = () => {
 
   const handleAuxiliarImageChange = async (file: File | null) => {
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
       setImagenAuxiliar(dataUrl)
@@ -313,12 +317,12 @@ const TecnicoInicioJornadaPage = () => {
             </select>
           </Field>
           <Field label="Foto de perfil con su equipo">
-            <input className="input-base" type="file" accept="image/*" onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)} />
+            <input className="input-base" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleImageChange(file) }} />
             {imagen ? <p className="mt-2 text-xs text-emerald-700">Imagen cargada.</p> : null}
           </Field>
           {requiereImagenAuxiliar ? (
             <Field label="Foto del auxiliar">
-              <input className="input-base" type="file" accept="image/*" onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)} />
+              <input className="input-base" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleAuxiliarImageChange(file) }} />
               {imagenAuxiliar ? <p className="mt-2 text-xs text-emerald-700">Imagen auxiliar cargada.</p> : null}
             </Field>
           ) : null}
@@ -397,6 +401,7 @@ const TecnicoInicioJornadaPage = () => {
           </div>
         </FormCard>
       ) : null}
+      <FileSizeLimitModal />
     </div>
   )
 }

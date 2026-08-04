@@ -1,9 +1,16 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
-import { ejecutarCuadreAutomatico, fetchCuadreAutomaticoPreview, type CuadreAutomaticoResultado } from '../api/cuadreTecnicoApi'
+import Modal from '../components/common/Modal'
+import {
+  buildCuadreAutomaticoProgressUrl,
+  fetchCuadreAutomaticoPreview,
+  iniciarCuadreAutomatico,
+  type CuadreAutomaticoProgressEvent,
+  type CuadreAutomaticoResultado,
+} from '../api/cuadreTecnicoApi'
 import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
@@ -31,12 +38,27 @@ const statusClass = (estado: string): string => {
   return 'bg-slate-50 text-slate-700 border-slate-200'
 }
 
+const executionSteps = [
+  'Validando usuario sistemas y sucursal',
+  'Consultando rutas pendientes de cuadre',
+  'Revisando cierres y movimientos pendientes',
+  'Calculando saldo, usado del dia y retiros',
+  'Validando sobrantes y ventas registradas',
+  'Registrando cuadre por cada ruta valida',
+  'Actualizando saldos, retiros y equipo tecnico',
+  'Preparando resumen final de ejecucion',
+]
+
 const SistemasCuadreAutomaticoPage = () => {
   const { usuario } = useAuth()
   const [fecha, setFecha] = useState(today)
   const [idSucursal, setIdSucursal] = useState(String(usuario?.idSucursal && usuario.idSucursal > 0 ? usuario.idSucursal : ''))
   const [resultado, setResultado] = useState<CuadreAutomaticoResultado[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [processModalOpen, setProcessModalOpen] = useState(false)
+  const [processStatus, setProcessStatus] = useState<'idle' | 'starting' | 'running' | 'success' | 'error'>('idle')
+  const [progressEvents, setProgressEvents] = useState<CuadreAutomaticoProgressEvent[]>([])
+  const eventSourceRef = useRef<EventSource | null>(null)
 
   const isSistemas = normalizeRole(usuario?.rol) === 'sistemas' || normalizeRole(usuario?.nombre) === 'sistemas'
 
@@ -54,16 +76,84 @@ const SistemasCuadreAutomaticoPage = () => {
   })
 
   const ejecutarMutation = useMutation({
-    mutationFn: () => ejecutarCuadreAutomatico({ fecha, idSucursal: Number(idSucursal) }),
+    mutationFn: () => iniciarCuadreAutomatico({ fecha, idSucursal: Number(idSucursal) }),
     onSuccess: (data) => {
-      setResultado(data.rutas ?? [])
       setError(null)
+      setProcessStatus('running')
+      setProcessModalOpen(true)
+      openProgressStream(data.jobId)
     },
     onError: (err) => {
       setResultado(null)
       setError(getApiErrorMessage(err, 'No se pudo ejecutar el cuadre automatico.'))
+      setProcessStatus('error')
+      setProcessModalOpen(true)
     },
   })
+
+  useEffect(() => {
+    return () => {
+      eventSourceRef.current?.close()
+      eventSourceRef.current = null
+    }
+  }, [])
+
+  const processRunning = processStatus === 'starting' || processStatus === 'running'
+
+  const appendProgressEvent = (event: CuadreAutomaticoProgressEvent) => {
+    setProgressEvents((current) => [...current.slice(-80), event])
+  }
+
+  const openProgressStream = (jobId: string) => {
+    eventSourceRef.current?.close()
+    const source = new EventSource(buildCuadreAutomaticoProgressUrl(jobId))
+    eventSourceRef.current = source
+
+    const handleServerEvent = (rawEvent: MessageEvent<string>) => {
+      try {
+        const event = JSON.parse(rawEvent.data) as CuadreAutomaticoProgressEvent
+        appendProgressEvent(event)
+        if (event.type === 'complete') {
+          if (event.resultado) {
+            setResultado(event.resultado.rutas ?? [])
+          }
+          setError(null)
+          setProcessStatus('success')
+          source.close()
+          eventSourceRef.current = null
+        } else if (event.type === 'error') {
+          const message = event.error || event.message || 'No se pudo ejecutar el cuadre automatico.'
+          setError(message)
+          setProcessStatus('error')
+          source.close()
+          eventSourceRef.current = null
+        }
+      } catch {
+        appendProgressEvent({
+          type: 'error',
+          status: 'error',
+          step: 'Mensaje invalido',
+          message: 'No se pudo interpretar un mensaje de progreso del backend.',
+        })
+      }
+    }
+
+    source.addEventListener('progress', handleServerEvent)
+    source.addEventListener('route', handleServerEvent)
+    source.addEventListener('complete', handleServerEvent)
+    source.addEventListener('error', (rawEvent) => {
+      if ('data' in rawEvent && typeof rawEvent.data === 'string') {
+        handleServerEvent(rawEvent as MessageEvent<string>)
+        return
+      }
+      if (eventSourceRef.current === source) {
+        setError('Se perdio la conexion con el progreso del cuadre automatico.')
+        setProcessStatus('error')
+        source.close()
+        eventSourceRef.current = null
+      }
+    })
+  }
 
   const rutas = resultado ?? previewQuery.data?.rutas ?? []
   const resumen = useMemo(() => {
@@ -91,7 +181,14 @@ const SistemasCuadreAutomaticoPage = () => {
       return
     }
     const ok = window.confirm(`Ejecutar cuadre automatico para ${fecha}?`)
-    if (ok) ejecutarMutation.mutate()
+    if (ok) {
+      eventSourceRef.current?.close()
+      eventSourceRef.current = null
+      setProgressEvents([])
+      setProcessStatus('starting')
+      setProcessModalOpen(true)
+      ejecutarMutation.mutate()
+    }
   }
 
   if (!isSistemas) {
@@ -104,6 +201,91 @@ const SistemasCuadreAutomaticoPage = () => {
 
   return (
     <div className="space-y-5 pb-8">
+      <Modal
+        open={processModalOpen}
+        title={processRunning ? 'Cuadre automatico en proceso' : error ? 'Proceso detenido' : 'Cuadre automatico finalizado'}
+        onClose={() => {
+          if (!processRunning) setProcessModalOpen(false)
+        }}
+        maxWidthClass="max-w-xl"
+        actions={
+          processRunning ? null : (
+            <Button type="button" onClick={() => setProcessModalOpen(false)}>
+              Ver resultado
+            </Button>
+          )
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex items-center gap-3 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3">
+            <div className={processRunning ? 'h-9 w-9 shrink-0 animate-spin rounded-full border-4 border-blue-200 border-t-blue-700' : 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-700 text-sm font-black text-white'}>
+              {processRunning ? null : error ? '!' : 'OK'}
+            </div>
+            <div>
+              <p className="font-bold text-slate-900">
+                {processRunning ? (progressEvents.at(-1)?.step ?? 'Ejecutando cuadre automatico') : error ? 'No se completo la ejecucion' : 'Proceso completado'}
+              </p>
+              <p className="text-xs text-slate-600">
+                {processRunning ? (progressEvents.at(-1)?.message ?? 'Esperando mensajes del backend...') : `Fecha ${fecha} - Sucursal ${idSucursal || '-'} - Rutas en pantalla ${quantity(rutas.length)}`}
+              </p>
+            </div>
+          </div>
+
+          <ol className="max-h-[46vh] space-y-2 overflow-y-auto pr-1">
+            {(progressEvents.length ? progressEvents : executionSteps.map((step) => ({
+              type: 'progress',
+              status: 'pending',
+              step,
+              message: processStatus === 'starting' ? 'Esperando inicio del backend...' : 'Pendiente.',
+            } as CuadreAutomaticoProgressEvent))).map((event, index) => {
+              const completed = event.status === 'success'
+              const active = processRunning && index === progressEvents.length - 1
+              const failed = event.status === 'error'
+              const warning = event.status === 'warning'
+              return (
+                <li key={`${event.timestamp ?? index}-${event.step}`} className={`flex items-start gap-3 rounded-lg border px-3 py-2 ${failed ? 'border-red-200 bg-red-50' : warning ? 'border-amber-200 bg-amber-50' : active ? 'border-blue-200 bg-blue-50' : completed ? 'border-emerald-200 bg-emerald-50' : 'border-slate-200 bg-white'}`}>
+                  <span className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black ${failed ? 'bg-red-600 text-white' : warning ? 'bg-amber-500 text-white' : active ? 'bg-blue-700 text-white' : completed ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-600'}`}>
+                    {failed ? '!' : warning ? '!' : completed ? 'OK' : index + 1}
+                  </span>
+                  <div>
+                    <p className="font-semibold text-slate-800">
+                      {event.rutaIndex && event.totalRutas ? `${event.rutaIndex}/${event.totalRutas} - ` : ''}
+                      {event.step}
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {event.message || (failed ? 'Se detuvo en esta etapa.' : active ? 'Procesando ahora...' : completed ? 'Completado.' : 'Pendiente.')}
+                    </p>
+                  </div>
+                </li>
+              )
+            })}
+          </ol>
+
+          {!processRunning && !error && resultado ? (
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-2 py-2">
+                <p className="font-bold text-blue-700">Registradas</p>
+                <p className="text-lg font-black text-blue-900">{quantity(resumen.registrados)}</p>
+              </div>
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-2 py-2">
+                <p className="font-bold text-amber-700">Omitidas</p>
+                <p className="text-lg font-black text-amber-900">{quantity(resumen.omitidos)}</p>
+              </div>
+              <div className="rounded-lg border border-red-200 bg-red-50 px-2 py-2">
+                <p className="font-bold text-red-700">Errores</p>
+                <p className="text-lg font-black text-red-900">{quantity(resumen.errores)}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {!processRunning && error ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {error}
+            </div>
+          ) : null}
+        </div>
+      </Modal>
+
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Cuadre automatico</h2>
         <p className="text-sm text-slate-600">Ejecuta el proceso legacy de cuadres automaticos por fecha y sucursal.</p>
@@ -122,8 +304,8 @@ const SistemasCuadreAutomaticoPage = () => {
               ))}
             </select>
           </Field>
-          <Button type="button" onClick={handleExecute} disabled={ejecutarMutation.isPending || !idSucursal}>
-            {ejecutarMutation.isPending ? 'Ejecutando...' : 'Ejecutar cuadre'}
+          <Button type="button" onClick={handleExecute} disabled={processRunning || !idSucursal}>
+            {processRunning ? 'Ejecutando...' : 'Ejecutar cuadre'}
           </Button>
         </div>
         {error ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}

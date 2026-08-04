@@ -37,6 +37,7 @@ import type {
 } from '../types/supervision'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
+import { useFileSizeLimitModal } from '../hooks/useFileSizeLimitModal'
 
 type SupervisionForm = {
   idTecnicoPrincipal: string
@@ -497,6 +498,7 @@ const toDataUrl = (file: File): Promise<string> => {
 }
 
 const SupervisorSupervisionPage = () => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const { usuario } = useAuth()
   const queryClient = useQueryClient()
   const [form, setForm] = useState<SupervisionForm>(emptyForm)
@@ -1072,7 +1074,9 @@ const SupervisorSupervisionPage = () => {
 
   const handlePhotoChange = async (field: keyof SupervisionForm, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
+    event.target.value = ''
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await toDataUrl(file)
       setForm((prev) => ({ ...prev, [field]: dataUrl }))
@@ -2049,7 +2053,7 @@ const SupervisorSupervisionPage = () => {
                       {cameraLikeFields.includes(photo.key) ? 'Tomar fotografia' : 'Haz clic para subir o arrastra el archivo'}
                     </p>
                     <p className="text-xs text-slate-500">
-                      {cameraLikeFields.includes(photo.key) ? 'Usa la camara del dispositivo' : 'JPG, PNG o PDF (Max. 10MB)'}
+                      {cameraLikeFields.includes(photo.key) ? 'Usa la camara del dispositivo' : 'JPG, PNG o PDF (Max. 20MB)'}
                     </p>
                   </label>
                 )}
@@ -2331,6 +2335,7 @@ const SupervisorSupervisionPage = () => {
         ) : null}
       </Modal>
       <ImageLightbox open={Boolean(zoomImageSrc)} src={zoomImageSrc ?? ''} onClose={() => setZoomImageSrc(null)} />
+      <FileSizeLimitModal />
     </div>
   )
 }

@@ -17,6 +17,7 @@ import ImageLightbox from '../common/ImageLightbox'
 import SignaturePad from '../common/SignaturePad'
 import { registrarInicioJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
+import { useFileSizeLimitModal } from '../../hooks/useFileSizeLimitModal'
 
 type SiNo = 'SI' | 'NO'
 
@@ -53,6 +54,7 @@ const declaracionJuradaInicioJornada = [
 ]
 
 const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxiliar, nombreAuxiliar, onRegistered }: InicioJornadaChecklistFormProps) => {
+  const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [estoyTrabajandoSolo, setEstoyTrabajandoSolo] = useState(false)
   const [capacitado, setCapacitado] = useState<SiNo>('NO')
@@ -125,6 +127,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
 
   const handleImageChange = async (file: File | null) => {
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
       setImagen(dataUrl)
@@ -137,6 +140,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
 
   const handleAuxiliarImageChange = async (file: File | null) => {
     if (!file) return
+    if (!validateFileSize(file)) return
     try {
       const dataUrl = await readFileAsDataUrl(file)
       setImagenAuxiliar(dataUrl)
@@ -363,14 +367,14 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               {nombreImagen ? `Imagen cargada: ${nombreImagen}` : 'Sin imagen seleccionada.'}
             </div>
           </div>
-          <input ref={elegirImagenInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)} />
+          <input ref={elegirImagenInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleImageChange(file) }} />
           <input
             ref={tomarFotoInputRef}
             className="hidden"
             type="file"
             accept="image/*"
             capture="environment"
-            onChange={(event) => handleImageChange(event.target.files?.[0] ?? null)}
+            onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleImageChange(file) }}
           />
         </Field>
         {requiereImagenAuxiliar ? (
@@ -408,7 +412,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               className="hidden"
               type="file"
               accept="image/*"
-              onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)}
+              onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleAuxiliarImageChange(file) }}
             />
             <input
               ref={tomarFotoAuxiliarInputRef}
@@ -416,7 +420,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(event) => handleAuxiliarImageChange(event.target.files?.[0] ?? null)}
+              onChange={(event) => { const file = event.target.files?.[0] ?? null; event.target.value = ''; void handleAuxiliarImageChange(file) }}
             />
           </Field>
         ) : null}
@@ -515,6 +519,7 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
         </Button>
       </div>
       <ImageLightbox open={Boolean(zoomImageSrc)} src={zoomImageSrc ?? ''} onClose={() => setZoomImageSrc(null)} />
+      <FileSizeLimitModal />
     </div>
   )
 }
