@@ -220,7 +220,7 @@ const CortesTapPanel = ({ mode = 'tecnico' }: Props) => {
         <div className="flex min-h-64 items-center justify-center text-sm font-medium text-slate-500">Cargando cortes TAP...</div>
       ) : cortesQuery.isError ? (
         <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          No se pudo consultar la lista de cortes TAP.
+          {getApiErrorMessage(cortesQuery.error, 'No se pudo consultar la lista de cortes TAP.')}
         </div>
       ) : filteredRows.length === 0 ? (
         <div className="flex min-h-64 flex-col items-center justify-center border-b border-slate-200 text-center">

@@ -11,9 +11,8 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { matchPath } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../config/navigation'
-import { fetchMaintenanceStatus } from '../api/maintenanceApi'
 import { fetchMe, fetchPermisos, login as loginRequest } from '../services/authApi'
-import { getApiErrorMessage, isAuthError, listenMaintenanceActive, notifyMaintenanceActive, setUnauthorizedHandler } from '../services/httpClient'
+import { getApiErrorMessage, isAuthError, listenMaintenanceActive, setUnauthorizedHandler } from '../services/httpClient'
 import Modal from '../components/common/Modal'
 import { useSessionStore } from '../store/sessionStore'
 import type { LoginRequest, SessionData } from '../types/auth'
@@ -279,26 +278,6 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
     () => Number.isFinite(roleId) && roleId > 0,
     [roleId]
   )
-
-  useEffect(() => {
-    if (!token || isSistemasRole(roleName)) return undefined
-    const verifyMaintenance = async () => {
-      try {
-        const status = await fetchMaintenanceStatus()
-        if (!status.active) return
-        notifyMaintenanceActive(status.message || 'CAMBIOS DE SISTEMAS EN PROCESO')
-        resetAuthState()
-        if (window.location.pathname !== '/login') {
-          window.setTimeout(() => window.location.assign('/login'), 900)
-        }
-      } catch {
-        // La caida del backend ya se maneja en las llamadas normales del sistema.
-      }
-    }
-    verifyMaintenance()
-    const intervalId = window.setInterval(verifyMaintenance, 3000)
-    return () => window.clearInterval(intervalId)
-  }, [resetAuthState, roleName, token])
 
   const administrador = permisos?.administrador ?? false
   const mustChangePassword = useMemo(

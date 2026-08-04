@@ -31,10 +31,10 @@ const MainLayout = () => {
         onCierreJornadaClick={() => setOpenCierreModal(true)}
       />
       <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col">
-        <div className="px-4 pt-4 lg:px-7 lg:pt-6">
+        <div className="relative z-30 shrink-0 px-4 pt-4 lg:px-7 lg:pt-6">
           <Header onMenuClick={() => setSidebarOpen(true)} />
         </div>
-        <main className="bento-main min-h-0 overflow-y-auto overscroll-contain">
+        <main className="bento-main relative z-0 min-h-0 overflow-y-auto overscroll-contain">
           <Outlet />
         </main>
       </div>

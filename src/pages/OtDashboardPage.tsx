@@ -129,10 +129,10 @@ const normalizeEstado = (value: string): string => {
 type OtDashboardTab = 'pendientes' | 'ordenes-pasadas' | 'finalizadas' | 'cortes-tap'
 
 const OT_DASHBOARD_TABS: { id: OtDashboardTab; label: string }[] = [
-  { id: 'pendientes', label: 'General (pendientes)' },
-  { id: 'ordenes-pasadas', label: 'Ordenes pasadas' },
+  { id: 'pendientes', label: 'Agenda' },
+  { id: 'ordenes-pasadas', label: 'OT Pasadas' },
+  { id: 'cortes-tap', label: 'CTap' },
   { id: 'finalizadas', label: 'Finalizadas' },
-  { id: 'cortes-tap', label: 'Cortes TAP' },
 ]
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 
@@ -895,6 +895,11 @@ const OtDashboardPage = () => {
   const allRows = useMemo(() => rows, [rows])
 
   const validationTargets = useMemo(() => {
+    // Las OT pasadas provienen del procedimiento de pendientes de material y
+    // solo deben validarse al guardar contra la fecha actual. No consultar
+    // spx_ValidarVentaYDetallewb con la fecha historica de Fecha_Ejecucion.
+    if (isOrdenesPasadasTab) return []
+
     const unique = new Map<string, { key: string; fecha: string; ot: string; clienteNro: string; desdeAgenda: boolean }>()
     for (const row of allRows) {
       if (hasVentaValidationFromRow(row) && !getIdVenta(row).trim()) continue
@@ -1085,7 +1090,7 @@ const OtDashboardPage = () => {
     queryKey: ['catalogos-tipo-servicio-ot-dashboard'],
     queryFn: fetchTiposServicio,
     staleTime: 300_000,
-    enabled: isFinalizadasTab,
+    enabled: isFinalizadasTab || isOrdenesPasadasTab,
   })
 
   const tipoServicioNombreById = useMemo(() => {
@@ -1144,7 +1149,10 @@ const OtDashboardPage = () => {
         const clienteNro = getClienteNro(row).trim()
         const fechaAgenda = getFecha(row).trim() || fecha
         const fechaEjecucionRaw = getFechaEjecucion(row).trim()
-        const isOrdenPasadaMaterial = Boolean(readValue(row, ['pendienteMaterialPasado', 'PendienteMaterialPasado']))
+        // Todas las filas de la pestaña OT Pasadas pertenecen al flujo especial
+        // de carga de material, aunque el procedimiento no devuelva el flag.
+        const isOrdenPasadaMaterial =
+          isOrdenesPasadasTab || Boolean(readValue(row, ['pendienteMaterialPasado', 'PendienteMaterialPasado']))
         const agendaBasedRow = isAgendaRow(row)
         const fechaFila = fechaAgenda
         const fechaEjecucion = agendaBasedRow ? (fechaAgenda || fechaEjecucionRaw) : (fechaEjecucionRaw || fechaAgenda)
@@ -1632,11 +1640,11 @@ const OtDashboardPage = () => {
 
   return (
     <div className="bento-page">
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-3 sm:p-4">
-        <div className="space-y-3">
+      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-2 sm:p-3">
+        <div className="space-y-2">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Ordenes de Trabajo (            
+            <h2 className="max-w-full break-words text-lg font-extrabold leading-tight tracking-tight text-slate-900 lg:text-2xl">OT's (
               {grupoActivoEnPantalla || 'Grupo no determinado'}
             )
             </h2>
@@ -1644,7 +1652,7 @@ const OtDashboardPage = () => {
           {!isCortesTapTab && activeListQuery.isFetching ? <span className="text-xs text-slate-500">Actualizando...</span> : null}
         </div>
 
-        <div className="mt-4 rounded-2xl border border-slate-300 bg-white p-2 shadow-sm">
+        <div className="mt-2 rounded-2xl border border-slate-300 bg-white p-1.5 shadow-sm sm:p-2">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div className="inline-flex min-w-0 gap-2 overflow-x-auto">
               {OT_DASHBOARD_TABS.map((tab) => {

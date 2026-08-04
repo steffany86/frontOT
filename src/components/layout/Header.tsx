@@ -40,7 +40,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
   }
 
   return (
-    <header className="bento-tile mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:px-5 lg:px-6">
+    <header className="relative z-20 bento-tile mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-5 lg:px-6">
       <div className="flex items-center gap-2 sm:gap-3">
         <button
           type="button"
@@ -55,7 +55,7 @@ const Header = ({ onMenuClick }: HeaderProps) => {
           </span>
         </button>
         <div className="min-w-0">
-          <h2 className="max-w-full break-words pr-1 text-base font-extrabold leading-tight tracking-tight text-slate-900 sm:text-lg md:text-xl">
+          <h2 className="max-w-full break-words pr-1 text-sm font-extrabold leading-tight tracking-tight text-slate-900 sm:text-lg md:text-xl">
             Gestion de OT - {sucursalNombre}
           </h2>
           <p className="mt-0.5 truncate text-xs font-medium tracking-tight text-slate-600 sm:text-sm">

@@ -854,6 +854,7 @@ const OtRealizadaPage = () => {
     return toIsoDateParam(fromState || fromVenta)
   }, [navState?.fecha, venta])
   const fechaSaldoMaterial = useMemo(() => {
+    if (isOrdenPasadaMaterial) return todayISO()
     const rows = [venta, rowData, navState].filter(Boolean) as UnknownRecord[]
     for (const row of rows) {
       const value = readString(row, [
@@ -865,7 +866,7 @@ const OtRealizadaPage = () => {
       if (value) return toIsoDateParam(value)
     }
     return fechaTrabajo
-  }, [fechaTrabajo, navState, rowData, venta])
+  }, [fechaTrabajo, isOrdenPasadaMaterial, navState, rowData, venta])
   const fechaAgenda = useMemo(() => {
     const rows = [venta, rowData].filter(Boolean) as UnknownRecord[]
     for (const row of rows) {
@@ -1224,6 +1225,7 @@ const OtRealizadaPage = () => {
       void (async () => {
         try {
           const productoNombrePorId = new Map<number, string>()
+          const productoIdPorNombre = new Map<string, number>()
           try {
             const productosRuta = await fetchProductos(idRutaValidacion)
             ;(productosRuta as UnknownRecord[]).forEach((row) => {
@@ -1231,6 +1233,7 @@ const OtRealizadaPage = () => {
               const nombre = readString(row, ['producto', 'Producto', 'nombre', 'Nombre', 'descripcion', 'Descripcion']).trim()
               if (id !== null && id > 0 && nombre) {
                 productoNombrePorId.set(id, nombre)
+                productoIdPorNombre.set(normalizeSearchText(nombre), id)
               }
             })
           } catch {
@@ -1239,17 +1242,18 @@ const OtRealizadaPage = () => {
 
           const generatedRowsResolved = generatedRowsFinal.map((row) => {
             const etiquetaActual = String(row.producto ?? '').trim()
-            const esCodigo = /^\d+$/.test(etiquetaActual)
-            if (etiquetaActual && !esCodigo) {
-              return row
-            }
-            const nombreCatalogo = productoNombrePorId.get(row.idProducto)
-            if (!nombreCatalogo) {
+            const idProductoPorNombre = etiquetaActual
+              ? productoIdPorNombre.get(normalizeSearchText(etiquetaActual))
+              : undefined
+            const idProducto = idProductoPorNombre ?? row.idProducto
+            const nombreCatalogo = productoNombrePorId.get(idProducto)
+            if (idProducto === row.idProducto && (!nombreCatalogo || etiquetaActual === nombreCatalogo)) {
               return row
             }
             return {
               ...row,
-              producto: nombreCatalogo,
+              idProducto,
+              producto: nombreCatalogo ?? row.producto,
             }
           })
 
