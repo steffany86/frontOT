@@ -58,7 +58,39 @@ export type CuadreAutomaticoResponse = {
   idSucursal: number
   idUsuarioRegistro?: number
   rutas: CuadreAutomaticoResultado[]
+  cierres?: CierreAutomaticoResultado[]
+  cierre?: CierreAutomaticoEstado
+  notificacionesCierre?: CierreAutomaticoEstado[]
   resumen: Record<string, number>
+}
+
+export type CierreAutomaticoEstado = {
+  fecha: string
+  idSucursal?: number | null
+  pendientesCuadre: number
+  cierreAlmacenRegistrado: boolean
+  cierrePrPdRegistrado: boolean
+  cierreCompleto: boolean
+  faltaCierre: boolean
+  puedeCerrar: boolean
+  mensaje: string
+}
+
+export type CierreAutomaticoResultado = {
+  tipo: string
+  fecha: string
+  estado: string
+  idRegistro?: number | null
+  mensaje: string
+}
+
+export type CierreAutomaticoResponse = {
+  fecha: string
+  idSucursal: number
+  idUsuarioRegistro?: number
+  cierres: CierreAutomaticoResultado[]
+  cierre: CierreAutomaticoEstado
+  notificacionesCierre: CierreAutomaticoEstado[]
 }
 
 export type CuadreAutomaticoJobStart = {
@@ -128,6 +160,21 @@ export const iniciarCuadreAutomatico = async (params: {
 }): Promise<CuadreAutomaticoJobStart> => {
   const response = await api.post('/cuadre/sistemas/automatico/iniciar', null, { params })
   return unwrap<CuadreAutomaticoJobStart>(response.data)
+}
+
+export const ejecutarCierreAutomatico = async (params: {
+  fecha?: string
+  idSucursal: number
+}): Promise<CierreAutomaticoResponse> => {
+  const response = await api.post('/cuadre/sistemas/cierre/ejecutar', null, { params })
+  return unwrap<CierreAutomaticoResponse>(response.data)
+}
+
+export const fetchNotificacionesCierreAutomatico = async (params: {
+  idSucursal: number
+}): Promise<CierreAutomaticoEstado[]> => {
+  const response = await api.get('/cuadre/sistemas/cierres/notificaciones', { params })
+  return unwrap<CierreAutomaticoEstado[]>(response.data)
 }
 
 export const buildCuadreAutomaticoProgressUrl = (jobId: string): string => {

@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
 import {
   buildCuadreAutomaticoProgressUrl,
+  ejecutarCierreAutomatico,
   fetchCuadreAutomaticoPreview,
+  fetchNotificacionesCierreAutomatico,
   iniciarCuadreAutomatico,
+  type CierreAutomaticoResultado,
   type CuadreAutomaticoProgressEvent,
   type CuadreAutomaticoResultado,
 } from '../api/cuadreTecnicoApi'
@@ -51,9 +54,11 @@ const executionSteps = [
 
 const SistemasCuadreAutomaticoPage = () => {
   const { usuario } = useAuth()
+  const queryClient = useQueryClient()
   const [fecha, setFecha] = useState(today)
   const [idSucursal, setIdSucursal] = useState(String(usuario?.idSucursal && usuario.idSucursal > 0 ? usuario.idSucursal : ''))
   const [resultado, setResultado] = useState<CuadreAutomaticoResultado[] | null>(null)
+  const [cierreResultado, setCierreResultado] = useState<CierreAutomaticoResultado[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [processModalOpen, setProcessModalOpen] = useState(false)
   const [processStatus, setProcessStatus] = useState<'idle' | 'starting' | 'running' | 'success' | 'error'>('idle')
@@ -75,6 +80,14 @@ const SistemasCuadreAutomaticoPage = () => {
     staleTime: 0,
   })
 
+  const notificacionesCierreQuery = useQuery({
+    queryKey: ['cuadre-automatico-cierres-notificaciones', idSucursal],
+    queryFn: () => fetchNotificacionesCierreAutomatico({ idSucursal: Number(idSucursal) }),
+    enabled: isSistemas && Number(idSucursal) > 0,
+    retry: false,
+    staleTime: 0,
+  })
+
   const ejecutarMutation = useMutation({
     mutationFn: () => iniciarCuadreAutomatico({ fecha, idSucursal: Number(idSucursal) }),
     onSuccess: (data) => {
@@ -88,6 +101,20 @@ const SistemasCuadreAutomaticoPage = () => {
       setError(getApiErrorMessage(err, 'No se pudo ejecutar el cuadre automatico.'))
       setProcessStatus('error')
       setProcessModalOpen(true)
+    },
+  })
+
+  const cierreMutation = useMutation({
+    mutationFn: () => ejecutarCierreAutomatico({ fecha, idSucursal: Number(idSucursal) }),
+    onSuccess: (data) => {
+      setError(null)
+      setCierreResultado(data.cierres ?? [])
+      queryClient.invalidateQueries({ queryKey: ['cuadre-automatico-preview'] })
+      queryClient.invalidateQueries({ queryKey: ['cuadre-automatico-cierres-notificaciones'] })
+    },
+    onError: (err) => {
+      setCierreResultado(null)
+      setError(getApiErrorMessage(err, 'No se pudo ejecutar el cierre automatico.'))
     },
   })
 
@@ -116,9 +143,12 @@ const SistemasCuadreAutomaticoPage = () => {
         if (event.type === 'complete') {
           if (event.resultado) {
             setResultado(event.resultado.rutas ?? [])
+            setCierreResultado(event.resultado.cierres ?? null)
           }
           setError(null)
           setProcessStatus('success')
+          queryClient.invalidateQueries({ queryKey: ['cuadre-automatico-preview'] })
+          queryClient.invalidateQueries({ queryKey: ['cuadre-automatico-cierres-notificaciones'] })
           source.close()
           eventSourceRef.current = null
         } else if (event.type === 'error') {
@@ -156,6 +186,9 @@ const SistemasCuadreAutomaticoPage = () => {
   }
 
   const rutas = resultado ?? previewQuery.data?.rutas ?? []
+  const cierreEstado = previewQuery.data?.cierre
+  const notificacionesCierre = previewQuery.data?.notificacionesCierre ?? notificacionesCierreQuery.data ?? []
+  const puedeHacerCierre = Boolean(cierreEstado?.puedeCerrar && !rutas.length)
   const resumen = useMemo(() => {
     const base = resultado ? null : previewQuery.data?.resumen
     if (base) return base
@@ -185,9 +218,22 @@ const SistemasCuadreAutomaticoPage = () => {
       eventSourceRef.current?.close()
       eventSourceRef.current = null
       setProgressEvents([])
+      setCierreResultado(null)
       setProcessStatus('starting')
       setProcessModalOpen(true)
       ejecutarMutation.mutate()
+    }
+  }
+
+  const handleCierre = () => {
+    setError(null)
+    if (!idSucursal) {
+      setError('Selecciona una sucursal.')
+      return
+    }
+    const ok = window.confirm(`Hacer cierre automatico para ${fecha}?`)
+    if (ok) {
+      cierreMutation.mutate()
     }
   }
 
@@ -278,6 +324,23 @@ const SistemasCuadreAutomaticoPage = () => {
             </div>
           ) : null}
 
+          {!processRunning && cierreResultado?.length ? (
+            <div className="rounded-lg border border-slate-200 bg-white">
+              <div className="border-b border-slate-200 px-3 py-2 text-sm font-bold text-slate-900">Cierre</div>
+              <div className="divide-y divide-slate-100">
+                {cierreResultado.map((cierre, index) => (
+                  <div key={`${cierre.tipo}-${index}`} className="px-3 py-2 text-sm">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-slate-800">{cierre.tipo}</span>
+                      <span className={`rounded-full border px-2 py-0.5 text-xs font-bold ${statusClass(cierre.estado)}`}>{cierre.estado}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{cierre.mensaje || `Registro ${cierre.idRegistro ?? '-'}`}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           {!processRunning && error ? (
             <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
               {error}
@@ -308,6 +371,27 @@ const SistemasCuadreAutomaticoPage = () => {
             {processRunning ? 'Ejecutando...' : 'Ejecutar cuadre'}
           </Button>
         </div>
+        {cierreEstado ? (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-bold text-slate-900">Cierre de almacen</p>
+              <p className="text-xs text-slate-600">{cierreEstado.mensaje}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">
+                Pendientes cuadre: {quantity(cierreEstado.pendientesCuadre)} | Almacen: {cierreEstado.cierreAlmacenRegistrado ? 'SI' : 'NO'} | PR/PD: {cierreEstado.cierrePrPdRegistrado ? 'SI' : 'NO'}
+              </p>
+            </div>
+            {puedeHacerCierre ? (
+              <Button type="button" onClick={handleCierre} disabled={cierreMutation.isPending || processRunning}>
+                {cierreMutation.isPending ? 'Cerrando...' : 'Hacer cierre'}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        {cierreResultado?.length ? (
+          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            {cierreResultado.map((item) => `${item.tipo}: ${item.estado}${item.idRegistro ? ` #${item.idRegistro}` : ''}`).join(' | ')}
+          </div>
+        ) : null}
         {error ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
         {previewQuery.isError ? (
           <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -315,6 +399,34 @@ const SistemasCuadreAutomaticoPage = () => {
           </div>
         ) : null}
       </FormCard>
+
+      <section className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="text-base font-bold text-amber-950">Notificaciones de cierre</h3>
+            <p className="text-xs font-semibold text-amber-800">Dias sin cierre completo en los ultimos 5 dias.</p>
+          </div>
+          {notificacionesCierreQuery.isFetching ? <span className="text-xs font-bold text-amber-700">Actualizando...</span> : null}
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+          {notificacionesCierre.length ? notificacionesCierre.map((item) => (
+            <button
+              key={item.fecha}
+              type="button"
+              className="rounded-lg border border-amber-200 bg-white px-3 py-2 text-left transition hover:border-amber-400"
+              onClick={() => { setFecha(item.fecha); setResultado(null); setCierreResultado(null) }}
+            >
+              <p className="font-bold text-slate-900">{item.fecha}</p>
+              <p className="text-xs text-slate-600">{item.mensaje}</p>
+              <p className="mt-1 text-xs font-semibold text-amber-700">Pendientes cuadre: {quantity(item.pendientesCuadre)}</p>
+            </button>
+          )) : (
+            <div className="rounded-lg border border-emerald-200 bg-white px-3 py-3 text-sm font-semibold text-emerald-700">
+              No hay cierres pendientes en los ultimos 5 dias.
+            </div>
+          )}
+        </div>
+      </section>
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <div className="rounded-lg border border-slate-200 bg-white p-4">
