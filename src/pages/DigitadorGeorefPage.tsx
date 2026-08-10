@@ -54,10 +54,7 @@ const asText = (row: DigitadorGeorefRow, keys: string[]): string => {
 
 const isFlagOne = (row: DigitadorGeorefRow, keys: string[]): boolean => asText(row, keys).trim() === '1'
 
-const isFullyConfirmed = (row: DigitadorGeorefRow): boolean =>
-  isFlagOne(row, ['Actualizado'])
-  && isFlagOne(row, ['Actualizado_NODO'])
-  && !hasNtbDifference(row)
+const isFullyConfirmed = (row: DigitadorGeorefRow): boolean => isFlagOne(row, ['Actualizado'])
 
 const asNumber = (row: DigitadorGeorefRow, keys: string[]): number | null => {
   const value = readValue(row, keys)
@@ -139,7 +136,7 @@ const tecnicoFilterLabel = (row: DigitadorGeorefRow): string => {
 
 const NtbDifferenceBadge = () => (
   <span className="inline-flex w-fit rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white shadow-sm shadow-red-200 ring-1 ring-red-700">
-    (pendiente)
+    NODO DIFERENTE
   </span>
 )
 
@@ -193,7 +190,6 @@ const GeorefSummaryCard = ({
 }) => {
   const ntbDifferent = hasNtbDifference(row)
   const actualizado = isFlagOne(row, ['Actualizado'])
-  const actualizadoNodo = isFlagOne(row, ['Actualizado_NODO'])
   const latTecnico = asCoordinate(row, ['Latitud_V', 'Latitud', 'latitud_venta', 'latitudVenta'])
   const lonTecnico = asCoordinate(row, ['Longitud_V', 'Longitud', 'longitud_venta', 'longitudVenta'])
   const ntb = asText(row, ['N_T_B', 'NTB', 'ntb'])
@@ -254,16 +250,6 @@ const GeorefSummaryCard = ({
                 onChange={(event) => onDraftChange({ ...draft, confirmarUbicacion: event.target.checked })}
               />
               <span className="text-[9px] font-extrabold uppercase leading-tight text-slate-800">confirmar ubicacion</span>
-            </label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 px-2.5 py-2 ring-1 ring-slate-200">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-blue-600"
-                checked={actualizadoNodo || draft.confirmarNodo}
-                disabled={actualizadoNodo}
-                onChange={(event) => onDraftChange({ ...draft, confirmarNodo: event.target.checked })}
-              />
-              <span className="text-[9px] font-extrabold uppercase leading-tight text-slate-800">confirmar NODO</span>
             </label>
           </div>
         </div>
@@ -358,8 +344,13 @@ const DigitadorGeorefPage = () => {
   const confirmarMutation = useMutation({
     mutationFn: ({ id, payload }: { id: number; payload: ConfirmarDigitadorGeorefPayload }) =>
       confirmarDigitadorGeorefDistancia(id, payload),
-    onSuccess: async () => {
+    onSuccess: async (_data, variables) => {
       setSelected(null)
+      setConfirmDrafts((current) => {
+        const next = { ...current }
+        delete next[variables.id]
+        return next
+      })
       await queryClient.invalidateQueries({ queryKey: ['digitador-georef-distancias'] })
     },
   })
@@ -413,12 +404,12 @@ const DigitadorGeorefPage = () => {
   const confirmRow = (selection: MapSelection | null) => {
     if (!selection) return
     const draft = getDraft(selection.id)
-    if (!draft.confirmarUbicacion && !draft.confirmarNodo) return
+    if (!draft.confirmarUbicacion) return
     confirmarMutation.mutate({
       id: selection.id,
       payload: {
         confirmarUbicacion: draft.confirmarUbicacion,
-        confirmarNodo: draft.confirmarNodo,
+        confirmarNodo: false,
       },
     })
   }
@@ -517,7 +508,7 @@ const DigitadorGeorefPage = () => {
                 onConfirm={() => confirmRow(selection)}
                 draft={draft}
                 onDraftChange={(next) => selection && setDraft(selection.id, next)}
-                confirmDisabled={!selection || (!draft.confirmarUbicacion && !draft.confirmarNodo) || confirmarMutation.isPending}
+                confirmDisabled={!selection || !draft.confirmarUbicacion || confirmarMutation.isPending}
               />
             )
           })}
@@ -596,7 +587,7 @@ const DigitadorGeorefPage = () => {
                 onClick={() =>
                   confirmarMutation.mutate({
                     id: selected.id,
-                    payload: { confirmarUbicacion: true, confirmarNodo: true },
+                    payload: { confirmarUbicacion: true, confirmarNodo: false },
                   })
                 }
                 disabled={confirmarMutation.isPending}

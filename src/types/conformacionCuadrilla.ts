@@ -49,6 +49,7 @@ export interface ConformacionCuadrillaRecord extends Omit<ConformacionCuadrillaI
   bodegaTigo?: string | null
   almacenTigo?: string | null
   fechaRegistro?: string | null
+  supervisorConfirmo?: string | null
   fechaCreacion?: string | null
   fechaActualizacion?: string | null
   fechaModificacion?: string | null

@@ -1247,7 +1247,7 @@ const SupervisorSupervisionPage = () => {
                 onChange={(event) => setSupervisorFiltro(event.target.value)}
                 disabled={supervisoresFiltroQuery.isLoading}
               >
-                <option value="">Todos / mi usuario</option>
+                <option value="">Mi usuario</option>
                 {(supervisoresFiltroQuery.data ?? []).map((item) => (
                   <option key={item.idSupervisor} value={item.idSupervisor}>
                     {item.nombre}

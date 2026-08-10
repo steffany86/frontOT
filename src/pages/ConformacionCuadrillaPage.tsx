@@ -648,6 +648,7 @@ const RECORD_SUCURSAL_KEYS = ['sucursal', 'Sucursal', 'sucursalCodigo', 'Sucursa
 const RECORD_OBSERVACION_KEYS = ['observacion', 'Observacion']
 const RECORD_FECHA_KEYS = ['fecha', 'Fecha', 'fechaTrabajo', 'FechaTrabajo']
 const RECORD_FECHA_REGISTRO_KEYS = ['fechaRegistro', 'FechaRegistro', 'fecha_registro', 'Fecha_Registro']
+const RECORD_SUPERVISOR_CONFIRMO_KEYS = ['supervisorConfirmo', 'SupervisorConfirmo', 'supervisor_confirmo', 'usuarioConfirmo', 'confirmadoPor']
 const RECORD_CONFIRMADA_KEYS = ['confirmada', 'Confirmada']
 const RECORD_ELIMINADO_KEYS = ['e_eliminado', 'E_Eliminado', 'eliminado', 'Eliminado', 'eEliminado', 'EEliminado']
 const toLocalISODate = (date: Date): string => {
@@ -885,6 +886,7 @@ const normalizeListRecord = (row: ConformacionCuadrillaRecord): ConformacionCuad
     grupo,
     fecha,
     fechaRegistro,
+    supervisorConfirmo: readRecordString(row, RECORD_SUPERVISOR_CONFIRMO_KEYS, row.supervisorConfirmo ?? ''),
     estado: readRecordString(row, RECORD_ESTADO_KEYS, row.estado ?? ''),
     actividad: readRecordString(row, RECORD_ACTIVIDAD_KEYS, row.actividad ?? ''),
     idTecnico: toOptionalNumber(idTecnico) ?? row.idTecnico,
@@ -2012,15 +2014,16 @@ const ConformacionCuadrillaPage = () => {
         const rowDetailLoading = isRowDetailLoading(row)
         const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
         const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
+        const supervisorConfirmoLabel = toVisualLabel(row.supervisorConfirmo, 'No registrado')
         return (
           <div className="min-w-[250px] overflow-hidden rounded-2xl border border-slate-300 bg-white text-slate-900">
             <div className="p-3 sm:p-4">
               <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
                 <div>
                   <span className={`inline-flex rounded-md px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] ${
-                    resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                    activeTab === 'confirmadas' ? 'bg-emerald-100 text-emerald-700' : resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
                   }`}>
-                    {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
+                    {activeTab === 'confirmadas' ? 'Confirmada' : resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
                   </span>
                   <p className="mt-2 break-words text-xl font-extrabold uppercase leading-tight text-blue-700">{tecnicoLabel}</p>
                   <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-slate-600">Lider de cuadrilla</p>
@@ -2048,7 +2051,12 @@ const ConformacionCuadrillaPage = () => {
                   <p className="text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</p>
                   <p className="text-slate-700">{salesforceLabel}</p>
                 </div>
-                {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+                {activeTab === 'confirmadas' ? (
+                  <div className="col-span-2 text-xs text-slate-500">
+                    <p><span className="font-semibold">Confirmado por:</span> {supervisorConfirmoLabel}</p>
+                    <p>ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-2.5">
@@ -3552,15 +3560,16 @@ const findVehiculoConflictRecord = (
                   const activeChecked = canConfirmInActiveTab ? isSelected : resolveEstadoForList(row) === 'ACTIVO'
                   const registroIdLabel = resolveConfirmadaRegistroIdLabel(row)
                   const fechaRegistroLabel = resolveConfirmadaFechaLabel(row)
+                  const supervisorConfirmoLabel = toVisualLabel(row.supervisorConfirmo, 'No registrado')
                   return (
                     <div key={`mobile-card-${selectionKey}-${index}`} className="overflow-hidden rounded-3xl border border-slate-300 bg-white text-slate-900 shadow-sm">
                       <div className="p-4">
                         <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
                           <div className="min-w-0">
                             <span className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.08em] ${
-                              resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
+                              activeTab === 'confirmadas' ? 'bg-emerald-100 text-emerald-700' : resolveEstadoForList(row) === 'ACTIVO' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-700'
                             }`}>
-                              {resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
+                              {activeTab === 'confirmadas' ? 'Confirmada' : resolveEstadoForList(row) === 'ACTIVO' ? 'Pendiente' : resolveEstadoForList(row)}
                             </span>
                             <p className="mt-2 break-words text-2xl font-extrabold uppercase leading-tight text-blue-700 sm:text-3xl">{tecnicoLabel}</p>
                             <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.08em] text-slate-600">Lider de cuadrilla</p>
@@ -3573,7 +3582,12 @@ const findVehiculoConflictRecord = (
                           <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Habilidad</span><span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold">{habilidadLabel}</span></p>
                           <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">CuentaSF</span>{cuentaSfLabel}</p>
                           <p className="col-span-2"><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</span>{salesforceLabel}</p>
-                          {activeTab === 'confirmadas' ? <p className="col-span-2 text-xs text-slate-500">ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p> : null}
+                          {activeTab === 'confirmadas' ? (
+                            <div className="col-span-2 text-xs text-slate-500">
+                              <p><span className="font-semibold">Confirmado por:</span> {supervisorConfirmoLabel}</p>
+                              <p>ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3">
