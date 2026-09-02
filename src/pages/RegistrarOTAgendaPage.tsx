@@ -42,10 +42,6 @@ type UnknownRecord = Record<string, unknown>
 type GeoSample = { latitude: number; longitude: number; accuracy: number }
 type GeoPoint = { latitud: number; longitud: number }
 
-const GEO_TARGET_ACCURACY_METERS = 10
-const GEO_MAX_CAPTURE_MS = 3500
-const GEO_MIN_SAMPLES = 2
-const GEO_MAX_SAMPLES = 5
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = MAX_UPLOAD_BYTES
@@ -480,30 +476,14 @@ const formatDateDDMMYYYY = (date: Date): string => {
   return `${day}/${month}/${year}`
 }
 
-const pickBestGeoSample = (samples: GeoSample[]): GeoSample | null => {
-  const clean = samples
-    .filter((sample) => Number.isFinite(sample.latitude) && Number.isFinite(sample.longitude) && Number.isFinite(sample.accuracy) && sample.accuracy > 0)
-    .sort((a, b) => a.accuracy - b.accuracy)
-
-  if (!clean.length) return null
-
-  const top = clean.slice(0, Math.min(3, clean.length))
-  let latWeighted = 0
-  let lonWeighted = 0
-  let totalWeight = 0
-
-  for (const sample of top) {
-    const weight = 1 / Math.max(sample.accuracy, 1)
-    latWeighted += sample.latitude * weight
-    lonWeighted += sample.longitude * weight
-    totalWeight += weight
-  }
-
-  return {
-    latitude: latWeighted / totalWeight,
-    longitude: lonWeighted / totalWeight,
-    accuracy: top[0].accuracy,
-  }
+const parseLatLonPegado = (texto: string): { lat: number; lon: number } | null => {
+  const match = texto.match(/(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/)
+  if (!match) return null
+  const lat = Number(match[1])
+  const lon = Number(match[2])
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
+  return { lat, lon }
 }
 
 const buildDetailedApiError = (error: unknown, fallback: string): string => {
@@ -578,20 +558,19 @@ const RegistrarOTAgendaPage = () => {
   const [observacion, setObservacion] = useState('')
   const [latitud, setLatitud] = useState<number | null>(null)
   const [longitud, setLongitud] = useState<number | null>(null)
+  const [ubicacionManualTexto, setUbicacionManualTexto] = useState('')
   const [latitudVenta, setLatitudVenta] = useState<number | null>(null)
   const [longitudVenta, setLongitudVenta] = useState<number | null>(null)
   const [ventaLocationTouched, setVentaLocationTouched] = useState(false)
-  const [, setGeoAccuracy] = useState<number | null>(null)
   const [idTipoServicioManual, setIdTipoServicioManual] = useState(() => (navState?.idTipoServicio ?? '').trim())
   const [otManualInput, setOtManualInput] = useState(() => (navState?.ot ?? '').trim())
   const [clienteManualInput, setClienteManualInput] = useState(() => (navState?.clienteNro ?? '').trim())
-  const [geoLoading, setGeoLoading] = useState(false)
+  const [geoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false)
-  const [calibrationMessage, setCalibrationMessage] = useState('Calibrando GPS con alta precision...')
   const [calibrationBusy, setCalibrationBusy] = useState(false)
   const [isPrevalidating, setIsPrevalidating] = useState(false)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
@@ -1302,252 +1281,6 @@ const RegistrarOTAgendaPage = () => {
     setTipoTecnologia(tipoTecnologiaOptions[0])
   }, [tipoTecnologia, tipoTecnologiaOptions])
 
-  const requestGeolocation = () => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      if (isGeoBypassMachine) {
-        setGeoError(null)
-        setLatitud(0)
-        setLongitud(0)
-        setGeoAccuracy(0)
-        return
-      }
-      setGeoError('Tu navegador no soporta geolocalizacion.')
-      setLatitud(null)
-      setLongitud(null)
-      setGeoAccuracy(null)
-      return
-    }
-
-    setGeoLoading(true)
-    setGeoError(null)
-    setGeoAccuracy(null)
-
-    const samples: GeoSample[] = []
-    const startedAt = Date.now()
-    let finished = false
-    let watchId: number | null = null
-    let stopTimer: ReturnType<typeof setTimeout> | null = null
-
-    const cleanup = () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId)
-      if (stopTimer) clearTimeout(stopTimer)
-    }
-
-    const failWithError = (error: GeolocationPositionError) => {
-      if (finished) return
-      finished = true
-      cleanup()
-      setGeoLoading(false)
-      setLatitud(null)
-      setLongitud(null)
-      setGeoAccuracy(null)
-      if (isGeoBypassMachine) {
-        setGeoError(null)
-        return
-      }
-      if (error.code === 1) {
-        setGeoError('Permiso de ubicacion denegado. Debes habilitarlo para registrar OT.')
-        return
-      }
-      if (error.code === 2) {
-        setGeoError('No se pudo determinar la ubicacion.')
-        return
-      }
-      if (error.code === 3) {
-        setGeoError('Tiempo de espera agotado al obtener ubicacion.')
-        return
-      }
-      setGeoError('No se pudo obtener latitud/longitud.')
-    }
-
-    const finishWithBestSample = () => {
-      if (finished) return
-      finished = true
-      cleanup()
-
-      const best = pickBestGeoSample(samples)
-      if (!best) {
-        setGeoLoading(false)
-        setLatitud(null)
-        setLongitud(null)
-        setGeoAccuracy(null)
-        setGeoError('No se pudo obtener una lectura valida de ubicacion.')
-        return
-      }
-
-      setLatitud(best.latitude)
-      setLongitud(best.longitude)
-      setGeoAccuracy(best.accuracy)
-      setGeoLoading(false)
-      setGeoError(null)
-    }
-
-    watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        samples.push({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        })
-
-        const best = pickBestGeoSample(samples)
-        if (best) {
-          setLatitud(best.latitude)
-          setLongitud(best.longitude)
-          setGeoAccuracy(best.accuracy)
-        }
-
-        const elapsed = Date.now() - startedAt
-        const reachedTarget = best !== null && best.accuracy <= GEO_TARGET_ACCURACY_METERS
-        const enoughSamples = samples.length >= GEO_MIN_SAMPLES
-        const timeoutReached = elapsed >= GEO_MAX_CAPTURE_MS
-        const sampleCapReached = samples.length >= GEO_MAX_SAMPLES
-
-        if ((reachedTarget && enoughSamples) || timeoutReached || sampleCapReached) {
-          finishWithBestSample()
-        }
-      },
-      failWithError,
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    )
-
-    stopTimer = setTimeout(() => {
-      finishWithBestSample()
-    }, GEO_MAX_CAPTURE_MS + 2000)
-  }
-
-  const calibrateGeolocationForSubmit = (): Promise<GeoSample | null> => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      if (isGeoBypassMachine) {
-        setGeoError(null)
-        setLatitud(0)
-        setLongitud(0)
-        setGeoAccuracy(0)
-        return Promise.resolve({ latitude: 0, longitude: 0, accuracy: 0 })
-      }
-      setGeoError('Tu navegador no soporta geolocalizacion.')
-      setLatitud(null)
-      setLongitud(null)
-      setGeoAccuracy(null)
-      return Promise.resolve(null)
-    }
-
-    setGeoLoading(true)
-    setGeoError(null)
-    setGeoAccuracy(null)
-
-    return new Promise((resolve) => {
-      const samples: GeoSample[] = []
-      const startedAt = Date.now()
-      let finished = false
-      let watchId: number | null = null
-      let stopTimer: ReturnType<typeof setTimeout> | null = null
-
-      const cleanup = () => {
-        if (watchId !== null) navigator.geolocation.clearWatch(watchId)
-        if (stopTimer) clearTimeout(stopTimer)
-      }
-
-      const failWithError = (error: GeolocationPositionError) => {
-        if (finished) return
-        finished = true
-        cleanup()
-        setGeoLoading(false)
-        setLatitud(null)
-        setLongitud(null)
-        setGeoAccuracy(null)
-        if (isGeoBypassMachine) {
-          setGeoError(null)
-          resolve({ latitude: 0, longitude: 0, accuracy: 0 })
-          return
-        }
-        if (error.code === 1) {
-          setGeoError('Permiso de ubicacion denegado. Debes habilitarlo para registrar OT.')
-          resolve(null)
-          return
-        }
-        if (error.code === 2) {
-          setGeoError('No se pudo determinar la ubicacion.')
-          resolve(null)
-          return
-        }
-        if (error.code === 3) {
-          setGeoError('Tiempo de espera agotado al obtener ubicacion.')
-          resolve(null)
-          return
-        }
-        setGeoError('No se pudo obtener latitud/longitud.')
-        resolve(null)
-      }
-
-      const finishWithBestSample = () => {
-        if (finished) return
-        finished = true
-        cleanup()
-
-        const best = pickBestGeoSample(samples)
-        if (!best) {
-          setGeoLoading(false)
-          setLatitud(null)
-          setLongitud(null)
-          setGeoAccuracy(null)
-          if (isGeoBypassMachine) {
-            setGeoError(null)
-            resolve({ latitude: 0, longitude: 0, accuracy: 0 })
-            return
-          }
-          setGeoError('No se pudo obtener una lectura valida de ubicacion.')
-          resolve(null)
-          return
-        }
-
-        setLatitud(best.latitude)
-        setLongitud(best.longitude)
-        setGeoAccuracy(best.accuracy)
-        setGeoLoading(false)
-        setGeoError(null)
-        resolve(best)
-      }
-
-      watchId = navigator.geolocation.watchPosition(
-        (position) => {
-          samples.push({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-          })
-
-          const best = pickBestGeoSample(samples)
-          if (best) {
-            setLatitud(best.latitude)
-            setLongitud(best.longitude)
-            setGeoAccuracy(best.accuracy)
-          }
-
-          const elapsed = Date.now() - startedAt
-          const reachedTarget = best !== null && best.accuracy <= GEO_TARGET_ACCURACY_METERS
-          const enoughSamples = samples.length >= GEO_MIN_SAMPLES
-          const timeoutReached = elapsed >= GEO_MAX_CAPTURE_MS
-          const sampleCapReached = samples.length >= GEO_MAX_SAMPLES
-
-          if ((reachedTarget && enoughSamples) || timeoutReached || sampleCapReached) {
-            finishWithBestSample()
-          }
-        },
-        failWithError,
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      )
-
-      stopTimer = setTimeout(() => {
-        finishWithBestSample()
-      }, GEO_MAX_CAPTURE_MS + 2000)
-    })
-  }
-
-  useEffect(() => {
-    void requestGeolocation()
-  }, [])
-
   useEffect(() => {
     if (!session?.sessionToken) return
     const needsSessionRefresh =
@@ -1811,18 +1544,20 @@ const RegistrarOTAgendaPage = () => {
     setSuccess(null)
     setDuplicateOrdenModalOpen(false)
     setConfirmModalOpen(false)
-    setCalibrationModalOpen(true)
     setCalibrationBusy(true)
-    setCalibrationMessage('Calibrando GPS con alta precision. No cierres esta ventana...')
 
     try {
       const canContinue = await runPreRegisterValidations()
       if (!canContinue) return
 
-      const best = await calibrateGeolocationForSubmit()
-      const coordinates = best ?? (isGeoBypassMachine ? { latitude: 0, longitude: 0, accuracy: 0 } : null)
+      const coordinates: GeoSample | null =
+        latitud !== null && longitud !== null
+          ? { latitude: latitud, longitude: longitud, accuracy: 0 }
+          : isGeoBypassMachine
+            ? { latitude: 0, longitude: 0, accuracy: 0 }
+            : null
       if (!coordinates) {
-        setSubmitError('Debes capturar ubicacion antes de registrar la OT.')
+        setSubmitError('Debes ingresar la ubicacion (pegala desde Google Maps) antes de registrar la OT.')
         return
       }
       if (!validateReadyToRegister(coordinates)) return
@@ -1830,7 +1565,6 @@ const RegistrarOTAgendaPage = () => {
         latitud: ventaLocationTouched ? latitudVenta ?? coordinates.latitude : coordinates.latitude,
         longitud: ventaLocationTouched ? longitudVenta ?? coordinates.longitude : coordinates.longitude,
       }
-      setCalibrationMessage('Ubicacion calibrada. Registrando OT...')
       await mutation.mutateAsync({
         latitud: coordinates.latitude,
         longitud: coordinates.longitude,
@@ -2402,35 +2136,38 @@ const RegistrarOTAgendaPage = () => {
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
-              <div>lat={latitudVisible ?? 'N/D'}, lon={longitudVisible ?? 'N/D'}</div>
+              <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-center text-base font-extrabold uppercase leading-snug text-amber-800">
+                Entra a Google, copia la direccion y peguela aqui
+              </p>
               <div className="mt-2">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Button
-                    className="w-full sm:w-auto"
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      void requestGeolocation()
-                    }}
-                    disabled={geoLoading || calibrationBusy || isPrevalidating}
-                  >
-                    {geoLoading ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
-                  </Button>
-                  <Button
-                    className="w-full sm:w-auto"
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      if (latitudVisible === null || longitudVisible === null) return
-                      const mapsUrl = `https://www.google.com/maps?q=${latitudVisible},${longitudVisible}`
-                      window.open(mapsUrl, '_blank', 'noopener,noreferrer')
-                    }}
-                    disabled={latitudVisible === null || longitudVisible === null}
-                  >
-                    Ver en Google Maps
-                  </Button>
-                </div>
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer')}
+                >
+                  Abrir Google Maps
+                </Button>
+                <input
+                  className="input-base mt-2"
+                  value={ubicacionManualTexto}
+                  placeholder="Pega aqui la direccion o coordenadas copiadas de Google Maps"
+                  onChange={(event) => {
+                    const texto = event.target.value
+                    setUbicacionManualTexto(texto)
+                    const parsed = parseLatLonPegado(texto)
+                    if (parsed) {
+                      setLatitud(parsed.lat)
+                      setLongitud(parsed.lon)
+                      setGeoError(null)
+                    } else {
+                      setLatitud(null)
+                      setLongitud(null)
+                    }
+                  }}
+                />
               </div>
+              <div className="mt-2">lat={latitudVisible ?? 'N/D'}, lon={longitudVisible ?? 'N/D'}</div>
               {geoError ? <div className="mt-2 text-rose-600">{geoError}</div> : null}
             </div>
 
@@ -2575,7 +2312,7 @@ const RegistrarOTAgendaPage = () => {
       <Modal open={calibrationModalOpen} title="Calibrando GPS" onClose={() => (calibrationBusy ? undefined : setCalibrationModalOpen(false))}>
         <div className="flex items-center gap-3">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
-          <p className="font-medium text-slate-700">{calibrationMessage}</p>
+          <p className="font-medium text-slate-700">Registrando OT...</p>
         </div>
         <p className="mt-3 text-xs text-slate-500">Este proceso puede tardar para obtener la mejor precision posible.</p>
       </Modal>
