@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -15,6 +15,7 @@ import Button from '../common/Button'
 import Field from '../common/Field'
 import ImageLightbox from '../common/ImageLightbox'
 import SignaturePad from '../common/SignaturePad'
+import UbicacionManualCapture from '../common/UbicacionManualCapture'
 import { registrarInicioJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 import { useFileSizeLimitModal } from '../../hooks/useFileSizeLimitModal'
@@ -74,7 +75,6 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
   const [firmaInicio, setFirmaInicio] = useState('')
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
-  const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [intentoRegistrar, setIntentoRegistrar] = useState(false)
@@ -182,64 +182,6 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
     registrarMutation.mutate()
   }
 
-  const resolverUbicacionAltaPrecision = () => {
-    if (!navigator.geolocation) {
-      setError('Tu navegador no soporta geolocalizacion.')
-      return
-    }
-    const mensajeErrorUbicacion = (geoError: GeolocationPositionError) => {
-      if (geoError.code === 1) return 'Permiso de ubicacion denegado.'
-      if (geoError.code === 2) return 'No se pudo determinar tu ubicacion.'
-      return 'Tiempo de espera agotado al obtener ubicacion. Puedes ingresar o pegar la ubicacion manualmente.'
-    }
-    setUbicacionResolviendo(true)
-    setError(null)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        const acc = position.coords.accuracy
-        setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (±${Math.round(acc)}m)`)
-        setUbicacionResolviendo(false)
-      },
-      (geoError) => {
-        if (geoError.code === 1) {
-          setError(mensajeErrorUbicacion(geoError))
-          setUbicacionResolviendo(false)
-          return
-        }
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            const lat = position.coords.latitude
-            const lng = position.coords.longitude
-            const acc = position.coords.accuracy
-            setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (+/-${Math.round(acc)}m)`)
-            setUbicacionResolviendo(false)
-            setError(null)
-          },
-          (fallbackError) => {
-            setError(mensajeErrorUbicacion(fallbackError))
-            setUbicacionResolviendo(false)
-          },
-          {
-            enableHighAccuracy: false,
-            timeout: 30000,
-            maximumAge: 300000,
-          }
-        )
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 25000,
-        maximumAge: 60000,
-      }
-    )
-  }
-
-  useEffect(() => {
-    resolverUbicacionAltaPrecision()
-  }, [])
-
   return (
     <div className="grid gap-4 bg-slate-50 p-1">
       <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -289,25 +231,13 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
             </div>
           </Field>
           <Field label="Ubicacion georreferenciada" error={mostrarErrorUbicacion ? 'La ubicacion georreferenciada es obligatoria.' : undefined}>
-            <div className="space-y-2">
-              <input
-                className={`input-base ${mostrarErrorUbicacion ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : 'bg-slate-100'}`}
-                value={ubicacionGeoRef}
-                placeholder="Ej: -17.7935693,-63.1461147 (+/-9m)"
-                onChange={(event) => {
-                  setUbicacionGeoRef(event.target.value)
-                  setError(null)
-                }}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={resolverUbicacionAltaPrecision}
-                disabled={ubicacionResolviendo}
-              >
-                {ubicacionResolviendo ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
-              </Button>
-            </div>
+            <UbicacionManualCapture
+              value={ubicacionGeoRef}
+              onChange={(value) => {
+                setUbicacionGeoRef(value)
+                setError(null)
+              }}
+            />
           </Field>
           {puedeMarcarTrabajoSolo ? (
             <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">

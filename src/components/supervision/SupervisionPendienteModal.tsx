@@ -17,6 +17,7 @@ import Modal from '../common/Modal'
 import Button from '../common/Button'
 import Field from '../common/Field'
 import ImageLightbox from '../common/ImageLightbox'
+import UbicacionManualCapture from '../common/UbicacionManualCapture'
 import { useAuth } from '../../context/AuthContext'
 import {
   createSupervisionPendiente,
@@ -135,7 +136,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   const queryClient = useQueryClient()
   const [form, setForm] = useState<SupervisionForm>(emptyForm)
   const [errorForm, setErrorForm] = useState<string | null>(null)
-  const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [tecnicoFilter, setTecnicoFilter] = useState('')
 
@@ -233,27 +233,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     } catch {
       setErrorForm('Error al cargar la imagen.')
     }
-  }
-
-  const resolverUbicacionAltaPrecision = () => {
-    if (!('geolocation' in navigator)) {
-      setErrorForm('Geolocalizacion no disponible en este navegador.')
-      return
-    }
-    setUbicacionResolviendo(true)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude, accuracy } = position.coords
-        const ubicacion = `${latitude.toFixed(7)}, ${longitude.toFixed(7)} (+/- ${Math.round(accuracy)}m)`
-        setForm((prev) => ({ ...prev, ubicacion }))
-        setUbicacionResolviendo(false)
-      },
-      () => {
-        setUbicacionResolviendo(false)
-        setErrorForm('No se pudo obtener la ubicacion. Verifica los permisos.')
-      },
-      { enableHighAccuracy: true, timeout: 30000 }
-    )
   }
 
   const handleSubmit = () => {
@@ -505,11 +484,11 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
             </h4>
             <div className="space-y-3">
               <Field label="Coordenadas / direccion">
-                <input className="input-base" value={form.ubicacion} onChange={(e) => setForm((p) => ({ ...p, ubicacion: e.target.value }))} />
+                <UbicacionManualCapture
+                  value={form.ubicacion}
+                  onChange={(value) => setForm((p) => ({ ...p, ubicacion: value }))}
+                />
               </Field>
-              <Button type="button" variant="secondary" onClick={resolverUbicacionAltaPrecision} disabled={ubicacionResolviendo} className="w-full">
-                {ubicacionResolviendo ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion exacta'}
-              </Button>
             </div>
           </section>
 

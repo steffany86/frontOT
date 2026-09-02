@@ -6,6 +6,7 @@ import Button from '../common/Button'
 import Field from '../common/Field'
 import Modal from '../common/Modal'
 import SignaturePad from '../common/SignaturePad'
+import UbicacionManualCapture from '../common/UbicacionManualCapture'
 import { cerrarJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 
@@ -43,7 +44,6 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
   const [ubicacionGeoRef, setUbicacionGeoRef] = useState('')
   const [firmaCierre, setFirmaCierre] = useState('')
   const [declaracionAceptada, setDeclaracionAceptada] = useState(false)
-  const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [intentoRegistrar, setIntentoRegistrar] = useState(false)
   const [supervisorConfirmacionModalOpen, setSupervisorConfirmacionModalOpen] = useState(false)
@@ -82,47 +82,6 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
       setError(getApiErrorMessage(err, 'No se pudo registrar cierre de jornada.'))
     },
   })
-
-  const resolverUbicacionAltaPrecision = () => {
-    if (!navigator.geolocation) {
-      setError('Tu navegador no soporta geolocalizacion.')
-      return
-    }
-    const aplicarUbicacion = (position: GeolocationPosition) => {
-      const lat = position.coords.latitude
-      const lng = position.coords.longitude
-      const acc = position.coords.accuracy
-      setUbicacionGeoRef(`${lat.toFixed(7)},${lng.toFixed(7)} (+/-${Math.round(acc)}m)`)
-      setUbicacionResolviendo(false)
-      setError(null)
-    }
-    const mensajeErrorUbicacion = (geoError: GeolocationPositionError) => {
-      if (geoError.code === 1) return 'Permiso de ubicacion denegado.'
-      if (geoError.code === 2) return 'No se pudo determinar tu ubicacion.'
-      return 'Tiempo de espera agotado al obtener ubicacion. Puedes ingresar o pegar la ubicacion manualmente.'
-    }
-    setUbicacionResolviendo(true)
-    setError(null)
-    navigator.geolocation.getCurrentPosition(
-      aplicarUbicacion,
-      (geoError) => {
-        if (geoError.code === 1) {
-          setError(mensajeErrorUbicacion(geoError))
-          setUbicacionResolviendo(false)
-          return
-        }
-        navigator.geolocation.getCurrentPosition(
-          aplicarUbicacion,
-          (fallbackError) => {
-            setError(mensajeErrorUbicacion(fallbackError))
-            setUbicacionResolviendo(false)
-          },
-          { enableHighAccuracy: false, timeout: 30000, maximumAge: 300000 }
-        )
-      },
-      { enableHighAccuracy: true, timeout: 25000, maximumAge: 60000 }
-    )
-  }
 
   const handleSubmit = () => {
     setIntentoRegistrar(true)
@@ -202,20 +161,13 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             <p className="text-sm font-bold text-slate-900">Ubicacion</p>
           </div>
           <Field label="Ubicacion georeferenciada">
-            <div className="space-y-2">
-              <input
-                className="input-base bg-slate-100"
-                value={ubicacionGeoRef}
-                placeholder="Ej: -17.7935693,-63.1461147 (+/-9m)"
-                onChange={(event) => {
-                  setUbicacionGeoRef(event.target.value)
-                  setError(null)
-                }}
-              />
-              <Button type="button" variant="secondary" onClick={resolverUbicacionAltaPrecision} disabled={ubicacionResolviendo}>
-                {ubicacionResolviendo ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion'}
-              </Button>
-            </div>
+            <UbicacionManualCapture
+              value={ubicacionGeoRef}
+              onChange={(value) => {
+                setUbicacionGeoRef(value)
+                setError(null)
+              }}
+            />
           </Field>
         </div>
 

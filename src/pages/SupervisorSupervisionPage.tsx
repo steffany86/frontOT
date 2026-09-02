@@ -8,6 +8,7 @@ import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
+import UbicacionManualCapture from '../components/common/UbicacionManualCapture'
 import {
   aprobarInicioJornadaPendiente,
   createSupervision,
@@ -515,7 +516,6 @@ const SupervisorSupervisionPage = () => {
   const [agendaEstadoVista, setAgendaEstadoVista] = useState<AgendaEstadoVista>('pendientes')
   const [sucursalFiltro, setSucursalFiltro] = useState('')
   const [supervisorFiltro, setSupervisorFiltro] = useState('')
-  const [ubicacionResolviendo, setUbicacionResolviendo] = useState(false)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [inicioPendienteDetalle, setInicioPendienteDetalle] = useState<SupervisionInicioPendiente | null>(null)
   const [jornadaDetalleModo, setJornadaDetalleModo] = useState<'inicio' | 'cierre'>('inicio')
@@ -1067,11 +1067,6 @@ const SupervisorSupervisionPage = () => {
     return id || '-'
   }
 
-  useEffect(() => {
-    if (!registroModalOpen) return
-    resolverUbicacionAltaPrecision()
-  }, [registroModalOpen])
-
   const handlePhotoChange = async (field: keyof SupervisionForm, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     event.target.value = ''
@@ -1086,38 +1081,6 @@ const SupervisorSupervisionPage = () => {
   }
 
   const normalizeOnlyDigits = (value: string): string => value.replace(/\D+/g, '')
-
-  const resolverUbicacionAltaPrecision = () => {
-    if (!navigator.geolocation) {
-      setErrorForm('Tu navegador no soporta geolocalizacion.')
-      return
-    }
-    setUbicacionResolviendo(true)
-    setErrorForm(null)
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        const acc = position.coords.accuracy
-        setForm((prev) => ({ ...prev, ubicacion: `${lat.toFixed(7)},${lng.toFixed(7)} (+/-${Math.round(acc)}m)` }))
-        setUbicacionResolviendo(false)
-      },
-      (error) => {
-        const msg = error.code === 1
-          ? 'Permiso de ubicacion denegado.'
-          : error.code === 2
-            ? 'No se pudo determinar tu ubicacion.'
-            : 'Tiempo de espera agotado al obtener ubicacion.'
-        setErrorForm(msg)
-        setUbicacionResolviendo(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 0,
-      }
-    )
-  }
 
   const validateForm = (): string | null => {
     for (const field of requiredFields) {
@@ -1956,11 +1919,11 @@ const SupervisorSupervisionPage = () => {
               <h4 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wide text-slate-800"><FontAwesomeIcon icon={faLocationDot} className="text-brand-600" />Ubicacion</h4>
               <div className="space-y-3">
                 <Field label="Coordenadas / direccion">
-                  <input className="input-base bg-slate-100" value={form.ubicacion} readOnly />
+                  <UbicacionManualCapture
+                    value={form.ubicacion}
+                    onChange={(value) => setForm((p) => ({ ...p, ubicacion: value }))}
+                  />
                 </Field>
-                <Button type="button" variant="secondary" onClick={resolverUbicacionAltaPrecision} disabled={ubicacionResolviendo} className="w-full">
-                  {ubicacionResolviendo ? 'Obteniendo ubicacion...' : 'Actualizar ubicacion exacta'}
-                </Button>
               </div>
             </section>
           </div>
