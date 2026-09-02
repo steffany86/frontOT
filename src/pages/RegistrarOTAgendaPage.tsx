@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent, type PointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
@@ -40,7 +40,6 @@ type AgendaNavState = {
 
 type UnknownRecord = Record<string, unknown>
 type GeoSample = { latitude: number; longitude: number; accuracy: number }
-type GeoPoint = { latitud: number; longitud: number }
 
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
@@ -61,216 +60,6 @@ const TIPO_SERVICIO_ID_KEYS = [
 const normalizeHostName = (value: string): string => value.trim().toLowerCase()
 const isTouchLikeDevice = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
-
-const clampLatitude = (value: number): number => Math.max(-85, Math.min(85, value))
-const normalizeLongitude = (value: number): number => {
-  let next = value
-  while (next < -180) next += 360
-  while (next > 180) next -= 360
-  return next
-}
-
-const latLngToWorld = (latitud: number, longitud: number, zoom: number) => {
-  const scale = 256 * 2 ** zoom
-  const lat = clampLatitude(latitud)
-  const sin = Math.sin((lat * Math.PI) / 180)
-  return {
-    x: ((normalizeLongitude(longitud) + 180) / 360) * scale,
-    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
-  }
-}
-
-const worldToLatLng = (x: number, y: number, zoom: number): GeoPoint => {
-  const scale = 256 * 2 ** zoom
-  const longitud = normalizeLongitude((x / scale) * 360 - 180)
-  const n = Math.PI - (2 * Math.PI * y) / scale
-  const latitud = (Math.atan(Math.sinh(n)) * 180) / Math.PI
-  return { latitud, longitud }
-}
-
-const VentaLocationMap = ({
-  value,
-  currentLocation,
-  onChange,
-}: {
-  value: GeoPoint | null
-  currentLocation: GeoPoint | null
-  onChange: (point: GeoPoint) => void
-}) => {
-  const [zoom, setZoom] = useState(17)
-  const [mapType, setMapType] = useState<'normal' | 'satelital'>('satelital')
-  const [mapCenter, setMapCenter] = useState<GeoPoint | null>(null)
-  const [expanded, setExpanded] = useState(false)
-  const [dragging, setDragging] = useState(false)
-  const mapMovedByUserRef = useRef(false)
-  const panStartRef = useRef<{ clientX: number; clientY: number; centerWorld: { x: number; y: number } } | null>(null)
-  const activePointersRef = useRef(new Map<number, { x: number; y: number }>())
-  const pinchPointerRef = useRef<{ distance: number; zoom: number } | null>(null)
-
-  useEffect(() => {
-    if (!currentLocation || mapMovedByUserRef.current) return
-    setMapCenter(currentLocation)
-  }, [currentLocation])
-
-  const center = mapCenter ?? value ?? currentLocation
-  const centerWorld = center ? latLngToWorld(center.latitud, center.longitud, zoom) : null
-  const centerTile = centerWorld
-    ? {
-        x: Math.floor(centerWorld.x / 256),
-        y: Math.floor(centerWorld.y / 256),
-      }
-    : null
-  const maxTile = 2 ** zoom
-
-  const selectCenter = () => {
-    if (!center) return
-    onChange({ latitud: Number(center.latitud.toFixed(6)), longitud: Number(center.longitud.toFixed(6)) })
-  }
-
-  const startPan = (event: PointerEvent<HTMLDivElement>) => {
-    if (!centerWorld) return
-    activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    event.currentTarget.setPointerCapture(event.pointerId)
-    const points = Array.from(activePointersRef.current.values())
-    if (points.length >= 2) {
-      pinchPointerRef.current = {
-        distance: Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y),
-        zoom,
-      }
-      panStartRef.current = null
-    } else {
-      panStartRef.current = { clientX: event.clientX, clientY: event.clientY, centerWorld }
-    }
-    setDragging(true)
-  }
-
-  const movePan = (event: PointerEvent<HTMLDivElement>) => {
-    if (!activePointersRef.current.has(event.pointerId)) return
-    activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY })
-    const points = Array.from(activePointersRef.current.values())
-    if (points.length >= 2 && pinchPointerRef.current) {
-      const distance = Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y)
-      const delta = distance - pinchPointerRef.current.distance
-      if (Math.abs(delta) >= 12) {
-        const nextZoom = Math.max(14, Math.min(19, pinchPointerRef.current.zoom + (delta > 0 ? 1 : -1)))
-        setZoom(nextZoom)
-        pinchPointerRef.current = { distance, zoom: nextZoom }
-      }
-      return
-    }
-    const start = panStartRef.current
-    if (!start) return
-    mapMovedByUserRef.current = true
-    const dx = event.clientX - start.clientX
-    const dy = event.clientY - start.clientY
-    const next = worldToLatLng(start.centerWorld.x - dx, start.centerWorld.y - dy, zoom)
-    setMapCenter({ latitud: Number(next.latitud.toFixed(6)), longitud: Number(next.longitud.toFixed(6)) })
-  }
-
-  const endPan = (event: PointerEvent<HTMLDivElement>) => {
-    activePointersRef.current.delete(event.pointerId)
-    if (activePointersRef.current.size < 2) pinchPointerRef.current = null
-    if (panStartRef.current) {
-      movePan(event)
-    }
-    if (activePointersRef.current.size === 0) panStartRef.current = null
-    panStartRef.current = null
-    setDragging(false)
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-  }
-
-  if (!center || !centerWorld || !centerTile) {
-    return (
-      <div className="flex min-h-[240px] items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white text-center text-sm font-semibold text-slate-500">
-        Captura primero la ubicacion actual para iniciar el mapa.
-      </div>
-    )
-  }
-
-  const tiles: Array<{ key: string; x: number; y: number; left: number; top: number }> = []
-  for (let dx = -2; dx <= 2; dx += 1) {
-    for (let dy = -2; dy <= 2; dy += 1) {
-      const tileX = ((centerTile.x + dx) % maxTile + maxTile) % maxTile
-      const tileY = centerTile.y + dy
-      if (tileY < 0 || tileY >= maxTile) continue
-      tiles.push({
-        key: `${tileX}-${tileY}-${zoom}`,
-        x: tileX,
-        y: tileY,
-        left: centerTile.x * 256 + dx * 256 - centerWorld.x,
-        top: centerTile.y * 256 + dy * 256 - centerWorld.y,
-      })
-    }
-  }
-
-  const renderMapSurface = (large = false) => (
-    <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="flex flex-col gap-2 border-b border-slate-200 px-3 py-2 text-xs sm:flex-row sm:items-center sm:justify-between">
-          <span className="font-semibold text-slate-600">Arrastra el punto en el mapa</span>
-        <div className="flex flex-wrap gap-1">
-          <button type="button" className={`rounded-md border px-2 py-1 font-semibold ${mapType === 'normal' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`} onClick={() => setMapType('normal')}>Mapa</button>
-          <button type="button" className={`rounded-md border px-2 py-1 font-semibold ${mapType === 'satelital' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300 bg-white text-slate-700'}`} onClick={() => setMapType('satelital')}>Satelital</button>
-          <button type="button" className="h-7 w-7 rounded-md border border-slate-300 bg-white font-bold text-slate-700" onClick={() => setZoom((current) => Math.max(14, current - 1))}>-</button>
-          <button type="button" className="h-7 w-7 rounded-md border border-slate-300 bg-white font-bold text-slate-700" onClick={() => setZoom((current) => Math.min(19, current + 1))}>+</button>
-        </div>
-      </div>
-      <div
-        className={`relative ${large ? 'h-[min(68vh,640px)]' : 'h-[260px]'} touch-none overflow-hidden bg-slate-100 ${dragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        style={{ touchAction: 'none', userSelect: 'none' }}
-        onPointerDown={startPan}
-        onPointerMove={movePan}
-        onPointerUp={endPan}
-        onPointerCancel={endPan}
-      >
-        {tiles.map((tile) => (
-          <img
-            key={tile.key}
-            src={mapType === 'satelital'
-              ? `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoom}/${tile.y}/${tile.x}`
-              : `https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/${zoom}/${tile.y}/${tile.x}`}
-            alt=""
-            draggable={false}
-            className="absolute h-64 w-64 select-none"
-            style={{ left: `calc(50% + ${tile.left}px)`, top: `calc(50% + ${tile.top}px)` }}
-          />
-        ))}
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-10 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-blue-600 shadow-md" />
-      </div>
-      <p className="px-3 pt-1 text-[10px] text-slate-400">{mapType === 'satelital' ? 'Imagen satelital: Esri' : 'Mapa de calles: Esri'} · Usa dos dedos para ampliar o reducir.</p>
-      <div className="flex flex-col gap-2 border-t border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs font-semibold text-slate-600">
-          Centro: {center.latitud.toFixed(6)}, {center.longitud.toFixed(6)}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Button type="button" variant="secondary" onClick={selectCenter}>
-            Confirmar centro
-          </Button>
-          {!large ? (
-            <Button type="button" variant="secondary" onClick={() => setExpanded(true)}>
-              Abrir grande
-            </Button>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  )
-
-  return (
-    <>
-      {renderMapSurface(false)}
-      <Modal
-        open={expanded}
-        title="Ubicacion del punto"
-        onClose={() => setExpanded(false)}
-        maxWidthClass="w-[min(96vw,1100px)]"
-      >
-        {renderMapSurface(true)}
-      </Modal>
-    </>
-  )
-}
 
 const normalizeKey = (value: string): string => value.replace(/[_\-\s]/g, '').toLowerCase()
 const normalizeText = (value: string): string =>
@@ -559,6 +348,7 @@ const RegistrarOTAgendaPage = () => {
   const [latitud, setLatitud] = useState<number | null>(null)
   const [longitud, setLongitud] = useState<number | null>(null)
   const [ubicacionManualTexto, setUbicacionManualTexto] = useState('')
+  const [ubicacionVentaManualTexto, setUbicacionVentaManualTexto] = useState('')
   const [latitudVenta, setLatitudVenta] = useState<number | null>(null)
   const [longitudVenta, setLongitudVenta] = useState<number | null>(null)
   const [ventaLocationTouched, setVentaLocationTouched] = useState(false)
@@ -751,8 +541,6 @@ const RegistrarOTAgendaPage = () => {
   )
   const latitudVisible = latitud ?? latitudFallback
   const longitudVisible = longitud ?? longitudFallback
-  const currentGeoPoint = latitudVisible !== null && longitudVisible !== null ? { latitud: latitudVisible, longitud: longitudVisible } : null
-  const ventaGeoPoint = latitudVenta !== null && longitudVenta !== null ? { latitud: latitudVenta, longitud: longitudVenta } : null
 
   useEffect(() => {
     if (ventaLocationTouched) return
@@ -2172,53 +1960,44 @@ const RegistrarOTAgendaPage = () => {
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
-              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-sm font-bold text-slate-800">Ubicacion manual</p>
-                  <p className="mt-1">lat={latitudVenta ?? 'N/D'}, lon={longitudVenta ?? 'N/D'}</p>
-                  <p className={ventaLocationTouched ? 'mt-1 font-semibold text-emerald-700' : 'mt-1 font-semibold text-amber-700'}>
-                    {ventaLocationTouched ? 'Ubicacion de venta confirmada.' : ''}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 sm:min-w-[180px]">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      if (!currentGeoPoint) return
-                      setLatitudVenta(Number(currentGeoPoint.latitud.toFixed(6)))
-                      setLongitudVenta(Number(currentGeoPoint.longitud.toFixed(6)))
+              <p className="text-sm font-bold text-slate-800">Ubicacion de venta</p>
+              <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-center text-base font-extrabold uppercase leading-snug text-amber-800">
+                Entra a Google, copia la direccion y peguela aqui
+              </p>
+              <div className="mt-2">
+                <Button
+                  className="w-full"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer')}
+                >
+                  Abrir Google Maps
+                </Button>
+                <input
+                  className="input-base mt-2"
+                  value={ubicacionVentaManualTexto}
+                  placeholder="Pega aqui la direccion o coordenadas copiadas de Google Maps"
+                  onChange={(event) => {
+                    const texto = event.target.value
+                    setUbicacionVentaManualTexto(texto)
+                    const parsed = parseLatLonPegado(texto)
+                    if (parsed) {
+                      setLatitudVenta(Number(parsed.lat.toFixed(6)))
+                      setLongitudVenta(Number(parsed.lon.toFixed(6)))
                       setVentaLocationTouched(true)
                       setSubmitError(null)
-                    }}
-                    disabled={!currentGeoPoint || geoLoading || calibrationBusy || isPrevalidating}
-                  >
-                    Usar mi ubicacion
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => {
-                      if (latitudVenta === null || longitudVenta === null) return
-                      const mapsUrl = `https://www.google.com/maps?q=${latitudVenta},${longitudVenta}`
-                      window.open(mapsUrl, '_blank', 'noopener,noreferrer')
-                    }}
-                    disabled={latitudVenta === null || longitudVenta === null}
-                  >
-                    Ver punto en Maps
-                  </Button>
-                </div>
+                    } else {
+                      setLatitudVenta(null)
+                      setLongitudVenta(null)
+                      setVentaLocationTouched(false)
+                    }
+                  }}
+                />
               </div>
-              <VentaLocationMap
-                value={ventaGeoPoint}
-                currentLocation={currentGeoPoint}
-                onChange={(point) => {
-                  setLatitudVenta(Number(point.latitud.toFixed(6)))
-                  setLongitudVenta(Number(point.longitud.toFixed(6)))
-                  setVentaLocationTouched(true)
-                  setSubmitError(null)
-                }}
-              />
+              <p className="mt-2">lat={latitudVenta ?? 'N/D'}, lon={longitudVenta ?? 'N/D'}</p>
+              <p className={ventaLocationTouched ? 'mt-1 font-semibold text-emerald-700' : 'mt-1 font-semibold text-amber-700'}>
+                {ventaLocationTouched ? 'Ubicacion de venta confirmada.' : ''}
+              </p>
             </div>
             </div>
           </div>
