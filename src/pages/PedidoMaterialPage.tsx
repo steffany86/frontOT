@@ -4,7 +4,7 @@ import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
-import { fetchProductosSinFungible } from '../api/catalogApi'
+import { fetchTodosLosProductos } from '../api/catalogApi'
 import { crearPedidoTecnico, fetchPedidosTecnico, type PedidoTecnico, type PedidoTecnicoItem } from '../api/pedidoTecnicoApi'
 import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
@@ -68,7 +68,7 @@ const PedidoMaterialPage = () => {
 
   const productosQuery = useQuery({
     queryKey: ['pedido-material-productos'],
-    queryFn: () => fetchProductosSinFungible(),
+    queryFn: () => fetchTodosLosProductos(),
   })
 
   const pedidosQuery = useQuery({

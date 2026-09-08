@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faClockRotateLeft, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
+import { faClockRotateLeft } from '@fortawesome/free-solid-svg-icons'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { fetchInicioJornadaEstado } from '../../api/inicioJornadaApi'
 import { useAuth } from '../../context/AuthContext'
@@ -109,28 +109,12 @@ const TecnicoInicioJornadaGuard = () => {
           </Button>
         }
       >
-        {observacionRechazado ? (
-          <div className="mb-4 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
-              <FontAwesomeIcon icon={faTriangleExclamation} />
-            </span>
-            <div>
-              <p className="text-sm font-extrabold">Tu inicio de jornada fue rechazado.</p>
-              <p className="mt-1 text-sm font-semibold">Motivo del rechazo:</p>
-              <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-rose-950">
-                {observacionRechazado}
-              </p>
-              <p className="mt-2 text-xs font-bold uppercase tracking-wide text-rose-800">
-                Vuelve a registrar el inicio de jornada con la correccion solicitada.
-              </p>
-            </div>
-          </div>
-        ) : null}
         <InicioJornadaChecklistForm
           nombreTecnico={usuario?.nombre}
           nombreSupervisor={estadoQuery.data?.encargado}
           idAuxiliar={estadoQuery.data?.idAuxiliar}
           nombreAuxiliar={estadoQuery.data?.auxiliarNombre || estadoQuery.data?.auxiliar}
+          observacionRechazado={observacionRechazado}
           onRegistered={() => {
             estadoQuery.refetch()
           }}

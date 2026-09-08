@@ -1,4 +1,4 @@
-import { useMemo, useState, type ChangeEvent } from 'react'
+import { useRef, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -136,8 +136,12 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   const queryClient = useQueryClient()
   const [form, setForm] = useState<SupervisionForm>(emptyForm)
   const [errorForm, setErrorForm] = useState<string | null>(null)
+  const [intentoRegistrar, setIntentoRegistrar] = useState(false)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
-  const [tecnicoFilter, setTecnicoFilter] = useState('')
+  const fieldRefs = useRef<Partial<Record<keyof SupervisionForm, HTMLDivElement | null>>>({})
+  const registerFieldRef = (field: keyof SupervisionForm) => (el: HTMLDivElement | null) => {
+    fieldRefs.current[field] = el
+  }
 
   const sucursalesQuery = useQuery({
     queryKey: ['auth-sucursales-backoffice-supervision'],
@@ -197,6 +201,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     mutationFn: createSupervisionPendiente,
     onSuccess: () => {
       setErrorForm(null)
+      setIntentoRegistrar(false)
       setForm(emptyForm())
       queryClient.invalidateQueries({ queryKey: ['supervision', 'pendientes-backoffice'] })
       queryClient.invalidateQueries({ queryKey: ['supervision', 'listado-pendientes'] })
@@ -209,18 +214,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   })
 
   const tecnicos = tecnicosQuery.data ?? []
-
-  const filterTecnicos = (items: typeof tecnicos) => {
-    const query = tecnicoFilter.trim().toLowerCase()
-    if (!query) return items
-    return items.filter((item) => {
-      const id = normalizeId(item.idTecnico).toLowerCase()
-      const nombre = (item.tecnico ?? '').toLowerCase()
-      return id.includes(query) || nombre.includes(query)
-    })
-  }
-
-  const tecnicosPrincipalFiltrados = useMemo(() => filterTecnicos(tecnicos), [tecnicoFilter, tecnicos])
 
   const handlePhotoChange = async (field: keyof SupervisionForm, event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -235,23 +228,42 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
     }
   }
 
-  const handleSubmit = () => {
-    const requiredFields: Array<keyof SupervisionForm> = [
-      'idSupervisorAsignado',
-      'idTecnicoPrincipal',
-      'idTipoSupervision',
-      'idTipoTrabajo',
-      'idTipoPenalizacion',
-      'supervisionPor',
-      'tecnologia',
-      'codigo',
-      'ordenTrabajo',
-      'tipoRevision',
-    ]
+  const requiredFields: Array<keyof SupervisionForm> = [
+    'idSupervisorAsignado',
+    'idTecnicoPrincipal',
+    'idTipoSupervision',
+    'idTipoTrabajo',
+    'idTipoPenalizacion',
+    'supervisionPor',
+    'tecnologia',
+    'codigo',
+    'ordenTrabajo',
+    'tipoRevision',
+  ]
 
+  const isMissing = (field: keyof SupervisionForm): boolean => intentoRegistrar && !form[field]?.trim()
+
+  const fieldVisualOrder: Array<keyof SupervisionForm> = [
+    'idSupervisorAsignado',
+    'idTecnicoPrincipal',
+    'codigo',
+    'idTipoSupervision',
+    'idTipoTrabajo',
+    'idTipoPenalizacion',
+    'supervisionPor',
+    'tecnologia',
+    'tipoRevision',
+    'ordenTrabajo',
+  ]
+
+  const handleSubmit = () => {
+    setIntentoRegistrar(true)
     const missing = requiredFields.filter((field) => !form[field]?.trim())
     if (missing.length > 0) {
-      setErrorForm(`Campos requeridos faltantes: ${missing.join(', ')}`)
+      setErrorForm('Faltan campos obligatorios por llenar, revisa los campos marcados en rojo.')
+      const primerCampoConError = fieldVisualOrder.find((field) => missing.includes(field))
+      const el = primerCampoConError ? fieldRefs.current[primerCampoConError] : null
+      el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       return
     }
 
@@ -265,7 +277,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
   const handleClose = () => {
     setForm(emptyForm())
     setErrorForm(null)
-    setTecnicoFilter('')
+    setIntentoRegistrar(false)
     onClose()
   }
 
@@ -284,9 +296,10 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
               <FontAwesomeIcon icon={faUsers} className="text-brand-600" />
               Asignacion
             </h4>
-            <Field label="Supervisor Asignado (Obligatorio)">
+            <div ref={registerFieldRef('idSupervisorAsignado')}>
+            <Field label="Supervisor Asignado (Obligatorio)" error={isMissing('idSupervisorAsignado') ? 'Campo obligatorio' : undefined}>
               <select
-                className="input-base"
+                className={`input-base ${isMissing('idSupervisorAsignado') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                 value={form.idSupervisorAsignado}
                 onChange={(event) => {
                   const newSuperId = event.target.value
@@ -296,7 +309,6 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                     idTecnicoPrincipal: '',
                     idTecnicoAuxiliar: '',
                   }))
-                  setTecnicoFilter('')
                 }}
               >
                 <option value="">Selecciona supervisor</option>
@@ -307,6 +319,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                 ))}
               </select>
             </Field>
+            </div>
           </section>
 
           <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4">
@@ -320,20 +333,10 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
               </div>
             )}
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Filtro rapido de tecnicos">
-                <input
-                  className="input-base"
-                  type="text"
-                  placeholder="Buscar por nombre o ID..."
-                  value={tecnicoFilter}
-                  onChange={(e) => setTecnicoFilter(e.target.value)}
-                  disabled={!form.idSupervisorAsignado}
-                />
-              </Field>
-              <div />
-              <Field label="Tecnico Principal (Obligatorio)">
+              <div ref={registerFieldRef('idTecnicoPrincipal')}>
+              <Field label="Tecnico Principal (Obligatorio)" error={isMissing('idTecnicoPrincipal') ? 'Campo obligatorio' : undefined}>
                 <select
-                  className="input-base"
+                  className={`input-base ${isMissing('idTecnicoPrincipal') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   value={form.idTecnicoPrincipal}
                   onChange={(event) =>
                     setForm((prev) => ({
@@ -350,13 +353,14 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                       ? 'Cargando tecnicos...' 
                       : 'Selecciona tecnico'}
                   </option>
-                  {tecnicosPrincipalFiltrados.map((tec) => (
+                  {tecnicos.map((tec) => (
                     <option key={tec.idTecnico} value={tec.idTecnico}>
                       {tec.tecnico}
                     </option>
                   ))}
                 </select>
               </Field>
+              </div>
               <Field label="Tecnico auxiliar">
                 <input
                   className="input-base"
@@ -367,13 +371,16 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   onChange={(event) => setForm((prev) => ({ ...prev, idTecnicoAuxiliar: normalizeUpperText(event.target.value) }))}
                 />
               </Field>
-              <Field label="Codigo cliente (Obligatorio)">
+              <div ref={registerFieldRef('codigo')}>
+              <Field label="Codigo cliente (Obligatorio)" error={isMissing('codigo') ? 'Campo obligatorio' : undefined}>
                 <input
-                  className="input-base"
+                  className={`input-base ${isMissing('codigo') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  inputMode="numeric"
                   value={form.codigo}
-                  onChange={(e) => setForm((p) => ({ ...p, codigo: e.target.value }))}
+                  onChange={(e) => setForm((p) => ({ ...p, codigo: normalizeOnlyDigits(e.target.value) }))}
                 />
               </Field>
+              </div>
             </div>
           </section>
 
@@ -383,9 +390,10 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
               Detalles de Supervision
             </h4>
             <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Tipo Supervision (Obligatorio)">
+              <div ref={registerFieldRef('idTipoSupervision')}>
+              <Field label="Tipo Supervision (Obligatorio)" error={isMissing('idTipoSupervision') ? 'Campo obligatorio' : undefined}>
                 <select
-                  className="input-base"
+                  className={`input-base ${isMissing('idTipoSupervision') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   value={form.idTipoSupervision}
                   onChange={(event) => setForm((prev) => ({ ...prev, idTipoSupervision: event.target.value }))}
                 >
@@ -397,9 +405,11 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Tipo Trabajo (Obligatorio)">
+              </div>
+              <div ref={registerFieldRef('idTipoTrabajo')}>
+              <Field label="Tipo Trabajo (Obligatorio)" error={isMissing('idTipoTrabajo') ? 'Campo obligatorio' : undefined}>
                 <select
-                  className="input-base"
+                  className={`input-base ${isMissing('idTipoTrabajo') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   value={form.idTipoTrabajo}
                   onChange={(event) => setForm((prev) => ({ ...prev, idTipoTrabajo: event.target.value }))}
                 >
@@ -411,9 +421,11 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Tipo Penalizacion (Obligatorio)">
+              </div>
+              <div ref={registerFieldRef('idTipoPenalizacion')}>
+              <Field label="Tipo Penalizacion (Obligatorio)" error={isMissing('idTipoPenalizacion') ? 'Campo obligatorio' : undefined}>
                 <select
-                  className="input-base"
+                  className={`input-base ${isMissing('idTipoPenalizacion') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   value={form.idTipoPenalizacion}
                   onChange={(event) => setForm((prev) => ({ ...prev, idTipoPenalizacion: event.target.value }))}
                 >
@@ -425,8 +437,14 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Supervision Por (Obligatorio)">
-                <select className="input-base" value={form.supervisionPor} onChange={(e) => setForm((p) => ({ ...p, supervisionPor: e.target.value }))}>
+              </div>
+              <div ref={registerFieldRef('supervisionPor')}>
+              <Field label="Supervision Por (Obligatorio)" error={isMissing('supervisionPor') ? 'Campo obligatorio' : undefined}>
+                <select
+                  className={`input-base ${isMissing('supervisionPor') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  value={form.supervisionPor}
+                  onChange={(e) => setForm((p) => ({ ...p, supervisionPor: e.target.value }))}
+                >
                   <option value="">Selecciona supervision</option>
                   {SUPERVISION_POR_OPTIONS.map((item) => (
                     <option key={item} value={item}>
@@ -435,6 +453,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
+              </div>
             </div>
           </section>
 
@@ -444,8 +463,13 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
               Informacion de Obra
             </h4>
             <div className="grid gap-4 md:grid-cols-3">
-              <Field label="Tecnologia (Obligatorio)">
-                <select className="input-base" value={form.tecnologia} onChange={(e) => setForm((p) => ({ ...p, tecnologia: e.target.value }))}>
+              <div ref={registerFieldRef('tecnologia')}>
+              <Field label="Tecnologia (Obligatorio)" error={isMissing('tecnologia') ? 'Campo obligatorio' : undefined}>
+                <select
+                  className={`input-base ${isMissing('tecnologia') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  value={form.tecnologia}
+                  onChange={(e) => setForm((p) => ({ ...p, tecnologia: e.target.value }))}
+                >
                   <option value="">Selecciona tecnologia</option>
                   {TECNOLOGIA_OPTIONS.map((item) => (
                     <option key={item} value={item}>
@@ -454,8 +478,14 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Tipo Revision (Obligatorio)">
-                <select className="input-base" value={form.tipoRevision} onChange={(e) => setForm((p) => ({ ...p, tipoRevision: e.target.value }))}>
+              </div>
+              <div ref={registerFieldRef('tipoRevision')}>
+              <Field label="Tipo Revision (Obligatorio)" error={isMissing('tipoRevision') ? 'Campo obligatorio' : undefined}>
+                <select
+                  className={`input-base ${isMissing('tipoRevision') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  value={form.tipoRevision}
+                  onChange={(e) => setForm((p) => ({ ...p, tipoRevision: e.target.value }))}
+                >
                   <option value="">Selecciona tipo revision</option>
                   {TIPO_REVISION_OPTIONS.map((item) => (
                     <option key={item} value={item}>
@@ -464,9 +494,11 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   ))}
                 </select>
               </Field>
-              <Field label="Orden de Trabajo (Obligatorio)">
+              </div>
+              <div ref={registerFieldRef('ordenTrabajo')}>
+              <Field label="Orden de Trabajo (Obligatorio)" error={isMissing('ordenTrabajo') ? 'Campo obligatorio' : undefined}>
                 <input
-                  className="input-base"
+                  className={`input-base ${isMissing('ordenTrabajo') ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   value={form.ordenTrabajo}
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -474,6 +506,7 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   onChange={(e) => setForm((p) => ({ ...p, ordenTrabajo: normalizeOnlyDigits(e.target.value) }))}
                 />
               </Field>
+              </div>
             </div>
           </section>
 

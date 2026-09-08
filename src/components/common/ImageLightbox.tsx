@@ -26,7 +26,17 @@ const ImageLightbox = ({ open, src, alt, onClose }: ImageLightboxProps) => {
   if (!open || typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[120] bg-slate-950/85 p-3 sm:p-6" onClick={onClose}>
+    <div className="fixed inset-0 z-[300] bg-slate-950/85 p-3 sm:p-6" onClick={onClose}>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          onClose()
+        }}
+        className="fixed right-3 top-3 z-[301] flex items-center gap-2 rounded-lg border border-white/20 bg-slate-900/70 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-slate-900 sm:right-6 sm:top-6"
+      >
+        Cerrar
+      </button>
       <div className="flex h-full w-full items-center justify-center">
         <img
           src={src}

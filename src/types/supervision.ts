@@ -17,6 +17,7 @@ export type SupervisionCatalogoItem = {
 
 export type SupervisionRegistro = {
   idSupervision: string
+  id?: string
   fechaRegistro?: string
   idSupervisor?: string
   supervisor?: string
@@ -104,6 +105,8 @@ export type SupervisionInicioPendiente = {
   auxiliarNombre?: string
   idSupervisor?: string
   supervisorNombre?: string
+  supervisorAproboInicio?: string
+  fechaAprobacionInicio?: string
   fechaRegistro?: string
   fechaCierre?: string
   imagen?: string
@@ -158,6 +161,8 @@ export type SupervisionJornadaHistorico = {
   grupo?: string
   idSupervisor?: string
   supervisorNombre?: string
+  supervisorAproboInicio?: string
+  fechaAprobacionInicio?: string
   capacitado?: string
   charla?: string
   botiquin?: string

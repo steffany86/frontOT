@@ -63,6 +63,11 @@ export const fetchProductos = async (rutaId: number): Promise<CatalogItem[]> => 
   return normalizeArrayResponse<CatalogItem>(data)
 }
 
+export const fetchTodosLosProductos = async (): Promise<CatalogItem[]> => {
+  const { data } = await api.get('/catalogos/productos')
+  return normalizeArrayResponse<CatalogItem>(data)
+}
+
 export const fetchProductosSinFungible = async (rutaId?: number): Promise<CatalogItem[]> => {
   const params = typeof rutaId === 'number' && Number.isFinite(rutaId) && rutaId > 0 ? { rutaId } : undefined
   const { data } = await api.get('/catalogos/productos/TraerTodosLosProductos_SinFungibleWeb', params ? { params } : undefined)

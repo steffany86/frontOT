@@ -27,6 +27,7 @@ type InicioJornadaChecklistFormProps = {
   nombreSupervisor?: string
   idAuxiliar?: number
   nombreAuxiliar?: string
+  observacionRechazado?: string
   onRegistered?: () => void
 }
 
@@ -54,7 +55,14 @@ const declaracionJuradaInicioJornada = [
   'Asimismo, declaro conocer que la incorporación de personal no registrado, la omisión de información o la falsedad de los datos consignados constituye un incumplimiento a las normas de seguridad y podrá dar lugar a responsabilidades penales, civiles, administrativas, contractuales y legales. Así mismo, Declaro que no permitiré la participación en las actividades de ejecución de órdenes de trabajo, de ninguna persona distinta a las registradas en este sistema (Tigo Hogar Operaciones Técnicas Makiro).',
 ]
 
-const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxiliar, nombreAuxiliar, onRegistered }: InicioJornadaChecklistFormProps) => {
+const InicioJornadaChecklistForm = ({
+  nombreTecnico,
+  nombreSupervisor,
+  idAuxiliar,
+  nombreAuxiliar,
+  observacionRechazado,
+  onRegistered,
+}: InicioJornadaChecklistFormProps) => {
   const { validateFileSize, FileSizeLimitModal } = useFileSizeLimitModal()
   const [fechaVencimiento, setFechaVencimiento] = useState('')
   const [estoyTrabajandoSolo, setEstoyTrabajandoSolo] = useState(false)
@@ -192,6 +200,20 @@ const InicioJornadaChecklistForm = ({ nombreTecnico, nombreSupervisor, idAuxilia
           <p className="mt-1 text-sm font-semibold text-slate-700">
             Auxiliar: {auxiliarDisplay} {idAuxiliar && nombreAuxiliar?.trim() ? `(ID: ${idAuxiliar})` : ''}
           </p>
+        ) : null}
+        {observacionRechazado?.trim() ? (
+          <div className="mt-3 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
+            <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
+              <FontAwesomeIcon icon={faTriangleExclamation} />
+            </span>
+            <div>
+              <p className="text-sm font-extrabold">Tu inicio de jornada anterior fue rechazado.</p>
+              <p className="mt-1 text-sm font-semibold">Motivo del rechazo:</p>
+              <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-rose-950">
+                {observacionRechazado.trim()}
+              </p>
+            </div>
+          </div>
         ) : null}
       </div>
 

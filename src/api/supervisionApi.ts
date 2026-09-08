@@ -118,6 +118,7 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
 
   return {
     idSupervision: normalizeString(readValue(row, ['idSupervision', 'id_supervision', 'idsupervision', 'Id_Supervision'])),
+    id: normalizeString(readValue(row, ['id', 'Id', 'ID'])) || undefined,
     fechaRegistro: normalizeString(readValue(row, ['fechaRegistro', 'fecha_registro', 'FechaRegistro'])) || undefined,
     idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'Id_Supervisor'])) || undefined,
     supervisor: supervisorNombre || normalizeString(readValue(row, ['supervisor', 'nombreSupervisor'])) || undefined,
@@ -316,6 +317,8 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
     ) || undefined,
   idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'id_encargado'])) || undefined,
   supervisorNombre: normalizeString(readValue(row, ['supervisorNombre', 'supervisor', 'nombreSupervisor'])) || undefined,
+  supervisorAproboInicio: normalizeString(readValue(row, ['supervisorAproboInicio', 'supervisor_aprobo_inicio'])) || undefined,
+  fechaAprobacionInicio: normalizeString(readValue(row, ['fechaAprobacionInicio', 'fecha_aprobacion_inicio'])) || undefined,
   fechaRegistro: normalizeString(readValue(row, ['fechaRegistro', 'fecha_registro'])) || undefined,
   fechaCierre: normalizeString(readValue(row, ['fechaCierre', 'fecha_cierre'])) || undefined,
   imagen: normalizeString(readValue(row, ['imagen', 'Imagen', 'imagen_inicio', 'imagenInicio', 'foto_inicio', 'fotoInicio'])) || undefined,
@@ -375,6 +378,11 @@ const readBooleanLike = (value: unknown): boolean => {
   return text === 'true' || text === '1' || text === 'si' || text === 'sí'
 }
 
+const readOptionalBooleanLike = (value: unknown): boolean | undefined => {
+  if (value === undefined || value === null || value === '') return undefined
+  return readBooleanLike(value)
+}
+
 const normalizeEstadoJornada = (value: unknown): string => {
   return normalizeString(value).trim().toUpperCase().replace(/[\s-]+/g, '_')
 }
@@ -412,8 +420,8 @@ const mapJornadaHistorico = (row: Record<string, unknown>): SupervisionJornadaHi
       normalizeString(readValue(row, ['auxiliarCuadrilla', 'auxiliar_cuadrilla', 'tecnicoAuxiliarCuadrilla', 'nombreAuxiliarCuadrilla'])) ||
       undefined,
     requiereFotoAuxiliar: readBooleanLike(readValue(row, ['requiereFotoAuxiliar', 'requiere_foto_auxiliar'])),
-    tieneImagenInicio: readBooleanLike(readValue(row, ['tieneImagenInicio', 'tiene_imagen_inicio'])),
-    tieneImagenAuxiliar: readBooleanLike(readValue(row, ['tieneImagenAuxiliar', 'tiene_imagen_auxiliar'])),
+    tieneImagenInicio: readOptionalBooleanLike(readValue(row, ['tieneImagenInicio', 'tiene_imagen_inicio'])),
+    tieneImagenAuxiliar: readOptionalBooleanLike(readValue(row, ['tieneImagenAuxiliar', 'tiene_imagen_auxiliar'])),
     fecha: normalizeString(readValue(row, ['fecha'])) || undefined,
     fechaInicio: normalizeString(readValue(row, ['fechaInicio', 'fecha_inicio', 'fechaRegistro', 'fecha_registro'])) || inicio.fechaRegistro,
     fechaCierre,

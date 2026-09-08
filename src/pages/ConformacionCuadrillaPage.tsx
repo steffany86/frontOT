@@ -334,6 +334,10 @@ const VEHICULO_VALUE_KEYS = ['idVehiculo', 'IdVehiculo', 'vehiculo', 'Vehiculo',
 const VEHICULO_LABEL_KEYS = ['vehiculo', 'Vehiculo', 'placa', 'Placa', 'placavehiculo', 'placaVehiculo', 'descripcion', 'Descripcion', 'nombre', 'Nombre']
 const VEHICULO_TECNICO_ID_KEYS = ['idTecnico', 'IdTecnico', 'id_tecnico', 'Id_Tecnico', 'idVendedor', 'IdVendedor', 'id_vendedor', 'Id_Vendedor']
 const GRUPO_KEYS = ['grupo', 'Grupo', 'cuadrilla', 'Cuadrilla', 'ruta', 'Ruta', 'Nombre', 'nombre', 'tipo', 'Tipo']
+// A diferencia de GRUPO_KEYS, no incluye 'Nombre'/'nombre': el catalogo de tecnicos
+// (tbl_Vendedor) solo trae el nombre del propio tecnico y no un grupo/cuadrilla, asi
+// que ese fallback generico terminaba copiando el nombre del tecnico dentro de "grupo".
+const TECNICO_GRUPO_KEYS = ['grupo', 'Grupo', 'cuadrilla', 'Cuadrilla', 'ruta', 'Ruta']
 const GRUPO_VALUE_KEYS = ['id_ruta', 'Id_Ruta', 'idruta', 'idRuta', 'IdRuta', 'idGrupo', 'IdGrupo', 'grupo', 'Grupo', 'codigo', 'Codigo', 'id', 'Id']
 const GRUPO_LABEL_KEYS = ['cuadrilla', 'Cuadrilla', 'ruta', 'Ruta', 'Nombre', 'nombre', 'grupo', 'Grupo', 'descripcion', 'Descripcion', 'codigo', 'Codigo']
 const ALMACEN_KEYS = ['almacen', 'Almacen']
@@ -2454,7 +2458,7 @@ const findVehiculoConflictRecord = (
       salesforce: resolveValue(SALESFORCE_KEYS),
       habilidad: normalizeHabilidadValue(resolveValue(HABILIDAD_KEYS)),
       vehiculo: resolveValue(VEHICULO_KEYS),
-      grupo: resolveValue(GRUPO_KEYS),
+      grupo: resolveValue(TECNICO_GRUPO_KEYS),
       almacen: resolveValue(ALMACEN_KEYS),
       grupoDigitacion: resolveValue(GRUPO_DIGITACION_KEYS),
     }

@@ -331,7 +331,10 @@ const isDuplicateOrdenError = (message: string): boolean => {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
-  return normalized.includes('ya existe una ot registrada con el mismo numero de orden')
+  return (
+    normalized.includes('ya existe una ot registrada con el mismo numero de orden') ||
+    (normalized.includes('ya existe') && normalized.includes('ot') && normalized.includes('numero de orden'))
+  )
 }
 
 const RegistrarOTAgendaPage = () => {
@@ -355,6 +358,9 @@ const RegistrarOTAgendaPage = () => {
   const [idTipoServicioManual, setIdTipoServicioManual] = useState(() => (navState?.idTipoServicio ?? '').trim())
   const [otManualInput, setOtManualInput] = useState(() => (navState?.ot ?? '').trim())
   const [clienteManualInput, setClienteManualInput] = useState(() => (navState?.clienteNro ?? '').trim())
+  const [otDuplicateExists, setOtDuplicateExists] = useState(false)
+  const [isCheckingOtDuplicate, setIsCheckingOtDuplicate] = useState(false)
+  const otDuplicateCheckToken = useRef(0)
   const [geoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -959,7 +965,8 @@ const RegistrarOTAgendaPage = () => {
       tapValid &&
       bocaValid &&
       tipoTecnologia.trim().length > 0 &&
-      !isBlockedEstadoForCurrentOt
+      !isBlockedEstadoForCurrentOt &&
+      !otDuplicateExists
   )
 
   const missingRequiredFields = useMemo(() => {
@@ -968,6 +975,7 @@ const RegistrarOTAgendaPage = () => {
     if (missingHeaderFields.length > 0) missing.push(...missingHeaderFields)
     if (parsedEstadoId === null) missing.push('estado')
     if (!hasValidOrdenTrabajo) missing.push('nro orden')
+    if (otDuplicateExists) missing.push('nro orden (ya existe una OT registrada con este numero)')
     if (!hasValidCodigoCliente) missing.push('cod cliente')
     if (!nodoValid) missing.push('nodo (3 letras y 3 o 4 numeros)')
     if (!ramalValid) missing.push('ramal')
@@ -982,6 +990,7 @@ const RegistrarOTAgendaPage = () => {
     hasValidOrdenTrabajo,
     missingHeaderFields,
     nodoValid,
+    otDuplicateExists,
     parsedEstadoId,
     ramalValid,
     observacion,
@@ -1008,7 +1017,7 @@ const RegistrarOTAgendaPage = () => {
   const bocaInvalid = shouldShowValidation && !bocaValid
   const tipoTecnologiaInvalid = shouldShowValidation && !tipoTecnologia.trim()
   const observacionInvalid = shouldShowValidation && !observacion.trim()
-  const archivoInvalid = shouldShowValidation && !pdfFile
+  const archivoInvalid = hasAttemptedSubmit && !pdfFile
 
   const handleNodoBlur = (event: FocusEvent<HTMLInputElement>) => {
     if (isTouchLikeDevice()) return
@@ -1019,6 +1028,28 @@ const RegistrarOTAgendaPage = () => {
           input.focus()
         }
       }, 0)
+    }
+  }
+
+  const handleOtManualBlur = async () => {
+    if (!isManualMode) return
+    const value = otManualInput.trim()
+    if (!value) {
+      setOtDuplicateExists(false)
+      return
+    }
+    const token = ++otDuplicateCheckToken.current
+    setIsCheckingOtDuplicate(true)
+    try {
+      await fetchOtByNumero(value)
+      if (otDuplicateCheckToken.current !== token) return
+      setOtDuplicateExists(true)
+    } catch (error) {
+      if (otDuplicateCheckToken.current !== token) return
+      void error
+      setOtDuplicateExists(false)
+    } finally {
+      if (otDuplicateCheckToken.current === token) setIsCheckingOtDuplicate(false)
     }
   }
 
@@ -1501,7 +1532,7 @@ const RegistrarOTAgendaPage = () => {
     if (step === 0) {
       const target =
         (firstPositiveNumber(effectiveIdTipoServicio) === null ? tipoServicioRef.current : null) ??
-        (!hasValidOrdenTrabajo ? otRef.current : null) ??
+        (!hasValidOrdenTrabajo || otDuplicateExists ? otRef.current : null) ??
         (!hasValidCodigoCliente ? clienteRef.current : null) ??
         (parsedEstadoId === null ? estadoRef.current : null)
       if (target || isBlockedEstadoForCurrentOt) {
@@ -1650,17 +1681,23 @@ const RegistrarOTAgendaPage = () => {
               <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden {isManualMode && otInvalid ? <span className="ml-1 text-[11px] font-bold text-rose-600">Completar</span> : null}</label>
               <input
                 ref={otRef}
-                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'} ${otInvalid ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
+                className={`input-base rounded-md py-2 text-sm ${isManualMode ? '' : 'bg-slate-50'} ${otInvalid || otDuplicateExists ? '!border-rose-500 !bg-rose-50 focus:!ring-rose-200' : ''}`}
                 value={otInputValue}
                 onChange={(event) => {
                   if (!isManualMode) return
+                  setOtDuplicateExists(false)
                   setOtManualInput(event.target.value.replace(/[^\d]/g, ''))
                 }}
+                onBlur={handleOtManualBlur}
                 placeholder={isManualMode ? 'Ingresa nro de orden' : undefined}
                 disabled={!isManualMode}
-                aria-invalid={otInvalid}
+                aria-invalid={otInvalid || otDuplicateExists}
               />
               {!isManualMode && otInvalid ? <p className="mt-1 text-xs text-rose-600">Nro orden es requerido.</p> : null}
+              {isManualMode && isCheckingOtDuplicate ? <p className="mt-1 text-xs text-slate-500">Verificando numero de orden...</p> : null}
+              {isManualMode && otDuplicateExists ? (
+                <p className="mt-1 text-xs font-semibold text-rose-600">Ya existe una OT registrada con este numero de orden.</p>
+              ) : null}
             </div>
 
             <div className="md:col-span-2">
@@ -2059,7 +2096,7 @@ const RegistrarOTAgendaPage = () => {
             </Button>
           ) : null}
           {!isLastFormStep ? (
-            <Button className="w-full sm:w-auto" type="button" onClick={goToNextStep} disabled={mutation.isPending || cabeceraQuery.isLoading || geoLoading || calibrationBusy || isPrevalidating}>
+            <Button className="w-full sm:w-auto" type="button" onClick={goToNextStep} disabled={mutation.isPending || cabeceraQuery.isLoading || geoLoading || calibrationBusy || isPrevalidating || otDuplicateExists || isCheckingOtDuplicate}>
               Siguiente
             </Button>
           ) : (

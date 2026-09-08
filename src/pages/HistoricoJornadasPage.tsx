@@ -9,7 +9,12 @@ import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
-import { fetchHistoricoJornadaDetalle, fetchHistoricoJornadas, fetchInicioJornadaImagen } from '../api/supervisionApi'
+import {
+  fetchHistoricoJornadaDetalle,
+  fetchHistoricoJornadas,
+  fetchInicioJornadaImagen,
+  fetchInicioJornadaImagenAuxiliar,
+} from '../api/supervisionApi'
 import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage } from '../services/httpClient'
 import { useAuth } from '../context/AuthContext'
@@ -364,6 +369,15 @@ const HistoricoJornadasPage = () => {
           imagenInicio = detalle.imagen
         }
       }
+      let imagenAuxiliar = detalle.imagenAuxiliar || row.imagenAuxiliar
+      if (!resolveInicioImageSrc(imagenAuxiliar)) {
+        try {
+          const blob = await fetchInicioJornadaImagenAuxiliar(row.idInicio, isSupervisor ? 'supervisor' : 'backoffice', false)
+          imagenAuxiliar = await blobToDataUrl(blob)
+        } catch {
+          imagenAuxiliar = detalle.imagenAuxiliar || row.imagenAuxiliar
+        }
+      }
       setDetalleJornada({
         row: {
           ...row,
@@ -373,7 +387,7 @@ const HistoricoJornadasPage = () => {
           tecnicoNombre: detalle.tecnicoNombre || row.tecnicoNombre,
           auxiliarNombre: detalle.auxiliarNombre || row.auxiliarNombre || detalle.auxiliarCuadrilla || row.auxiliarCuadrilla,
           imagen: imagenInicio || detalle.imagen || row.imagen,
-          imagenAuxiliar: detalle.imagenAuxiliar || row.imagenAuxiliar,
+          imagenAuxiliar,
           tieneImagenInicio: detalle.tieneImagenInicio ?? row.tieneImagenInicio,
           tieneImagenAuxiliar: detalle.tieneImagenAuxiliar ?? row.tieneImagenAuxiliar,
           idAuxiliarCuadrilla: detalle.idAuxiliarCuadrilla || row.idAuxiliarCuadrilla,
@@ -519,12 +533,12 @@ const HistoricoJornadasPage = () => {
 
       let cursor = 3
       for (const row of grouped.get(day) ?? []) {
-        sheet.mergeCells(`A${cursor}:H${cursor}`)
+        sheet.mergeCells(`A${cursor}:I${cursor}`)
         sheet.getCell(`A${cursor}`).value = `Resumen - ${row.tecnicoNombre || '-'}`
         sheet.getCell(`A${cursor}`).font = { bold: true, color: { argb: 'FFFFFFFF' } }
         sheet.getCell(`A${cursor}`).fill = headerFill
 
-        const summaryHeaders = ['Sucursal', 'Grupo', 'Tecnico', 'ID tecnico', 'ID usuario inicio', 'Supervisor', 'Fecha inicio', 'Estado']
+        const summaryHeaders = ['Sucursal', 'Grupo', 'Tecnico', 'ID tecnico', 'ID usuario inicio', 'Sup Aprueba', 'Fecha Aprobacion', 'Fecha inicio', 'Estado']
         summaryHeaders.forEach((header, index) => setLabel(sheet, `${String.fromCharCode(65 + index)}${cursor + 1}`, header))
         ;[
           row.sucursal || '-',
@@ -532,10 +546,11 @@ const HistoricoJornadasPage = () => {
           row.tecnicoNombre || '-',
           row.idTecnico || '-',
           row.idUsuarioInicio || '-',
-          row.supervisorNombre || '-',
+          row.supervisorAproboInicio || '-',
+          row.fechaAprobacionInicio ? formatDateTime(row.fechaAprobacionInicio) : '-',
           formatDateTime(row.fechaInicio),
         ].forEach((value, index) => setBox(sheet, `${String.fromCharCode(65 + index)}${cursor + 2}`, value))
-        addStatusCell(sheet, `H${cursor + 2}`, row)
+        addStatusCell(sheet, `I${cursor + 2}`, row)
         sheet.getRow(cursor + 2).height = 45
 
         cursor += 5
@@ -632,7 +647,13 @@ const HistoricoJornadasPage = () => {
           </div>
         ),
       },
-      { key: 'supervisorNombre', header: 'Supervisor', className: 'w-[18%] text-[11px] leading-tight', render: (row) => row.supervisorNombre || '-' },
+      { key: 'supervisorAproboInicio', header: 'Sup Aprueba', className: 'w-[18%] text-[11px] leading-tight', render: (row) => row.supervisorAproboInicio || '-' },
+      {
+        key: 'fechaAprobacionInicio',
+        header: 'Fecha Aprobacion',
+        className: 'w-[13%] text-[11px] leading-tight',
+        render: (row) => (row.fechaAprobacionInicio ? formatDateTime(row.fechaAprobacionInicio) : '-'),
+      },
       { key: 'fechaInicio', header: 'Inicio', className: 'w-[13%] text-[11px] leading-tight', render: (row) => formatDateTime(row.fechaInicio) },
       {
         key: 'fechaCierre',
@@ -859,7 +880,7 @@ const HistoricoJornadasPage = () => {
                   className="h-36 w-64 bg-white object-contain"
                   onZoom={setZoomImageSrc}
                 />
-                {requiereFotoAuxiliar(detalle) || resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
+                {requiereFotoAuxiliar(detalle) || resolveAuxiliarDisplay(detalle) || resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
                   <JornadaImageCard label="Imagen auxiliar" value={detalle.imagenAuxiliar} alt="Auxiliar inicio jornada" onZoom={setZoomImageSrc} />
                 ) : null}
                 <div className="grid gap-4 sm:grid-cols-2">

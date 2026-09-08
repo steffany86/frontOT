@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBriefcase, faCalendarDays, faCamera, faCameraRetro, faCheckCircle, faClipboardList, faClock, faCloudArrowUp, faComments, faEllipsisVertical, faEye, faFilter, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUser, faUserGear } from '@fortawesome/free-solid-svg-icons'
+import { faBriefcase, faCalendarDays, faCamera, faCameraRetro, faCheckCircle, faClipboardList, faClock, faCloudArrowUp, faComments, faEllipsisVertical, faEye, faIdCard, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUser, faUserGear } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
@@ -800,9 +800,14 @@ const SupervisorSupervisionPage = () => {
         render: (row) => resolveTecnicoNombre(row.idAuxiliar, row.auxiliarNombre),
       },
       {
-        key: 'supervisorNombre',
-        header: 'Sup.',
-        render: (row) => row.supervisorNombre || row.idSupervisor || '-',
+        key: 'supervisorAproboInicio',
+        header: 'Sup Aprueba',
+        render: (row) => row.supervisorAproboInicio || '-',
+      },
+      {
+        key: 'fechaAprobacionInicio',
+        header: 'Fecha Aprobacion',
+        render: (row) => (row.fechaAprobacionInicio ? formatDateTime(row.fechaAprobacionInicio) : '-'),
       },
       { key: 'estado', header: 'Est.', render: (row) => tieneCierreJornada(row) ? 'JORNADA FINALIZADA' : (row.estado || 'PENDIENTE') },
       {
@@ -960,8 +965,8 @@ const SupervisorSupervisionPage = () => {
           const { date, time } = formatDateParts(row.fechaRegistro)
           return (
             <div className="leading-tight">
-              <p className="text-sm font-bold text-slate-900">{date}</p>
-              <p className="mt-1 text-xs text-slate-500">{time}</p>
+              <p className="text-[11px] font-medium text-slate-900">{date}</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">{time}</p>
             </div>
           )
         },
@@ -969,23 +974,23 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'tecnicoPrincipal',
         header: 'Tecnico Principal',
-        render: (row) => <span className="text-sm font-bold text-slate-900">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</span>,
+        render: (row) => <span className="text-[11px] font-medium text-slate-900">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</span>,
       },
       {
         key: 'tecnicoAuxiliar',
         header: 'Tecnico Auxiliar',
-        render: (row) => <span className="text-sm font-medium text-slate-700">{row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || '-'}</span>,
+        render: (row) => <span className="text-[11px] text-slate-700">{row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || '-'}</span>,
       },
       {
         key: 'tipoSupervision',
         header: 'Tipo Supervision',
         render: (row) => (
           <div className="flex flex-col gap-1">
-            <span className="inline-flex w-fit items-center rounded-full bg-blue-200 px-3 py-1 text-xs font-bold text-[#0f2f63]">
+            <span className="inline-flex w-fit items-center rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-medium text-[#0f2f63]">
               {resolveTipoSupervision(row)}
             </span>
             {row.origen === 'REV_PENALIZADA' || row.origenExterno ? (
-              <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-700">
+              <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                 Revision penalizada
               </span>
             ) : null}
@@ -995,13 +1000,13 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'tipoTrabajo',
         header: 'Tipo Trabajo',
-        render: (row) => <span className="text-sm font-medium text-slate-700">{resolveTipoTrabajo(row)}</span>,
+        render: (row) => <span className="text-[11px] text-slate-700">{resolveTipoTrabajo(row)}</span>,
       },
       {
         key: 'estadoSup',
         header: 'Estado',
         render: (row) => (
-          <span className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-bold ${supervisionEstadoBadgeClass(row)}`}>
+          <span className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${supervisionEstadoBadgeClass(row)}`}>
             {isSupervisionCompletada(row) ? 'Completada' : 'Pendiente'}
           </span>
         ),
@@ -1009,12 +1014,12 @@ const SupervisorSupervisionPage = () => {
       {
         key: 'codigo',
         header: 'Codigo',
-        render: (row) => <span className="font-mono text-sm font-medium text-slate-700">{row.codigo || '-'}</span>,
+        render: (row) => <span className="font-mono text-[11px] text-slate-700">{row.codigo || '-'}</span>,
       },
       {
         key: 'ordenTrabajo',
         header: 'OT',
-        render: (row) => <span className="font-mono text-sm font-medium text-slate-700">{row.ordenTrabajo || '-'}</span>,
+        render: (row) => <span className="font-mono text-[11px] text-slate-700">{row.ordenTrabajo || '-'}</span>,
       },
       {
         key: 'acciones',
@@ -1023,13 +1028,14 @@ const SupervisorSupervisionPage = () => {
           const estado = String(row.estadoSup || '').trim().toLowerCase()
           const esPendiente = estado === 'pendiente' || estado === 'pendientes' || idsSupervisionesPendientes.has(row.idSupervision)
           return esPendiente ? (
-            <Button type="button" onClick={() => abrirRealizarPendiente(row)}>
+            <Button type="button" className="px-2.5 py-1 text-[11px]" onClick={() => abrirRealizarPendiente(row)}>
               Realizar supervision
             </Button>
           ) : (
             <Button
               type="button"
               variant="secondary"
+              className="px-2.5 py-1 text-[11px]"
               onClick={() => {
                 setDetalleId(row.idSupervision)
                 setDetalleSupervisorId(normalizeId(row.idSupervisor) || supervisorFiltro)
@@ -1144,98 +1150,153 @@ const SupervisorSupervisionPage = () => {
   const detalle = detalleQuery.data
 
   return (
-    <div className="bento-page supervision-page gap-2.5 sm:gap-3">
-      <div className="bento-page-head flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 sm:px-5 sm:py-3">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5">
-          <h2 className="text-2xl font-semibold text-slate-900">Supervision</h2>
+    <div className="bento-page supervision-page gap-2 text-[13px] sm:gap-2.5">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h2 className="text-base font-bold text-slate-900 sm:text-lg">Supervision</h2>
+          {vistaTopbar === 'agenda' ? <div className="grid grid-cols-3 gap-1.5">
+            <div className="min-w-[68px] rounded-lg border border-blue-100 bg-blue-50/60 px-2.5 py-1 text-center">
+              <p className="text-[8px] font-bold uppercase tracking-wide text-slate-500">Total</p>
+              <p className="text-base font-extrabold leading-none text-brand-600">{listadosPendientes.length + supervisionesCompletadasAgenda}</p>
+            </div>
+            <div className="min-w-[68px] rounded-lg border border-amber-100 bg-amber-50/70 px-2.5 py-1 text-center">
+              <p className="text-[8px] font-bold uppercase tracking-wide text-amber-700">Pendientes</p>
+              <p className="text-base font-extrabold leading-none text-amber-600">{listadosPendientes.length}</p>
+            </div>
+            <div className="min-w-[68px] rounded-lg border border-emerald-100 bg-emerald-50/70 px-2.5 py-1 text-center">
+              <p className="text-[8px] font-bold uppercase tracking-wide text-emerald-700">Completadas</p>
+              <p className="text-base font-extrabold leading-none text-emerald-600">{supervisionesCompletadasAgenda}</p>
+            </div>
+          </div> : null}
         </div>
-        {vistaTopbar === 'agenda' ? <div className="grid grid-cols-3 gap-1.5">
-          <div className="min-w-[76px] rounded-xl border border-blue-100 bg-blue-50/60 px-3 py-1.5 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Total</p>
-            <p className="text-xl font-extrabold leading-none text-brand-600">{listadosPendientes.length + supervisionesCompletadasAgenda}</p>
-          </div>
-          <div className="min-w-[76px] rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-1.5 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-amber-700">Pendientes</p>
-            <p className="text-xl font-extrabold leading-none text-amber-600">{listadosPendientes.length}</p>
-          </div>
-          <div className="min-w-[76px] rounded-xl border border-emerald-100 bg-emerald-50/70 px-3 py-1.5 text-center">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700">Completadas</p>
-            <p className="text-xl font-extrabold leading-none text-emerald-600">{supervisionesCompletadasAgenda}</p>
-          </div>
-        </div> : null}
-      </div>
 
-      <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-sm">
-        <Button type="button" className="min-w-0 flex-1 justify-center px-3" variant={vistaTopbar === 'supervisiones' ? 'primary' : 'secondary'} onClick={() => setVistaTopbar('supervisiones')}>
-          <FontAwesomeIcon icon={faListUl} />
-          Supervisiones
-        </Button>
-        <Button type="button" className="min-w-0 flex-1 justify-center px-3" variant={vistaTopbar === 'agenda' ? 'primary' : 'secondary'} onClick={() => setVistaTopbar('agenda')}>
-          <FontAwesomeIcon icon={faClipboardList} />
-          Agenda Supervisión
-        </Button>
-        <Button type="button" className="relative min-w-0 flex-1 justify-center px-3" variant={vistaTopbar === 'aprobacion' ? 'primary' : 'secondary'} onClick={() => setVistaTopbar('aprobacion')}>
-          <FontAwesomeIcon icon={faCheckCircle} />
-          Aprobacion de jornada
-          {iniciosPendientesPasados.length > 0 ? (
-            <span className="absolute -right-2 -top-2 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-600 px-1.5 text-xs font-extrabold leading-none text-white shadow">
-              {iniciosPendientesPasados.length > 99 ? '99+' : iniciosPendientesPasados.length}
-            </span>
-          ) : null}
-        </Button>
-      </div>
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-200 px-2 py-1.5 sm:px-3">
+          {(
+            [
+              { key: 'supervisiones' as const, label: 'Supervisiones', icon: faListUl, count: 0 },
+              { key: 'agenda' as const, label: 'Agenda Supervisión', icon: faClipboardList, count: 0 },
+              { key: 'aprobacion' as const, label: 'Aprobación de jornada', icon: faCheckCircle, count: iniciosPendientesPasados.length },
+            ]
+          ).map((tab) => {
+            const active = vistaTopbar === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setVistaTopbar(tab.key)}
+                className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                  active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <FontAwesomeIcon icon={tab.icon} />
+                {tab.label}
+                {tab.count > 0 ? (
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-blue-500 text-white' : 'bg-red-600 text-white'}`}>
+                    {tab.count > 99 ? '99+' : tab.count}
+                  </span>
+                ) : null}
+              </button>
+            )
+          })}
+        </div>
 
-      {vistaTopbar !== 'aprobacion' ? (
-        <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-          <div className={`grid gap-3 ${vistaTopbar === 'agenda' ? 'md:grid-cols-[1fr_1fr_1fr_auto]' : 'md:grid-cols-2'}`}>
-            <Field label="Sucursal" compact>
-              <select
-                className="input-base"
-                value={sucursalFiltro}
-                onChange={(event) => setSucursalFiltro(event.target.value)}
-                disabled={sucursalesQuery.isLoading}
-              >
-                <option value="">Mi sucursal</option>
-                {(sucursalesQuery.data?.data ?? []).map((item) => (
-                  <option key={item.idSucursal} value={item.sucursal}>
-                    {item.sucursal}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Supervisor" compact>
-              <select
-                className="input-base"
-                value={supervisorFiltro}
-                onChange={(event) => setSupervisorFiltro(event.target.value)}
-                disabled={supervisoresFiltroQuery.isLoading}
-              >
-                <option value="">Mi usuario</option>
-                {(supervisoresFiltroQuery.data ?? []).map((item) => (
-                  <option key={item.idSupervisor} value={item.idSupervisor}>
-                    {item.nombre}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            {vistaTopbar === 'agenda' ? (
-              <>
-                <Field label="Fecha de agenda" compact>
-                  <input
+        {vistaTopbar !== 'aprobacion' ? (
+          <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
+              <span className="group-open:hidden">Mostrar filtros y acciones</span>
+              <span className="hidden group-open:inline">Ocultar filtros y acciones</span>
+              <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
+            </summary>
+            <div className="pb-2 pt-1.5">
+              <div className={`grid gap-2 ${vistaTopbar === 'agenda' ? 'md:grid-cols-[1fr_1fr_1fr_auto]' : 'md:grid-cols-4'}`}>
+                <Field label="Sucursal" compact>
+                  <select
                     className="input-base"
-                    type="date"
-                    value={agendaFechaSeleccionada}
-                    onChange={(event) => {
-                      const nextFiltro = { fechaDesde: event.target.value, fechaHasta: event.target.value }
-                      setFiltroDraft(nextFiltro)
-                      setFiltroActivo(nextFiltro)
-                    }}
-                  />
+                    value={sucursalFiltro}
+                    onChange={(event) => setSucursalFiltro(event.target.value)}
+                    disabled={sucursalesQuery.isLoading}
+                  >
+                    <option value="">Mi sucursal</option>
+                    {(sucursalesQuery.data?.data ?? []).map((item) => (
+                      <option key={item.idSucursal} value={item.sucursal}>
+                        {item.sucursal}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
-                <div className="flex items-end">
+                <Field label="Supervisor" compact>
+                  <select
+                    className="input-base"
+                    value={supervisorFiltro}
+                    onChange={(event) => setSupervisorFiltro(event.target.value)}
+                    disabled={supervisoresFiltroQuery.isLoading}
+                  >
+                    <option value="">Mi usuario</option>
+                    <option value="TODOS">Todos</option>
+                    {(supervisoresFiltroQuery.data ?? []).map((item) => (
+                      <option key={item.idSupervisor} value={item.idSupervisor}>
+                        {item.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {vistaTopbar === 'agenda' ? (
+                  <>
+                    <Field label="Fecha de agenda" compact>
+                      <input
+                        className="input-base"
+                        type="date"
+                        value={agendaFechaSeleccionada}
+                        onChange={(event) => {
+                          const nextFiltro = { fechaDesde: event.target.value, fechaHasta: event.target.value }
+                          setFiltroDraft(nextFiltro)
+                          setFiltroActivo(nextFiltro)
+                        }}
+                      />
+                    </Field>
+                    <div className="flex items-end">
+                      <Button
+                        type="button"
+                        className="w-full whitespace-nowrap px-4 text-xs"
+                        onClick={() => {
+                          setRealizandoPendienteId('')
+                          setForm(emptyForm())
+                          setErrorForm(null)
+                          setTecnicoFilter('')
+                          setRegistroModalOpen(true)
+                        }}
+                      >
+                        <FontAwesomeIcon icon={faCalendarDays} />
+                        Agendar supervision
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <Field label="Fecha desde" compact>
+                      <input
+                        className="input-base"
+                        type="date"
+                        value={filtroDraft.fechaDesde}
+                        onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaDesde: event.target.value }))}
+                      />
+                    </Field>
+                    <Field label="Fecha hasta" compact>
+                      <input
+                        className="input-base"
+                        type="date"
+                        value={filtroDraft.fechaHasta}
+                        onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaHasta: event.target.value }))}
+                      />
+                    </Field>
+                  </>
+                )}
+              </div>
+              {vistaTopbar === 'supervisiones' ? (
+                <div className="mt-2 flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    className="w-full whitespace-nowrap px-4"
+                    className="px-3 text-xs"
                     onClick={() => {
                       setRealizandoPendienteId('')
                       setForm(emptyForm())
@@ -1244,15 +1305,26 @@ const SupervisorSupervisionPage = () => {
                       setRegistroModalOpen(true)
                     }}
                   >
-                    <FontAwesomeIcon icon={faCalendarDays} />
-                    Agendar supervision
+                    + Nueva supervision
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="px-3 text-xs"
+                    onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}
+                  >
+                    Limpiar
+                  </Button>
+                  <Button type="button" className="px-3 text-xs" onClick={() => setFiltroActivo(filtroDraft)}>
+                    <FontAwesomeIcon icon={faMagnifyingGlass} />
+                    Buscar
                   </Button>
                 </div>
-              </>
-            ) : null}
-          </div>
-        </section>
-      ) : null}
+              ) : null}
+            </div>
+          </details>
+        ) : null}
+      </section>
 
       {vistaTopbar === 'aprobacion' ? (
         <>
@@ -1455,49 +1527,56 @@ const SupervisorSupervisionPage = () => {
                     <article key={row.idSupervision} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
                       <div className={`border-l-4 p-3 ${completada ? 'border-emerald-400' : 'border-amber-400'}`}>
                         <div className="mb-2 flex flex-wrap gap-2">
-                          <span className={`inline-flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-extrabold ${supervisionEstadoBadgeClass(row)}`}>
+                          <span className={`inline-flex items-center gap-2 rounded-lg px-3 py-1 text-xs font-medium ${supervisionEstadoBadgeClass(row)}`}>
                             <FontAwesomeIcon icon={completada ? faCheckCircle : faClock} />
                             {completada ? 'Completada' : 'Pendiente'}
                           </span>
-                          <span className="inline-flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1 text-xs font-extrabold text-blue-700">
+                          <span className="inline-flex items-center gap-2 rounded-lg bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
                             <FontAwesomeIcon icon={faClipboardList} />
                             {resolveTipoSupervisionDetalle(row)}
                           </span>
                         </div>
-                        <div className="grid gap-3 lg:grid-cols-[1.1fr_1.4fr_1.4fr_1fr_1fr]">
+                        <div className="grid gap-3 lg:grid-cols-[0.8fr_1.3fr_1.3fr_1fr_1fr_1fr]">
                           <div>
-                            <p className="text-xs font-bold text-slate-500">ID Supervision</p>
-                            <p className="mt-1 text-xl font-extrabold text-[#081a4b]">{row.idSupervision}</p>
+                            <p className="text-xs font-bold text-slate-500">Id</p>
+                            <p className="mt-1 text-xl font-medium text-[#081a4b]">{row.id || row.idSupervision}</p>
                           </div>
                           <div>
                             <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
                               <FontAwesomeIcon icon={faUser} />
                               Supervisor
                             </p>
-                            <p className="mt-1 text-sm font-extrabold uppercase text-slate-900">{supervisor}</p>
+                            <p className="mt-1 text-sm font-medium uppercase text-slate-900">{supervisor}</p>
                           </div>
                           <div>
                             <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
                               <FontAwesomeIcon icon={faScrewdriverWrench} />
                               Tecnico
                             </p>
-                            <p className="mt-1 text-sm font-extrabold uppercase text-slate-900">{tecnico}</p>
-                            {auxiliar !== '-' ? <p className="mt-0.5 text-xs font-semibold uppercase text-slate-500">{auxiliar}</p> : null}
+                            <p className="mt-1 text-sm font-medium uppercase text-slate-900">{tecnico}</p>
+                            {auxiliar !== '-' ? <p className="mt-0.5 text-xs font-normal uppercase text-slate-500">{auxiliar}</p> : null}
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faIdCard} />
+                              Codigo cliente
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{row.codigo || '-'}</p>
                           </div>
                           <div>
                             <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
                               <FontAwesomeIcon icon={faBriefcase} />
                               Orden de Trabajo
                             </p>
-                            <p className="mt-1 text-sm font-extrabold text-slate-900">{row.ordenTrabajo || '-'}</p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{row.ordenTrabajo || '-'}</p>
                           </div>
                           <div>
                             <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
                               <FontAwesomeIcon icon={faCalendarDays} />
                               Fecha
                             </p>
-                            <p className="mt-1 text-sm font-extrabold text-slate-900">{date}</p>
-                            <p className="text-xs font-semibold text-slate-700">{time}</p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{date}</p>
+                            <p className="text-xs font-normal text-slate-700">{time}</p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
@@ -1568,63 +1647,11 @@ const SupervisorSupervisionPage = () => {
         </div>
       ) : (
         <>
-          <FormCard
-            title="Filtros"
-            description="Filtra notas por rango de fechas."
-            actions={
-              <>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    setRealizandoPendienteId('')
-                    setForm(emptyForm())
-                    setErrorForm(null)
-                    setTecnicoFilter('')
-                    setRegistroModalOpen(true)
-                  }}
-                  className="px-5"
-                >
-                  + Nueva supervision
-                </Button>
-                <Button type="button" variant="secondary" className="px-5" onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}>
-                  Limpiar
-                </Button>
-                <Button type="button" className="px-5" onClick={() => setFiltroActivo(filtroDraft)}>
-                  <FontAwesomeIcon icon={faMagnifyingGlass} />
-                  Buscar
-                </Button>
-              </>
-            }
-          >
-            <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-              <FontAwesomeIcon icon={faFilter} className="text-brand-600" />
-              Busqueda por rango de fechas
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Field label="Fecha desde">
-                <input
-                  className="input-base"
-                  type="date"
-                  value={filtroDraft.fechaDesde}
-                  onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaDesde: event.target.value }))}
-                />
-              </Field>
-              <Field label="Fecha hasta">
-                <input
-                  className="input-base"
-                  type="date"
-                  value={filtroDraft.fechaHasta}
-                  onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaHasta: event.target.value }))}
-                />
-              </Field>
-            </div>
-          </FormCard>
-
           {successForm ? (
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{successForm}</div>
           ) : null}
 
-          <FormCard title="Notas registradas" description={`Total: ${listados.length}`}>
+          <FormCard title="Notas registradas" description={`Total: ${listados.length}`} compact>
             {listadoQuery.isError ? (
               <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
                 {getApiErrorMessage(listadoQuery.error, 'No se pudo cargar las notas de supervision.')}
@@ -1696,13 +1723,14 @@ const SupervisorSupervisionPage = () => {
                 ))
               )}
             </div>
-            <div className="hidden md:block rounded-2xl border border-slate-200 bg-white p-2">
+            <div className="hidden md:block rounded-xl border border-slate-200 bg-white [&_table]:!text-[11px] [&_th]:!px-2 [&_th]:!py-1.5 [&_td]:!px-2 [&_td]:!py-1.5">
               <Table
                 columns={columns}
                 data={listados}
                 stickyHeader
                 density="compact"
                 desktopMinWidthClass="min-w-[920px]"
+                desktopHeightClass="max-h-[55vh]"
                 emptyLabel={listadoQuery.isLoading ? 'Cargando notas...' : 'NO HAY DATOS PARA LA FECHA'}
               />
             </div>
