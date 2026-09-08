@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, type RefObject } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -29,6 +29,12 @@ type InicioJornadaChecklistFormProps = {
   nombreAuxiliar?: string
   observacionRechazado?: string
   onRegistered?: () => void
+}
+
+const getTodayLocalDateString = (): string => {
+  const now = new Date()
+  const pad = (value: number) => String(value).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
 }
 
 const readFileAsDataUrl = (file: File): Promise<string> =>
@@ -90,13 +96,27 @@ const InicioJornadaChecklistForm = ({
   const tomarFotoInputRef = useRef<HTMLInputElement | null>(null)
   const elegirImagenAuxiliarInputRef = useRef<HTMLInputElement | null>(null)
   const tomarFotoAuxiliarInputRef = useRef<HTMLInputElement | null>(null)
+  const fechaRef = useRef<HTMLDivElement | null>(null)
+  const ubicacionRef = useRef<HTMLDivElement | null>(null)
+  const trabajoSoloRef = useRef<HTMLDivElement | null>(null)
+  const imagenRef = useRef<HTMLDivElement | null>(null)
+  const imagenAuxiliarRef = useRef<HTMLDivElement | null>(null)
+  const declaracionRef = useRef<HTMLDivElement | null>(null)
+  const firmaInicioRef = useRef<HTMLDivElement | null>(null)
+
+  const scrollToRef = (ref: RefObject<HTMLDivElement | null>) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }
 
   const auxiliarDisplay = nombreAuxiliar?.trim() || (idAuxiliar ? `ID ${idAuxiliar}` : '')
   const requiereImagenAuxiliar = Boolean(idAuxiliar || nombreAuxiliar?.trim())
   const puedeMarcarTrabajoSolo = !requiereImagenAuxiliar
-  const mostrarErrorFecha = intentoRegistrar && !fechaVencimiento
+  const fechaMinima = getTodayLocalDateString()
+  const fechaVencimientoVencida = Boolean(fechaVencimiento) && fechaVencimiento < fechaMinima
+  const mostrarErrorFecha = intentoRegistrar && (!fechaVencimiento || fechaVencimientoVencida)
   const mostrarErrorImagen = intentoRegistrar && !imagen
   const mostrarErrorImagenAuxiliar = intentoRegistrar && requiereImagenAuxiliar && !imagenAuxiliar
+  const mostrarErrorTrabajoSolo = intentoRegistrar && puedeMarcarTrabajoSolo && !estoyTrabajandoSolo
   const mostrarErrorUbicacion = intentoRegistrar && !ubicacionGeoRef.trim()
   const mostrarErrorFirmaInicio = intentoRegistrar && !firmaInicio
   const mostrarErrorDeclaracion = intentoRegistrar && !declaracionAceptada
@@ -161,29 +181,52 @@ const InicioJornadaChecklistForm = ({
 
   const handleSubmit = () => {
     setIntentoRegistrar(true)
-    if (!fechaVencimiento || !imagen) {
+    if (!fechaVencimiento) {
       setFeedback(null)
-      setError('Fecha de vencimiento e imagen son obligatorios.')
+      setError('La fecha de vencimiento del extintor es obligatoria.')
+      scrollToRef(fechaRef)
+      return
+    }
+    if (fechaVencimientoVencida) {
+      setFeedback(null)
+      setError('La fecha de vencimiento del extintor no puede ser una fecha pasada.')
+      scrollToRef(fechaRef)
+      return
+    }
+    if (!imagen) {
+      setFeedback(null)
+      setError('Debe cargar o tomar una foto de perfil con su equipo.')
+      scrollToRef(imagenRef)
       return
     }
     if (!ubicacionGeoRef.trim()) {
       setFeedback(null)
       setError('La ubicacion georreferenciada es obligatoria.')
+      scrollToRef(ubicacionRef)
       return
     }
     if (!firmaInicio) {
       setFeedback(null)
       setError('La firma de inicio es obligatoria.')
+      scrollToRef(firmaInicioRef)
       return
     }
     if (requiereImagenAuxiliar && !imagenAuxiliar) {
       setFeedback(null)
       setError('Debe cargar o tomar una foto del auxiliar asignado.')
+      scrollToRef(imagenAuxiliarRef)
+      return
+    }
+    if (puedeMarcarTrabajoSolo && !estoyTrabajandoSolo) {
+      setFeedback(null)
+      setError('No tiene un auxiliar asignado en la conformacion de cuadrilla de hoy. Debe marcar "ESTOY TRABAJANDO SOLO" para continuar.')
+      scrollToRef(trabajoSoloRef)
       return
     }
     if (!declaracionAceptada) {
       setFeedback(null)
       setError('Debe aceptar la declaracion jurada para registrar el inicio de jornada.')
+      scrollToRef(declaracionRef)
       return
     }
     setError(null)
@@ -235,42 +278,70 @@ const InicioJornadaChecklistForm = ({
               />
             </Field>
           ) : null}
-          <Field label="Fecha de vencimiento extintor" error={mostrarErrorFecha ? 'La fecha de vencimiento es obligatoria.' : undefined}>
-            <div className="relative max-w-full overflow-hidden">
-              <input
-                className={`input-base w-full min-w-0 max-w-full pr-10 text-sm sm:text-base ${mostrarErrorFecha ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
-                style={{ WebkitAppearance: 'none' }}
-                type="date"
-                value={fechaVencimiento}
-                onChange={(event) => {
-                  setFechaVencimiento(event.target.value)
+          <div ref={fechaRef}>
+            <Field
+              label="Fecha de vencimiento extintor"
+              error={
+                mostrarErrorFecha
+                  ? !fechaVencimiento
+                    ? 'La fecha de vencimiento es obligatoria.'
+                    : 'La fecha de vencimiento no puede ser una fecha pasada.'
+                  : undefined
+              }
+            >
+              <div className="relative max-w-full overflow-hidden">
+                <input
+                  className={`input-base w-full min-w-0 max-w-full pr-10 text-sm sm:text-base ${mostrarErrorFecha ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  style={{ WebkitAppearance: 'none' }}
+                  type="date"
+                  min={fechaMinima}
+                  value={fechaVencimiento}
+                  onChange={(event) => {
+                    setFechaVencimiento(event.target.value)
+                    setError(null)
+                  }}
+                />
+                <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${mostrarErrorFecha ? 'text-rose-500' : 'text-slate-500'}`}>
+                  <FontAwesomeIcon icon={faCalendarDays} />
+                </span>
+              </div>
+            </Field>
+          </div>
+          <div ref={ubicacionRef}>
+            <Field label="Ubicacion georreferenciada" error={mostrarErrorUbicacion ? 'La ubicacion georreferenciada es obligatoria.' : undefined}>
+              <UbicacionManualCapture
+                value={ubicacionGeoRef}
+                onChange={(value) => {
+                  setUbicacionGeoRef(value)
                   setError(null)
                 }}
               />
-              <span className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 ${mostrarErrorFecha ? 'text-rose-500' : 'text-slate-500'}`}>
-                <FontAwesomeIcon icon={faCalendarDays} />
-              </span>
-            </div>
-          </Field>
-          <Field label="Ubicacion georreferenciada" error={mostrarErrorUbicacion ? 'La ubicacion georreferenciada es obligatoria.' : undefined}>
-            <UbicacionManualCapture
-              value={ubicacionGeoRef}
-              onChange={(value) => {
-                setUbicacionGeoRef(value)
-                setError(null)
-              }}
-            />
-          </Field>
+            </Field>
+          </div>
           {puedeMarcarTrabajoSolo ? (
-            <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-800">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-slate-300 text-blue-700 focus:ring-blue-600"
-                checked={estoyTrabajandoSolo}
-                onChange={(event) => setEstoyTrabajandoSolo(event.target.checked)}
-              />
-              <span>ESTOY TRABAJANDO SOLO</span>
-            </label>
+            <div ref={trabajoSoloRef}>
+              <label
+                className={`flex items-center gap-3 rounded-xl border p-3 text-sm font-semibold ${
+                  mostrarErrorTrabajoSolo ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-slate-200 bg-slate-50 text-slate-800'
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  className={`h-4 w-4 rounded focus:ring-blue-600 ${mostrarErrorTrabajoSolo ? 'border-rose-500 text-rose-600' : 'border-slate-300 text-blue-700'}`}
+                  checked={estoyTrabajandoSolo}
+                  onChange={(event) => {
+                    setEstoyTrabajandoSolo(event.target.checked)
+                    setError(null)
+                  }}
+                />
+                <span>ESTOY TRABAJANDO SOLO</span>
+              </label>
+              {mostrarErrorTrabajoSolo ? (
+                <p className="mt-1 text-xs font-semibold text-rose-600">
+                  No tiene auxiliar asignado en la conformacion de cuadrilla de hoy: debe confirmar que trabaja solo.
+                </p>
+              ) : null}
+            </div>
           ) : null}
         </div>
       </div>
@@ -293,7 +364,7 @@ const InicioJornadaChecklistForm = ({
         </div>
       </div>
 
-      <div className={`rounded-2xl border border-dashed bg-white p-4 shadow-sm ${mostrarErrorImagen ? 'border-rose-500 ring-2 ring-rose-100' : 'border-blue-300'}`}>
+      <div ref={imagenRef} className={`rounded-2xl border border-dashed bg-white p-4 shadow-sm ${mostrarErrorImagen ? 'border-rose-500 ring-2 ring-rose-100' : 'border-blue-300'}`}>
         <SectionHeader icon={faCamera} title="Registro Visual" />
         <Field label="Foto de perfil con su equipo" error={mostrarErrorImagen ? 'Debe cargar o tomar una foto.' : undefined}>
           <div className="grid gap-3">
@@ -331,7 +402,7 @@ const InicioJornadaChecklistForm = ({
         </Field>
         {requiereImagenAuxiliar ? (
           <Field label={`Foto del auxiliar ${auxiliarDisplay}`} error={mostrarErrorImagenAuxiliar ? 'Debe cargar o tomar una foto del auxiliar.' : undefined}>
-            <div className="mt-4 grid gap-3">
+            <div ref={imagenAuxiliarRef} className="mt-4 grid gap-3">
               <div className={`flex min-h-48 items-center justify-center rounded-2xl border p-3 ${mostrarErrorImagenAuxiliar ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-slate-100/80'}`}>
                 {imagenAuxiliar ? (
                   <img
@@ -442,26 +513,30 @@ const InicioJornadaChecklistForm = ({
               </p>
             ))}
           </div>
-          <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
-            <input
-              type="checkbox"
-              className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}
-              checked={declaracionAceptada}
-              onChange={(event) => {
-                setDeclaracionAceptada(event.target.checked)
-                setError(null)
-              }}
-            />
-            <span>Acepto y declaro bajo juramento que la información registrada es veraz.</span>
-          </label>
-          {mostrarErrorDeclaracion ? (
-            <p className="text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el inicio de jornada.</p>
-          ) : null}
-          <Field label="Firma inicio" error={mostrarErrorFirmaInicio ? 'La firma de inicio es obligatoria.' : undefined}>
-            <div className={mostrarErrorFirmaInicio ? 'rounded-2xl border border-rose-500 ring-2 ring-rose-100' : ''}>
-              <SignaturePad value={firmaInicio} onChange={setFirmaInicio} />
-            </div>
-          </Field>
+          <div ref={declaracionRef}>
+            <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
+              <input
+                type="checkbox"
+                className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}
+                checked={declaracionAceptada}
+                onChange={(event) => {
+                  setDeclaracionAceptada(event.target.checked)
+                  setError(null)
+                }}
+              />
+              <span>Acepto y declaro bajo juramento que la información registrada es veraz.</span>
+            </label>
+            {mostrarErrorDeclaracion ? (
+              <p className="mt-1 text-xs font-semibold text-rose-600">Debe aceptar la declaracion jurada para registrar el inicio de jornada.</p>
+            ) : null}
+          </div>
+          <div ref={firmaInicioRef}>
+            <Field label="Firma inicio" error={mostrarErrorFirmaInicio ? 'La firma de inicio es obligatoria.' : undefined}>
+              <div className={mostrarErrorFirmaInicio ? 'rounded-2xl border border-rose-500 ring-2 ring-rose-100' : ''}>
+                <SignaturePad value={firmaInicio} onChange={setFirmaInicio} />
+              </div>
+            </Field>
+          </div>
         </div>
       </div>
 

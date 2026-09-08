@@ -4,6 +4,9 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  define: {
+    __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
+  },
   server: {
     host: true,
     allowedHosts: ['.ngrok-free.app','.ngrok-free.dev', '.makiro.com.bo', 'tigohogar.makiro.com.bo', 'localhost', '127.0.0.1'],

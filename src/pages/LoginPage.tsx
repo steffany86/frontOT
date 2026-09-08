@@ -195,6 +195,9 @@ const LoginPage = () => {
         </div>
 
         <div className="pt-5 text-center text-sm text-[#6f82aa]">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
+        <div className="pt-1 text-center text-xs text-[#a7b3cf]">
+          Version desplegada: {new Date(__BUILD_TIME__).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })}
+        </div>
       </div>
       <Modal
         open={Boolean(maintenanceMessage)}

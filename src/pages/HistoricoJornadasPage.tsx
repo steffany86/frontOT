@@ -213,6 +213,20 @@ const inicioChecklistLabels: Partial<Record<keyof SupervisionJornadaHistorico, s
   anclaje: 'Anclaje en NO',
 }
 
+const parseDateOnly = (value?: string): Date | null => {
+  if (!value) return null
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return null
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+const extintorVencido = (row: SupervisionJornadaHistorico): boolean => {
+  const vencimiento = parseDateOnly(row.fechaVencimiento)
+  const registro = parseDateOnly(row.fecha || row.fechaInicio)
+  if (!vencimiento || !registro) return false
+  return vencimiento.getTime() < registro.getTime()
+}
+
 const hasInicioImage = (row: SupervisionJornadaHistorico): boolean =>
   row.tieneImagenInicio === true || Boolean(resolveInicioImageSrc(row.imagen))
 
@@ -229,6 +243,9 @@ const getInicioObservaciones = (row: SupervisionJornadaHistorico): string[] => {
   }
   if (requiereFotoAuxiliar(row) && !hasAuxiliarImage(row)) {
     observaciones.push('Foto auxiliar faltante')
+  }
+  if (extintorVencido(row)) {
+    observaciones.push('Extintor vencido')
   }
   return observaciones
 }
