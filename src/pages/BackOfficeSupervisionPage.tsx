@@ -6,12 +6,12 @@ import {
   faClipboardCheck,
   faCircleCheck,
   faCircleInfo,
-  faCalendarDay,
   faUserGear,
   faClipboardList,
   faLocationDot,
   faComments,
   faCamera,
+  faRotate,
 } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
@@ -350,119 +350,96 @@ const BackOfficeSupervisionPage = () => {
           activeTab === 'completado' ? `${activeCopy.description} del ${fechaDesdeFiltro} al ${fechaHastaFiltro}` : activeCopy.description
         }
       >
-        <div className="flex items-center gap-1 border-b border-slate-200 pb-0">
+        <div className="mb-1 flex flex-wrap items-center gap-1 pb-1">
           <button
             type="button"
             onClick={() => setActiveTab('pendiente')}
-            className={`inline-flex items-center gap-2 rounded-t-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
-              activeTab === 'pendiente' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+              activeTab === 'pendiente' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-brand-700'
             }`}
           >
             <FontAwesomeIcon icon={faClipboardCheck} />
-            Pendientes
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${activeTab === 'pendiente' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+            <span>Pendientes</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === 'pendiente' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {pendientes.length}
             </span>
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('completado')}
-            className={`inline-flex items-center gap-2 rounded-t-lg px-3 py-2 text-xs font-bold transition sm:text-sm ${
-              activeTab === 'completado' ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+              activeTab === 'completado' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-brand-700'
             }`}
           >
             <FontAwesomeIcon icon={faCircleCheck} />
-            Completadas
-            <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${activeTab === 'completado' ? 'bg-blue-500 text-white' : 'bg-slate-200 text-slate-600'}`}>
+            <span>Completadas</span>
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${activeTab === 'completado' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
               {completadas.length}
             </span>
           </button>
         </div>
 
-        {activeTab === 'pendiente' ? (
-          <details className="group border-b border-slate-200 py-2" open>
-            <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
-              <span className="group-open:hidden">Mostrar filtros</span>
-              <span className="hidden group-open:inline">Ocultar filtros</span>
-              <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
-            </summary>
-            <div className="grid gap-2 pt-2 md:grid-cols-3">
-              <label className="text-xs font-semibold text-slate-700">
-                Sucursal
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                  <FontAwesomeIcon icon={faLocationDot} className="text-blue-600" />
-                  <select
-                    className="w-full bg-transparent text-xs outline-none"
-                    value={sucursalPendienteFiltro}
-                    onChange={(event) => setSucursalPendienteFiltro(event.target.value)}
-                    disabled={sucursalesSupervisionQuery.isLoading}
-                  >
-                    <option value="">Todos</option>
-                    {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
-                      <option key={sucursal} value={sucursal}>
-                        {sucursal}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-            </div>
-          </details>
-        ) : null}
-
-        {activeTab === 'completado' ? (
-          <details className="group border-b border-slate-200 py-2" open>
-            <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
-              <span className="group-open:hidden">Mostrar filtros</span>
-              <span className="hidden group-open:inline">Ocultar filtros</span>
-              <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
-            </summary>
-            <div className="grid gap-2 pt-2 md:grid-cols-3">
-              <label className="text-xs font-semibold text-slate-700">
-                Fecha desde
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                  <FontAwesomeIcon icon={faCalendarDay} className="text-blue-600" />
-                  <input
-                    type="date"
-                    className="w-full bg-transparent text-xs outline-none"
-                    value={fechaDesdeFiltro}
-                    onChange={(event) => setFechaDesdeFiltro(event.target.value || formatLocalDateInput(new Date()))}
-                  />
-                </div>
-              </label>
-              <label className="text-xs font-semibold text-slate-700">
-                Fecha hasta
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                  <FontAwesomeIcon icon={faCalendarDay} className="text-blue-600" />
-                  <input
-                    type="date"
-                    className="w-full bg-transparent text-xs outline-none"
-                    value={fechaHastaFiltro}
-                    onChange={(event) => setFechaHastaFiltro(event.target.value || formatLocalDateInput(new Date()))}
-                  />
-                </div>
-              </label>
-              <label className="text-xs font-semibold text-slate-700">
-                Supervisor
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                  <FontAwesomeIcon icon={faUserGear} className="text-blue-600" />
-                  <select
-                    className="w-full bg-transparent text-xs outline-none"
-                    value={supervisorFiltro}
-                    onChange={(event) => setSupervisorFiltro(event.target.value)}
-                  >
-                    <option value="">Todos</option>
-                    {(supervisoresQuery.data ?? []).map((item) => (
-                      <option key={item.idSupervisor} value={item.idSupervisor}>
-                        {item.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </label>
-            </div>
-          </details>
-        ) : null}
+        <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1">
+          <div className="flex min-w-max shrink-0 items-center gap-1">
+            {activeTab === 'pendiente' ? (
+              <select
+                value={sucursalPendienteFiltro}
+                onChange={(event) => setSucursalPendienteFiltro(event.target.value)}
+                className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                aria-label="Filtrar por sucursal"
+                disabled={sucursalesSupervisionQuery.isLoading}
+              >
+                <option value="">Todas las sucursales</option>
+                {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
+                  <option key={sucursal} value={sucursal}>
+                    {sucursal}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            {activeTab === 'completado' ? (
+              <>
+                <input
+                  type="date"
+                  value={fechaDesdeFiltro}
+                  onChange={(event) => setFechaDesdeFiltro(event.target.value || formatLocalDateInput(new Date()))}
+                  className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  aria-label="Fecha desde"
+                />
+                <input
+                  type="date"
+                  value={fechaHastaFiltro}
+                  onChange={(event) => setFechaHastaFiltro(event.target.value || formatLocalDateInput(new Date()))}
+                  className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  aria-label="Fecha hasta"
+                />
+                <select
+                  value={supervisorFiltro}
+                  onChange={(event) => setSupervisorFiltro(event.target.value)}
+                  className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                  aria-label="Filtrar por supervisor"
+                >
+                  <option value="">Todos los supervisores</option>
+                  {(supervisoresQuery.data ?? []).map((item) => (
+                    <option key={item.idSupervisor} value={item.idSupervisor}>
+                      {item.nombre}
+                    </option>
+                  ))}
+                </select>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void activeQuery.refetch()}
+              disabled={activeQuery.isFetching}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-brand-600 disabled:cursor-wait disabled:opacity-60"
+              title="Actualizar"
+            >
+              <FontAwesomeIcon icon={faRotate} className={activeQuery.isFetching ? 'animate-spin' : ''} aria-hidden="true" />
+              <span className="sr-only">Actualizar</span>
+            </button>
+          </div>
+        </div>
 
         <div className={`mt-3 rounded-2xl border p-4 ${activeCopy.shellClass}`}>
           {activeQuery.isError ? (
