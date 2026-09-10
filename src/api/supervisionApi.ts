@@ -604,6 +604,15 @@ export const fetchSupervisores = async (sucursal?: string): Promise<Array<{ idSu
   return Array.from(deduped.values())
 }
 
+export const fetchBackofficeSucursalesSupervision = async (): Promise<string[]> => {
+  const { data } = await api.get('/backoffice/supervision/filtros/sucursales')
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  const sucursales = rows
+    .map((row) => normalizeString(readValue(row, ['sucursal', 'Sucursal'])))
+    .filter((value): value is string => Boolean(value))
+  return Array.from(new Set(sucursales)).sort((a, b) => a.localeCompare(b))
+}
+
 export const fetchTecnicosPorSupervisor = async (idSupervisor: string, sucursal?: string, supervisorNombre?: string): Promise<SupervisionTecnico[]> => {
   const supervisorId = idSupervisor.trim()
   const normalizedSupervisorId = supervisorId.replace(/[^0-9]/g, '') || supervisorId

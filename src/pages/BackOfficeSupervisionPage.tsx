@@ -19,6 +19,7 @@ import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import SupervisionPendienteModal from '../components/supervision/SupervisionPendienteModal'
 import {
+  fetchBackofficeSucursalesSupervision,
   fetchBackofficeSupervisionesPorEstado,
   fetchSupervisores,
   fetchTecnicosPorSupervisor,
@@ -96,12 +97,23 @@ const BackOfficeSupervisionPage = () => {
   const [fechaDesdeFiltro, setFechaDesdeFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [fechaHastaFiltro, setFechaHastaFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [supervisorFiltro, setSupervisorFiltro] = useState('')
+  const [sucursalPendienteFiltro, setSucursalPendienteFiltro] = useState('')
   const [detalle, setDetalle] = useState<SupervisionRegistro | null>(null)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
   const pendientesQuery = useQuery({
-    queryKey: ['supervision', 'pendientes-backoffice'],
-    queryFn: () => fetchBackofficeSupervisionesPorEstado('pendiente', { limite: 300 }),
+    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro],
+    queryFn: () =>
+      fetchBackofficeSupervisionesPorEstado('pendiente', {
+        sucursal: sucursalPendienteFiltro || undefined,
+        limite: 300,
+      }),
+  })
+
+  const sucursalesSupervisionQuery = useQuery({
+    queryKey: ['supervision', 'sucursales-backoffice'],
+    queryFn: fetchBackofficeSucursalesSupervision,
+    staleTime: 300_000,
   })
 
   const completadasQuery = useQuery({
@@ -366,6 +378,37 @@ const BackOfficeSupervisionPage = () => {
             </span>
           </button>
         </div>
+
+        {activeTab === 'pendiente' ? (
+          <details className="group border-b border-slate-200 py-2" open>
+            <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
+              <span className="group-open:hidden">Mostrar filtros</span>
+              <span className="hidden group-open:inline">Ocultar filtros</span>
+              <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
+            </summary>
+            <div className="grid gap-2 pt-2 md:grid-cols-3">
+              <label className="text-xs font-semibold text-slate-700">
+                Sucursal
+                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
+                  <FontAwesomeIcon icon={faLocationDot} className="text-blue-600" />
+                  <select
+                    className="w-full bg-transparent text-xs outline-none"
+                    value={sucursalPendienteFiltro}
+                    onChange={(event) => setSucursalPendienteFiltro(event.target.value)}
+                    disabled={sucursalesSupervisionQuery.isLoading}
+                  >
+                    <option value="">Todos</option>
+                    {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </label>
+            </div>
+          </details>
+        ) : null}
 
         {activeTab === 'completado' ? (
           <details className="group border-b border-slate-200 py-2" open>
