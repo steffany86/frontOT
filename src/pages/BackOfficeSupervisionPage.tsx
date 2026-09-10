@@ -120,8 +120,8 @@ const BackOfficeSupervisionPage = () => {
   })
 
   const nombresSupervisorSupervisionQuery = useQuery({
-    queryKey: ['supervision', 'nombres-supervisor-backoffice'],
-    queryFn: fetchBackofficeNombresSupervisorSupervision,
+    queryKey: ['supervision', 'nombres-supervisor-backoffice', sucursalPendienteFiltro],
+    queryFn: () => fetchBackofficeNombresSupervisorSupervision(sucursalPendienteFiltro),
     staleTime: 300_000,
   })
 
@@ -393,7 +393,10 @@ const BackOfficeSupervisionPage = () => {
             {activeTab === 'pendiente' ? (
               <select
                 value={sucursalPendienteFiltro}
-                onChange={(event) => setSucursalPendienteFiltro(event.target.value)}
+                onChange={(event) => {
+                  setSucursalPendienteFiltro(event.target.value)
+                  setSupervisorNombrePendienteFiltro('')
+                }}
                 className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                 aria-label="Filtrar por sucursal"
                 disabled={sucursalesSupervisionQuery.isLoading}
