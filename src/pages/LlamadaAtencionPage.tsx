@@ -10,6 +10,7 @@ import SignaturePad from '../components/common/SignaturePad'
 import api from '../api/http'
 import {
   createLlamadaAtencion,
+  fetchLlamadaAtencionMotivos,
   fetchLlamadaAtencionTecnicos,
   fetchLlamadaAtencionTiposComunicacion,
   fetchLlamadasAtencion,
@@ -46,13 +47,6 @@ type LlamadaAtencionFiltro = {
 
 type FirmaStep = 'testigo' | 'tecnico'
 type TecnicoModalTarget = 'form' | 'filter'
-
-const MOTIVO_INCIDENCIA_OPTIONS = [
-  'Incumplimiento Normas de Seguridad',
-  'Incumplimiento Imagen y/o Herramientas',
-  'Queja por mala Atención al Cliente',
-  'Mala administración del Inventario',
-] as const
 
 const createEmptyForm = (): LlamadaAtencionForm => ({
   idTecnico: '',
@@ -144,6 +138,12 @@ const LlamadaAtencionPage = () => {
     staleTime: 300_000,
   })
 
+  const motivosQuery = useQuery({
+    queryKey: ['llamada-atencion', 'motivos'],
+    queryFn: fetchLlamadaAtencionMotivos,
+    staleTime: 300_000,
+  })
+
   const tecnicosModalQuery = useQuery({
     queryKey: ['llamada-atencion', 'tecnicos-modal', tecnicoSearch],
     queryFn: () =>
@@ -189,6 +189,7 @@ const LlamadaAtencionPage = () => {
   const tecnicos = tecnicosQuery.data ?? []
   const tecnicosModal = tecnicosModalQuery.data ?? []
   const tiposComunicacion = tiposComunicacionQuery.data ?? []
+  const motivos = motivosQuery.data ?? []
   const llamadas = llamadasQuery.data ?? []
 
   const tecnicoById = useMemo(() => {
@@ -506,10 +507,10 @@ const LlamadaAtencionPage = () => {
             <button className="rounded-xl border border-slate-300 px-3 py-2 text-slate-700"><FontAwesomeIcon icon={faPrint} /></button>
           </div>
         </div>
-        {tecnicosQuery.isError || tiposComunicacionQuery.isError || llamadasQuery.isError ? (
+        {tecnicosQuery.isError || tiposComunicacionQuery.isError || motivosQuery.isError || llamadasQuery.isError ? (
           <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {getApiErrorMessage(
-              tecnicosQuery.error ?? tiposComunicacionQuery.error ?? llamadasQuery.error,
+              tecnicosQuery.error ?? tiposComunicacionQuery.error ?? motivosQuery.error ?? llamadasQuery.error,
               'No se pudo cargar la informacion.'
             )}
           </div>
@@ -688,10 +689,13 @@ const LlamadaAtencionPage = () => {
                     className="input-base"
                     value={form.motivo}
                     onChange={(event) => handleFormChange('motivo', event.target.value)}
+                    disabled={motivosQuery.isLoading}
                   >
-                    <option value="">Selecciona una incidencia</option>
-                    {MOTIVO_INCIDENCIA_OPTIONS.map((motivo) => (
-                      <option key={motivo} value={motivo}>{motivo}</option>
+                    <option value="">
+                      {motivosQuery.isLoading ? 'Cargando incidencias...' : 'Selecciona una incidencia'}
+                    </option>
+                    {motivos.map((item) => (
+                      <option key={item.idMotivo} value={item.motivo}>{item.motivo}</option>
                     ))}
                   </select>
                 </Field>

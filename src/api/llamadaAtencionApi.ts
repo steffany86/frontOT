@@ -4,6 +4,7 @@ import type {
   LlamadaAtencionCreatePayload,
   LlamadaAtencionCreateResult,
   LlamadaAtencionListParams,
+  LlamadaAtencionMotivo,
   LlamadaAtencionRegistro,
   LlamadaAtencionTecnico,
   LlamadaAtencionTecnicosParams,
@@ -66,6 +67,13 @@ const mapTipoComunicacion = (row: Record<string, unknown>): LlamadaAtencionTipoC
   return {
     idTipoComunicacion: normalizeString(readValue(row, ['idTipoComunicacion', 'id_tipocomunicacion', 'id_tipocomunicacion'])),
     tipoComunicacion: normalizeString(readValue(row, ['tipoComunicacion', 'tipocomunicacion'])),
+  }
+}
+
+const mapMotivo = (row: Record<string, unknown>): LlamadaAtencionMotivo => {
+  return {
+    idMotivo: normalizeString(readValue(row, ['idMotivo', 'id_motivo', 'id'])),
+    motivo: normalizeString(readValue(row, ['motivo', 'nombre'])),
   }
 }
 
@@ -138,6 +146,12 @@ export const fetchLlamadaAtencionTiposComunicacion = async (): Promise<LlamadaAt
   const { data } = await api.get(`${LLAMADA_ATENCION_BASE_PATH}/tipos-comunicacion`)
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapTipoComunicacion).filter((item) => item.idTipoComunicacion && item.tipoComunicacion)
+}
+
+export const fetchLlamadaAtencionMotivos = async (): Promise<LlamadaAtencionMotivo[]> => {
+  const { data } = await api.get(`${LLAMADA_ATENCION_BASE_PATH}/motivos`)
+  const rows = normalizeArrayResponse<Record<string, unknown>>(data)
+  return rows.map(mapMotivo).filter((item) => item.idMotivo && item.motivo)
 }
 
 export const fetchLlamadasAtencion = async (params?: LlamadaAtencionListParams): Promise<LlamadaAtencionRegistro[]> => {

@@ -15,6 +15,11 @@ export type LlamadaAtencionTipoComunicacion = {
   tipoComunicacion: string
 }
 
+export type LlamadaAtencionMotivo = {
+  idMotivo: string
+  motivo: string
+}
+
 export type LlamadaAtencionRegistro = {
   idLlamadaAtencion: string
   idTecnico?: string

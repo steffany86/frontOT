@@ -209,7 +209,7 @@ export const fetchSupervisionTiposPenalizacion = async (): Promise<SupervisionCa
   const { data } = await api.get(`${SUPERVISION_BASE_PATH}/catalogos/tipos-penalizacion`)
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows
-    .map((row) => mapCatalogo(row, ['idTipoPenalizacion', 'Id_TipoPenalizacion'], ['tipoPenalizacion', 'Nombre']))
+    .map((row) => mapCatalogo(row, ['idTipoPenalizacion', 'Id_TipoPenalizacion', 'id'], ['tipoPenalizacion', 'Nombre', 'nombre']))
     .filter((item) => item.id && item.nombre)
 }
 

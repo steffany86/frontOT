@@ -112,6 +112,11 @@ const getTodayIsoDate = (): string => {
   return `${year}-${month}-${day}`
 }
 
+const defaultFiltro = (): SupervisionFiltro => ({
+  fechaDesde: getTodayIsoDate(),
+  fechaHasta: getTodayIsoDate(),
+})
+
 const requiredFields: Array<keyof SupervisionForm> = [
   'idTecnicoPrincipal',
   'idTipoSupervision',
@@ -503,8 +508,8 @@ const SupervisorSupervisionPage = () => {
   const { usuario } = useAuth()
   const queryClient = useQueryClient()
   const [form, setForm] = useState<SupervisionForm>(emptyForm)
-  const [filtroDraft, setFiltroDraft] = useState<SupervisionFiltro>(emptyFiltro)
-  const [filtroActivo, setFiltroActivo] = useState<SupervisionFiltro>(emptyFiltro)
+  const [filtroDraft, setFiltroDraft] = useState<SupervisionFiltro>(defaultFiltro)
+  const [filtroActivo, setFiltroActivo] = useState<SupervisionFiltro>(defaultFiltro)
   const [registroModalOpen, setRegistroModalOpen] = useState(false)
   const [detalleModalOpen, setDetalleModalOpen] = useState(false)
   const [detalleId, setDetalleId] = useState<string>('')
@@ -1201,7 +1206,7 @@ const SupervisorSupervisionPage = () => {
         </div>
 
         {vistaTopbar !== 'aprobacion' ? (
-          <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <details open className="group border-t border-slate-200 px-2 py-1 sm:px-3">
             <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
               <span className="group-open:hidden">Mostrar filtros y acciones</span>
               <span className="hidden group-open:inline">Ocultar filtros y acciones</span>
@@ -1217,6 +1222,7 @@ const SupervisorSupervisionPage = () => {
                     disabled={sucursalesQuery.isLoading}
                   >
                     <option value="">Mi sucursal</option>
+                    <option value="TODOS">Todos</option>
                     {(sucursalesQuery.data?.data ?? []).map((item) => (
                       <option key={item.idSucursal} value={item.sucursal}>
                         {item.sucursal}
@@ -1802,17 +1808,6 @@ const SupervisorSupervisionPage = () => {
             <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4">
               <h4 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wide text-slate-800"><FontAwesomeIcon icon={faUserGear} className="text-brand-600" />Informacion del tecnico</h4>
               <div className="grid gap-4 md:grid-cols-2">
-                <Field label="Filtro rapido de tecnicos">
-                  <input
-                    className="input-base"
-                    type="text"
-                    placeholder="Buscar por nombre o ID..."
-                    value={tecnicoFilter}
-                    onChange={(e) => setTecnicoFilter(e.target.value)}
-                    disabled={tecnicosQuery.isLoading || camposBaseBloqueados}
-                  />
-                </Field>
-                <div />
                 <Field label="Tecnico principal (Obligatorio)">
                   <select
                     className="input-base"
@@ -1847,9 +1842,11 @@ const SupervisorSupervisionPage = () => {
                 <Field label="Codigo cliente (Obligatorio)">
                   <input
                     className="input-base"
+                    type="text"
+                    inputMode="numeric"
                     value={form.codigo}
                     maxLength={30}
-                    onChange={(e) => setForm((p) => ({ ...p, codigo: e.target.value.trimStart().toUpperCase() }))}
+                    onChange={(e) => setForm((p) => ({ ...p, codigo: e.target.value.replace(/[^0-9]/g, '') }))}
                   />
                 </Field>
               </div>

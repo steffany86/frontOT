@@ -129,8 +129,8 @@ const PedidoMaterialPage = () => {
       setError('Seleccione un material existente del catalogo.')
       return
     }
-    if (!Number.isFinite(qty) || qty <= 0) {
-      setError('Cantidad debe ser mayor a 0.')
+    if (!Number.isInteger(qty) || qty <= 0) {
+      setError('Cantidad debe ser un numero entero mayor a 0.')
       return
     }
     setItems((prev) => {
@@ -252,14 +252,18 @@ const PedidoMaterialPage = () => {
                 <input
                   className="input-base rounded-sm !border-black bg-white py-2 text-right font-mono text-sm"
                   type="number"
-                  min="0.01"
-                  step="0.01"
+                  min="1"
+                  step="1"
+                  inputMode="numeric"
                   value={cantidad}
-                  onChange={(event) => setCantidad(event.target.value)}
+                  onChange={(event) => setCantidad(event.target.value.replace(/[^0-9]/g, ''))}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault()
                       addItem()
+                    }
+                    if (['.', ',', 'e', 'E', '-', '+'].includes(event.key)) {
+                      event.preventDefault()
                     }
                   }}
                 />
@@ -337,7 +341,7 @@ const PedidoMaterialPage = () => {
               <option value="">Todos</option>
               <option value="PENDIENTE">Pendiente</option>
               <option value="ENTREGADO">Entregado</option>
-              <option value="ANULADO">Anulado</option>
+              <option value="ELIMINADO">Eliminado</option>
             </select>
           </div>
         </div>
