@@ -21,6 +21,7 @@ import SupervisionPendienteModal from '../components/supervision/SupervisionPend
 import {
   fetchBackofficeSucursalesSupervision,
   fetchBackofficeSupervisionesPorEstado,
+  fetchBackofficeTecnicosPrincipalesSupervision,
   fetchSupervisores,
   fetchTecnicosPorSupervisor,
   fetchSupervisionTiposPenalizacion,
@@ -98,14 +99,16 @@ const BackOfficeSupervisionPage = () => {
   const [fechaHastaFiltro, setFechaHastaFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [supervisorFiltro, setSupervisorFiltro] = useState('')
   const [sucursalPendienteFiltro, setSucursalPendienteFiltro] = useState('')
+  const [tecnicoPendienteFiltro, setTecnicoPendienteFiltro] = useState('')
   const [detalle, setDetalle] = useState<SupervisionRegistro | null>(null)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
   const pendientesQuery = useQuery({
-    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro],
+    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro, tecnicoPendienteFiltro],
     queryFn: () =>
       fetchBackofficeSupervisionesPorEstado('pendiente', {
         sucursal: sucursalPendienteFiltro || undefined,
+        tecnicoPrincipal: tecnicoPendienteFiltro || undefined,
         limite: 300,
       }),
   })
@@ -113,6 +116,12 @@ const BackOfficeSupervisionPage = () => {
   const sucursalesSupervisionQuery = useQuery({
     queryKey: ['supervision', 'sucursales-backoffice'],
     queryFn: fetchBackofficeSucursalesSupervision,
+    staleTime: 300_000,
+  })
+
+  const tecnicosPrincipalesSupervisionQuery = useQuery({
+    queryKey: ['supervision', 'tecnicos-principales-backoffice'],
+    queryFn: fetchBackofficeTecnicosPrincipalesSupervision,
     staleTime: 300_000,
   })
 
@@ -393,6 +402,22 @@ const BackOfficeSupervisionPage = () => {
                 {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
                   <option key={sucursal} value={sucursal}>
                     {sucursal}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+            {activeTab === 'pendiente' ? (
+              <select
+                value={tecnicoPendienteFiltro}
+                onChange={(event) => setTecnicoPendienteFiltro(event.target.value)}
+                className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                aria-label="Filtrar por tecnico"
+                disabled={tecnicosPrincipalesSupervisionQuery.isLoading}
+              >
+                <option value="">Todos los tecnicos</option>
+                {(tecnicosPrincipalesSupervisionQuery.data ?? []).map((tecnico) => (
+                  <option key={tecnico} value={tecnico}>
+                    {tecnico}
                   </option>
                 ))}
               </select>

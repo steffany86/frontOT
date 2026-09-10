@@ -59,6 +59,7 @@ export type SupervisionListParams = {
   limite?: number
   sucursal?: string
   idSupervisor?: string
+  tecnicoPrincipal?: string
 }
 
 export type SupervisionTecnicosParams = {
