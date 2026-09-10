@@ -97,9 +97,10 @@ const BackOfficeSupervisionPage = () => {
   const [activeTab, setActiveTab] = useState<SupervisionTab>('pendiente')
   const [fechaDesdeFiltro, setFechaDesdeFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [fechaHastaFiltro, setFechaHastaFiltro] = useState(() => formatLocalDateInput(new Date()))
-  const [supervisorFiltro, setSupervisorFiltro] = useState('')
   const [sucursalPendienteFiltro, setSucursalPendienteFiltro] = useState('')
   const [supervisorNombrePendienteFiltro, setSupervisorNombrePendienteFiltro] = useState('')
+  const [sucursalCompletadoFiltro, setSucursalCompletadoFiltro] = useState('')
+  const [supervisorNombreCompletadoFiltro, setSupervisorNombreCompletadoFiltro] = useState('')
   const [detalle, setDetalle] = useState<SupervisionRegistro | null>(null)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
@@ -126,14 +127,21 @@ const BackOfficeSupervisionPage = () => {
   })
 
   const completadasQuery = useQuery({
-    queryKey: ['supervision', 'completadas-backoffice', fechaDesdeFiltro, fechaHastaFiltro, supervisorFiltro],
+    queryKey: ['supervision', 'completadas-backoffice', fechaDesdeFiltro, fechaHastaFiltro, sucursalCompletadoFiltro, supervisorNombreCompletadoFiltro],
     queryFn: () =>
       fetchBackofficeSupervisionesPorEstado('completado', {
         fechaDesde: fechaDesdeFiltro,
         fechaHasta: fechaHastaFiltro,
-        idSupervisor: supervisorFiltro || undefined,
+        sucursal: sucursalCompletadoFiltro || undefined,
+        supervisorNombre: supervisorNombreCompletadoFiltro || undefined,
         limite: 300,
       }),
+  })
+
+  const nombresSupervisorSupervisionCompletadoQuery = useQuery({
+    queryKey: ['supervision', 'nombres-supervisor-completado-backoffice', sucursalCompletadoFiltro],
+    queryFn: () => fetchBackofficeNombresSupervisorSupervision(sucursalCompletadoFiltro, 'completado'),
+    staleTime: 300_000,
   })
 
   const supervisoresQuery = useQuery({
@@ -442,15 +450,33 @@ const BackOfficeSupervisionPage = () => {
                   aria-label="Fecha hasta"
                 />
                 <select
-                  value={supervisorFiltro}
-                  onChange={(event) => setSupervisorFiltro(event.target.value)}
+                  value={sucursalCompletadoFiltro}
+                  onChange={(event) => {
+                    setSucursalCompletadoFiltro(event.target.value)
+                    setSupervisorNombreCompletadoFiltro('')
+                  }}
+                  className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                  aria-label="Filtrar por sucursal"
+                  disabled={sucursalesSupervisionQuery.isLoading}
+                >
+                  <option value="">Todas las sucursales</option>
+                  {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
+                    <option key={sucursal} value={sucursal}>
+                      {sucursal}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={supervisorNombreCompletadoFiltro}
+                  onChange={(event) => setSupervisorNombreCompletadoFiltro(event.target.value)}
                   className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                   aria-label="Filtrar por supervisor"
+                  disabled={nombresSupervisorSupervisionCompletadoQuery.isLoading}
                 >
                   <option value="">Todos los supervisores</option>
-                  {(supervisoresQuery.data ?? []).map((item) => (
-                    <option key={item.idSupervisor} value={item.idSupervisor}>
-                      {item.nombre}
+                  {(nombresSupervisorSupervisionCompletadoQuery.data ?? []).map((supervisor) => (
+                    <option key={supervisor} value={supervisor}>
+                      {supervisor}
                     </option>
                   ))}
                 </select>

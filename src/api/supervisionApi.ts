@@ -614,9 +614,15 @@ export const fetchBackofficeSucursalesSupervision = async (): Promise<string[]> 
   return Array.from(new Set(sucursales)).sort((a, b) => a.localeCompare(b))
 }
 
-export const fetchBackofficeNombresSupervisorSupervision = async (sucursal?: string): Promise<string[]> => {
+export const fetchBackofficeNombresSupervisorSupervision = async (
+  sucursal?: string,
+  estado: 'pendiente' | 'completado' = 'pendiente'
+): Promise<string[]> => {
   const { data } = await api.get('/backoffice/supervision/filtros/nombre-supervisor', {
-    params: sucursal?.trim() ? { sucursal: sucursal.trim() } : undefined,
+    params: {
+      ...(sucursal?.trim() ? { sucursal: sucursal.trim() } : undefined),
+      estado,
+    },
   })
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   const supervisores = rows
