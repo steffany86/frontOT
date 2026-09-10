@@ -22,6 +22,16 @@ import Modal from '../components/common/Modal'
 import { useAuth } from '../context/AuthContext'
 import { fetchSucursales } from '../services/authApi'
 import { getApiErrorMessage, isMaintenanceError } from '../services/httpClient'
+import { fetchBackendVersion } from '../api/versionApi'
+
+const formatFechaBoliviana = (isoOrValue: string) => new Date(isoOrValue).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })
+
+const formatFechaBackend = (fechaCompilacion: string | null | undefined) => {
+  if (!fechaCompilacion) return null
+  const date = new Date(`${fechaCompilacion.replace(' ', 'T')}-04:00`)
+  if (Number.isNaN(date.getTime())) return null
+  return formatFechaBoliviana(date.toISOString())
+}
 
 const LoginPage = () => {
   const navigate = useNavigate()
@@ -39,6 +49,14 @@ const LoginPage = () => {
     queryFn: fetchSucursales,
   })
   const sucursales = sucursalesQuery.data?.data ?? []
+
+  const backendVersionQuery = useQuery({
+    queryKey: ['backend-version'],
+    queryFn: fetchBackendVersion,
+    staleTime: 300_000,
+    retry: false,
+  })
+  const backendFecha = formatFechaBackend(backendVersionQuery.data?.fechaCompilacion)
 
   const mutation = useMutation({
     mutationFn: signIn,
@@ -116,7 +134,7 @@ const LoginPage = () => {
             </p>
             <div className="mt-6 h-1 w-16 rounded-full bg-[#2563eb]" />
 
-            <div className="mt-36 grid gap-2.5 md:grid-cols-2">
+            <div className="mt-10 grid gap-2.5 md:grid-cols-2">
               {features.map((feature) => (
                 <article key={feature.title} className="min-h-[94px] rounded-[14px] border border-[#dbe5fa] bg-white/35 p-3 shadow-[0_6px_14px_rgba(37,99,235,0.07)]">
                   <div className="flex items-start justify-between gap-3">
@@ -194,9 +212,9 @@ const LoginPage = () => {
           </section>
         </div>
 
-        <div className="pt-5 text-center text-sm text-[#6f82aa]">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
+        <div className="pt-3 text-center text-sm text-[#6f82aa]">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
         <div className="pt-1 text-center text-xs text-[#a7b3cf]">
-          Version desplegada: {new Date(__BUILD_TIME__).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })}
+          Version Front: {formatFechaBoliviana(__BUILD_TIME__)} &nbsp;|&nbsp; Back: {backendFecha ?? (backendVersionQuery.isLoading ? 'cargando...' : 'no disponible')}
         </div>
       </div>
       <Modal
