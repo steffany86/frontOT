@@ -167,7 +167,7 @@ const sanitizeListParams = (params?: SupervisionListParams): Record<string, unkn
     limite: params.limite && Number.isFinite(params.limite) ? Math.trunc(params.limite) : undefined,
     sucursal: params.sucursal?.trim() || undefined,
     idSupervisor: params.idSupervisor?.trim() || undefined,
-    tecnicoPrincipal: params.tecnicoPrincipal?.trim() || undefined,
+    supervisorNombre: params.supervisorNombre?.trim() || undefined,
   }).filter(([, value]) => value !== undefined && value !== null && value !== '')
   return entries.length ? Object.fromEntries(entries) : undefined
 }
@@ -614,13 +614,13 @@ export const fetchBackofficeSucursalesSupervision = async (): Promise<string[]> 
   return Array.from(new Set(sucursales)).sort((a, b) => a.localeCompare(b))
 }
 
-export const fetchBackofficeTecnicosPrincipalesSupervision = async (): Promise<string[]> => {
-  const { data } = await api.get('/backoffice/supervision/filtros/tecnicos-principales')
+export const fetchBackofficeNombresSupervisorSupervision = async (): Promise<string[]> => {
+  const { data } = await api.get('/backoffice/supervision/filtros/nombre-supervisor')
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
-  const tecnicos = rows
-    .map((row) => normalizeString(readValue(row, ['tecnicoPrincipal', 'nombre_Id_TecnicoPrincipal', 'TecnicoPrincipal'])))
+  const supervisores = rows
+    .map((row) => normalizeString(readValue(row, ['supervisor', 'nombre_Id_Supervisor', 'Supervisor'])))
     .filter((value): value is string => Boolean(value))
-  return Array.from(new Set(tecnicos)).sort((a, b) => a.localeCompare(b))
+  return Array.from(new Set(supervisores)).sort((a, b) => a.localeCompare(b))
 }
 
 export const fetchTecnicosPorSupervisor = async (idSupervisor: string, sucursal?: string, supervisorNombre?: string): Promise<SupervisionTecnico[]> => {

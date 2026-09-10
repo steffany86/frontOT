@@ -19,9 +19,9 @@ import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import SupervisionPendienteModal from '../components/supervision/SupervisionPendienteModal'
 import {
+  fetchBackofficeNombresSupervisorSupervision,
   fetchBackofficeSucursalesSupervision,
   fetchBackofficeSupervisionesPorEstado,
-  fetchBackofficeTecnicosPrincipalesSupervision,
   fetchSupervisores,
   fetchTecnicosPorSupervisor,
   fetchSupervisionTiposPenalizacion,
@@ -99,16 +99,16 @@ const BackOfficeSupervisionPage = () => {
   const [fechaHastaFiltro, setFechaHastaFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [supervisorFiltro, setSupervisorFiltro] = useState('')
   const [sucursalPendienteFiltro, setSucursalPendienteFiltro] = useState('')
-  const [tecnicoPendienteFiltro, setTecnicoPendienteFiltro] = useState('')
+  const [supervisorNombrePendienteFiltro, setSupervisorNombrePendienteFiltro] = useState('')
   const [detalle, setDetalle] = useState<SupervisionRegistro | null>(null)
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
   const pendientesQuery = useQuery({
-    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro, tecnicoPendienteFiltro],
+    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro, supervisorNombrePendienteFiltro],
     queryFn: () =>
       fetchBackofficeSupervisionesPorEstado('pendiente', {
         sucursal: sucursalPendienteFiltro || undefined,
-        tecnicoPrincipal: tecnicoPendienteFiltro || undefined,
+        supervisorNombre: supervisorNombrePendienteFiltro || undefined,
         limite: 300,
       }),
   })
@@ -119,9 +119,9 @@ const BackOfficeSupervisionPage = () => {
     staleTime: 300_000,
   })
 
-  const tecnicosPrincipalesSupervisionQuery = useQuery({
-    queryKey: ['supervision', 'tecnicos-principales-backoffice'],
-    queryFn: fetchBackofficeTecnicosPrincipalesSupervision,
+  const nombresSupervisorSupervisionQuery = useQuery({
+    queryKey: ['supervision', 'nombres-supervisor-backoffice'],
+    queryFn: fetchBackofficeNombresSupervisorSupervision,
     staleTime: 300_000,
   })
 
@@ -408,16 +408,16 @@ const BackOfficeSupervisionPage = () => {
             ) : null}
             {activeTab === 'pendiente' ? (
               <select
-                value={tecnicoPendienteFiltro}
-                onChange={(event) => setTecnicoPendienteFiltro(event.target.value)}
+                value={supervisorNombrePendienteFiltro}
+                onChange={(event) => setSupervisorNombrePendienteFiltro(event.target.value)}
                 className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
-                aria-label="Filtrar por tecnico"
-                disabled={tecnicosPrincipalesSupervisionQuery.isLoading}
+                aria-label="Filtrar por supervisor"
+                disabled={nombresSupervisorSupervisionQuery.isLoading}
               >
-                <option value="">Todos los tecnicos</option>
-                {(tecnicosPrincipalesSupervisionQuery.data ?? []).map((tecnico) => (
-                  <option key={tecnico} value={tecnico}>
-                    {tecnico}
+                <option value="">Todos los supervisores</option>
+                {(nombresSupervisorSupervisionQuery.data ?? []).map((supervisor) => (
+                  <option key={supervisor} value={supervisor}>
+                    {supervisor}
                   </option>
                 ))}
               </select>
