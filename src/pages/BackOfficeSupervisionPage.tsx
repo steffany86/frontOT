@@ -338,10 +338,6 @@ const BackOfficeSupervisionPage = () => {
           <h2 className="text-2xl font-semibold text-slate-900">Supervisiones Pendientes</h2>
           <p className="text-sm text-slate-500">Gestiona las supervisiones agendadas para supervisores.</p>
         </div>
-        <Button onClick={() => setModalOpen(true)}>
-          <FontAwesomeIcon icon={faPlus} />
-          Agendar Supervision
-        </Button>
       </div>
 
       <FormCard
@@ -377,6 +373,10 @@ const BackOfficeSupervisionPage = () => {
               {completadas.length}
             </span>
           </button>
+          <Button onClick={() => setModalOpen(true)} className="ml-auto">
+            <FontAwesomeIcon icon={faPlus} />
+            Agendar Supervision
+          </Button>
         </div>
 
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1">
