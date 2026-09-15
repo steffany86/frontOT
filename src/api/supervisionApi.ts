@@ -120,6 +120,7 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     idSupervision: normalizeString(readValue(row, ['idSupervision', 'id_supervision', 'idsupervision', 'Id_Supervision'])),
     id: normalizeString(readValue(row, ['id', 'Id', 'ID'])) || undefined,
     fechaRegistro: normalizeString(readValue(row, ['fechaRegistro', 'fecha_registro', 'FechaRegistro'])) || undefined,
+    fechaSupervision: normalizeString(readValue(row, ['fechaSupervision', 'fecha_supervision', 'FechaSupervision'])) || undefined,
     idSupervisor: normalizeString(readValue(row, ['idSupervisor', 'id_supervisor', 'Id_Supervisor'])) || undefined,
     supervisor: supervisorNombre || normalizeString(readValue(row, ['supervisor', 'nombreSupervisor'])) || undefined,
     idTecnicoPrincipal: normalizeString(readValue(row, ['idTecnicoPrincipal', 'id_tecnico_principal', 'Id_TecnicoPrincipal'])) || undefined,
@@ -156,6 +157,8 @@ const mapRegistro = (row: Record<string, unknown>): SupervisionRegistro => {
     estadoSup: normalizeString(readValue(row, ['estadoSup', 'estado_sup', 'estdo_sup', 'EstadoSup'])) || undefined,
     origen: normalizeString(readValue(row, ['origen', 'Origen'])) || undefined,
     origenExterno: readValue(row, ['origenExterno', 'origen_externo']) === true || normalizeString(readValue(row, ['origenExterno', 'origen_externo'])) === 'true',
+    sucursal: normalizeString(readValue(row, ['sucursal', 'Sucursal'])) || undefined,
+    creadoPor: normalizeString(readValue(row, ['creadoPor', 'creado_por'])) || undefined,
   }
 }
 
@@ -168,6 +171,7 @@ const sanitizeListParams = (params?: SupervisionListParams): Record<string, unkn
     sucursal: params.sucursal?.trim() || undefined,
     idSupervisor: params.idSupervisor?.trim() || undefined,
     supervisorNombre: params.supervisorNombre?.trim() || undefined,
+    tipoFecha: params.tipoFecha || undefined,
   }).filter(([, value]) => value !== undefined && value !== null && value !== '')
   return entries.length ? Object.fromEntries(entries) : undefined
 }

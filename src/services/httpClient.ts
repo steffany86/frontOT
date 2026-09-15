@@ -292,6 +292,9 @@ export const setUnauthorizedHandler = (handler: (() => void) | null): void => {
 
 const httpClient = axios.create({
   baseURL: apiBaseURL,
+  // Sin esto, una subida lenta (ej. fotos pesadas) se queda "cargando" para siempre
+  // sin mostrar ningun error si el servidor nunca responde.
+  timeout: 120_000,
 })
 
 httpClient.interceptors.request.use((config) => {

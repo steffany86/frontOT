@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useQueries, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPlus,
@@ -22,6 +22,7 @@ import {
   fetchBackofficeNombresSupervisorSupervision,
   fetchBackofficeSucursalesSupervision,
   fetchBackofficeSupervisionesPorEstado,
+  fetchSupervisionDetalle,
   fetchSupervisores,
   fetchTecnicosPorSupervisor,
   fetchSupervisionTiposPenalizacion,
@@ -97,6 +98,9 @@ const BackOfficeSupervisionPage = () => {
   const [activeTab, setActiveTab] = useState<SupervisionTab>('pendiente')
   const [fechaDesdeFiltro, setFechaDesdeFiltro] = useState(() => formatLocalDateInput(new Date()))
   const [fechaHastaFiltro, setFechaHastaFiltro] = useState(() => formatLocalDateInput(new Date()))
+  const [tipoFechaCompletadoFiltro, setTipoFechaCompletadoFiltro] = useState<'registro' | 'supervision'>('registro')
+  const [fechaDesdePendienteFiltro, setFechaDesdePendienteFiltro] = useState('')
+  const [fechaHastaPendienteFiltro, setFechaHastaPendienteFiltro] = useState('')
   const [sucursalPendienteFiltro, setSucursalPendienteFiltro] = useState('')
   const [supervisorNombrePendienteFiltro, setSupervisorNombrePendienteFiltro] = useState('')
   const [sucursalCompletadoFiltro, setSucursalCompletadoFiltro] = useState('')
@@ -105,9 +109,18 @@ const BackOfficeSupervisionPage = () => {
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
 
   const pendientesQuery = useQuery({
-    queryKey: ['supervision', 'pendientes-backoffice', sucursalPendienteFiltro, supervisorNombrePendienteFiltro],
+    queryKey: [
+      'supervision',
+      'pendientes-backoffice',
+      fechaDesdePendienteFiltro,
+      fechaHastaPendienteFiltro,
+      sucursalPendienteFiltro,
+      supervisorNombrePendienteFiltro,
+    ],
     queryFn: () =>
       fetchBackofficeSupervisionesPorEstado('pendiente', {
+        fechaDesde: fechaDesdePendienteFiltro || undefined,
+        fechaHasta: fechaHastaPendienteFiltro || undefined,
         sucursal: sucursalPendienteFiltro || undefined,
         supervisorNombre: supervisorNombrePendienteFiltro || undefined,
         limite: 300,
@@ -127,13 +140,22 @@ const BackOfficeSupervisionPage = () => {
   })
 
   const completadasQuery = useQuery({
-    queryKey: ['supervision', 'completadas-backoffice', fechaDesdeFiltro, fechaHastaFiltro, sucursalCompletadoFiltro, supervisorNombreCompletadoFiltro],
+    queryKey: [
+      'supervision',
+      'completadas-backoffice',
+      fechaDesdeFiltro,
+      fechaHastaFiltro,
+      sucursalCompletadoFiltro,
+      supervisorNombreCompletadoFiltro,
+      tipoFechaCompletadoFiltro,
+    ],
     queryFn: () =>
       fetchBackofficeSupervisionesPorEstado('completado', {
         fechaDesde: fechaDesdeFiltro,
         fechaHasta: fechaHastaFiltro,
         sucursal: sucursalCompletadoFiltro || undefined,
         supervisorNombre: supervisorNombreCompletadoFiltro || undefined,
+        tipoFecha: tipoFechaCompletadoFiltro,
         limite: 300,
       }),
   })
@@ -180,34 +202,24 @@ const BackOfficeSupervisionPage = () => {
     staleTime: 300_000,
   })
 
+  // El listado de Completadas no trae las fotos (son pesadas y ralentizaban la carga de
+  // la pestana entera). Se piden aparte, solo para la supervision que se esta viendo.
+  const detalleFotosQuery = useQuery({
+    queryKey: ['backoffice', 'supervision-detalle-fotos', detalle?.idSupervision || ''],
+    queryFn: () => fetchSupervisionDetalle(detalle?.idSupervision || ''),
+    enabled: Boolean(detalle?.idSupervision),
+    staleTime: 300_000,
+  })
+  const detalleConFotos: SupervisionRegistro | null = detalle
+    ? { ...detalle, ...detalleFotosQuery.data }
+    : null
+
   const pendientes = pendientesQuery.data ?? []
   const completadas = completadasQuery.data ?? []
   const activeQuery = activeTab === 'pendiente' ? pendientesQuery : completadasQuery
   const activeItems = activeTab === 'pendiente' ? pendientes : completadas
-  const supervisorIdsVisibles = useMemo(() => {
-    const ids = new Set<string>()
-    for (const row of [...pendientes, ...completadas]) {
-      const id = normalizeId(row.idSupervisor || row.supervisor)
-      if (id) ids.add(id)
-    }
-    return Array.from(ids)
-  }, [pendientes, completadas])
-
-  const tecnicosVisiblesQueries = useQueries({
-    queries: supervisorIdsVisibles.map((idSupervisor) => {
-      const supervisorNombre = (supervisoresQuery.data ?? []).find((item) => normalizeId(item.idSupervisor) === idSupervisor)?.nombre
-      return {
-        queryKey: ['backoffice', 'tecnicos-supervisor-resumen', idSupervisor, supervisorNombre || ''],
-        queryFn: () => fetchTecnicosPorSupervisor(idSupervisor, undefined, supervisorNombre),
-        enabled: Boolean(idSupervisor),
-        staleTime: 300_000,
-      }
-    }),
-  })
   const activeCopy = activeTab === 'pendiente'
     ? {
-        title: 'Supervisiones Pendientes Agendadas',
-        description: `Total: ${pendientes.length} supervisiones pendientes`,
         emptyTitle: 'No hay supervisiones pendientes agendadas',
         emptyHelp: 'Haz clic en "Agendar Supervision" para crear una nueva',
         loading: 'Cargando pendientes...',
@@ -218,8 +230,6 @@ const BackOfficeSupervisionPage = () => {
         iconClass: 'text-amber-300',
       }
     : {
-        title: 'Supervisiones Completadas',
-        description: `Total: ${completadas.length} supervisiones completadas`,
         emptyTitle: 'No hay supervisiones completadas',
         emptyHelp: 'Cuando una supervision se complete aparecera en esta lista',
         loading: 'Cargando completadas...',
@@ -245,41 +255,48 @@ const BackOfficeSupervisionPage = () => {
   const tecnicoMap = useMemo(
     () => {
       const map = new Map<string, string>()
-      for (const query of tecnicosVisiblesQueries) {
-        for (const item of query.data ?? []) {
-          map.set(normalizeId(item.idTecnico), item.tecnico)
-        }
-      }
       for (const item of tecnicosDetalleQuery.data ?? []) {
         map.set(normalizeId(item.idTecnico), item.tecnico)
       }
       return map
     },
-    [tecnicosDetalleQuery.data, tecnicosVisiblesQueries]
+    [tecnicosDetalleQuery.data]
   )
+
+  // Los nombres denormalizados en tbl_Supervision a veces vienen con la sucursal
+  // pegada al final (ej. "ALEJANDRO FRANCO CLAROS Montero"). Como la sucursal ya
+  // se muestra en su propia linea, se recorta ese sufijo para no repetirla.
+  const stripSucursalSuffix = (value: string, sucursal?: string): string => {
+    const suc = sucursal?.trim()
+    if (!suc || !value) return value
+    const lowerValue = value.toLowerCase()
+    const lowerSuc = suc.toLowerCase()
+    if (lowerValue === lowerSuc) return value
+    if (lowerValue.endsWith(lowerSuc)) {
+      return value.slice(0, value.length - suc.length).trimEnd() || value
+    }
+    return value
+  }
 
   const resolveSupervisor = (row: SupervisionRegistro): string => {
     const id = normalizeId(row.idSupervisor || row.supervisor)
     const byCatalog = id ? (supervisoresQuery.data ?? []).find((item) => normalizeId(item.idSupervisor) === id)?.nombre : undefined
-    if (byCatalog?.trim()) return byCatalog.trim()
-    if (row.supervisor?.trim() && row.supervisor.trim() !== id) return row.supervisor.trim()
-    return id || '-'
+    const nombre = byCatalog?.trim() || (row.supervisor?.trim() && row.supervisor.trim() !== id ? row.supervisor.trim() : '')
+    return nombre ? stripSucursalSuffix(nombre, row.sucursal) : '-'
   }
 
   const resolveTecnicoPrincipal = (row: SupervisionRegistro): string => {
     const id = normalizeId(row.idTecnicoPrincipal || row.tecnicoPrincipal)
     const byCatalog = id ? tecnicoMap.get(id) : undefined
-    if (byCatalog?.trim()) return byCatalog.trim()
-    if (row.tecnicoPrincipal?.trim() && row.tecnicoPrincipal.trim() !== id) return row.tecnicoPrincipal.trim()
-    return id || '-'
+    const nombre = byCatalog?.trim() || (row.tecnicoPrincipal?.trim() && row.tecnicoPrincipal.trim() !== id ? row.tecnicoPrincipal.trim() : '')
+    return nombre ? stripSucursalSuffix(nombre, row.sucursal) : '-'
   }
 
   const resolveTecnicoAuxiliar = (row: SupervisionRegistro): string => {
     const id = normalizeId(row.idTecnicoAuxiliar || row.tecnicoAuxiliar)
     const byCatalog = id ? tecnicoMap.get(id) : undefined
-    if (byCatalog?.trim()) return byCatalog.trim()
-    if (row.tecnicoAuxiliar?.trim() && row.tecnicoAuxiliar.trim() !== id) return row.tecnicoAuxiliar.trim()
-    return id || '-'
+    const nombre = byCatalog?.trim() || (row.tecnicoAuxiliar?.trim() && row.tecnicoAuxiliar.trim() !== id ? row.tecnicoAuxiliar.trim() : '')
+    return nombre ? stripSucursalSuffix(nombre, row.sucursal) : '-'
   }
 
   const resolveTipoSupervision = (row: SupervisionRegistro): string => {
@@ -319,6 +336,10 @@ const BackOfficeSupervisionPage = () => {
       </div>
       <div className="space-y-2 text-xs">
         <div>
+          <span className="font-medium text-slate-500">Sucursal:</span>{' '}
+          <span className="text-slate-700">{sup.sucursal?.trim() || '-'}</span>
+        </div>
+        <div>
           <span className="font-medium text-slate-500">Supervisor:</span>{' '}
           <span className="text-slate-700">{resolveSupervisor(sup)}</span>
         </div>
@@ -336,8 +357,14 @@ const BackOfficeSupervisionPage = () => {
         </div>
         {sup.fechaRegistro && (
           <div>
-            <span className="font-medium text-slate-500">Fecha:</span>{' '}
+            <span className="font-medium text-slate-500">Fecha Agendada:</span>{' '}
             <span className="text-slate-700">{formatDateTime(sup.fechaRegistro)}</span>
+          </div>
+        )}
+        {sup.fechaSupervision && (
+          <div>
+            <span className="font-medium text-slate-500">Fecha Supervision:</span>{' '}
+            <span className="text-slate-700">{formatDateTime(sup.fechaSupervision)}</span>
           </div>
         )}
       </div>
@@ -351,18 +378,10 @@ const BackOfficeSupervisionPage = () => {
   return (
     <div className="bento-page">
       <div className="bento-page-head">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Supervisiones Pendientes</h2>
-          <p className="text-sm text-slate-500">Gestiona las supervisiones agendadas para supervisores.</p>
-        </div>
+        <h2 className="text-2xl font-semibold text-slate-900">Supervisiones</h2>
       </div>
 
-      <FormCard
-        title={activeCopy.title}
-        description={
-          activeTab === 'completado' ? `${activeCopy.description} del ${fechaDesdeFiltro} al ${fechaHastaFiltro}` : activeCopy.description
-        }
-      >
+      <FormCard title="" hideHeader>
         <div className="mb-1 flex flex-wrap items-center gap-1 pb-1">
           <button
             type="button"
@@ -396,90 +415,131 @@ const BackOfficeSupervisionPage = () => {
           </Button>
         </div>
 
-        <div className="flex min-w-0 items-center gap-1 overflow-x-auto pb-1">
-          <div className="flex min-w-max shrink-0 items-center gap-1">
+        <div className="flex min-w-0 items-end gap-2 overflow-x-auto pb-1">
+          <div className="flex min-w-max shrink-0 items-end gap-2">
             {activeTab === 'pendiente' ? (
-              <select
-                value={sucursalPendienteFiltro}
-                onChange={(event) => {
-                  setSucursalPendienteFiltro(event.target.value)
-                  setSupervisorNombrePendienteFiltro('')
-                }}
-                className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
-                aria-label="Filtrar por sucursal"
-                disabled={sucursalesSupervisionQuery.isLoading}
-              >
-                <option value="">Todas las sucursales</option>
-                {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
-                  <option key={sucursal} value={sucursal}>
-                    {sucursal}
-                  </option>
-                ))}
-              </select>
-            ) : null}
-            {activeTab === 'pendiente' ? (
-              <select
-                value={supervisorNombrePendienteFiltro}
-                onChange={(event) => setSupervisorNombrePendienteFiltro(event.target.value)}
-                className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
-                aria-label="Filtrar por supervisor"
-                disabled={nombresSupervisorSupervisionQuery.isLoading}
-              >
-                <option value="">Todos los supervisores</option>
-                {(nombresSupervisorSupervisionQuery.data ?? []).map((supervisor) => (
-                  <option key={supervisor} value={supervisor}>
-                    {supervisor}
-                  </option>
-                ))}
-              </select>
+              <>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Sucursal
+                  <select
+                    value={sucursalPendienteFiltro}
+                    onChange={(event) => {
+                      setSucursalPendienteFiltro(event.target.value)
+                      setSupervisorNombrePendienteFiltro('')
+                    }}
+                    className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={sucursalesSupervisionQuery.isLoading}
+                  >
+                    <option value="">Todas las sucursales</option>
+                    {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Supervisor
+                  <select
+                    value={supervisorNombrePendienteFiltro}
+                    onChange={(event) => setSupervisorNombrePendienteFiltro(event.target.value)}
+                    className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={nombresSupervisorSupervisionQuery.isLoading}
+                  >
+                    <option value="">Todos los supervisores</option>
+                    {(nombresSupervisorSupervisionQuery.data ?? []).map((supervisor) => (
+                      <option key={supervisor} value={supervisor}>
+                        {supervisor}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha desde
+                  <input
+                    type="date"
+                    value={fechaDesdePendienteFiltro}
+                    onChange={(event) => setFechaDesdePendienteFiltro(event.target.value)}
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha hasta
+                  <input
+                    type="date"
+                    value={fechaHastaPendienteFiltro}
+                    onChange={(event) => setFechaHastaPendienteFiltro(event.target.value)}
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
+              </>
             ) : null}
             {activeTab === 'completado' ? (
               <>
-                <input
-                  type="date"
-                  value={fechaDesdeFiltro}
-                  onChange={(event) => setFechaDesdeFiltro(event.target.value || formatLocalDateInput(new Date()))}
-                  className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
-                  aria-label="Fecha desde"
-                />
-                <input
-                  type="date"
-                  value={fechaHastaFiltro}
-                  onChange={(event) => setFechaHastaFiltro(event.target.value || formatLocalDateInput(new Date()))}
-                  className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
-                  aria-label="Fecha hasta"
-                />
-                <select
-                  value={sucursalCompletadoFiltro}
-                  onChange={(event) => {
-                    setSucursalCompletadoFiltro(event.target.value)
-                    setSupervisorNombreCompletadoFiltro('')
-                  }}
-                  className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
-                  aria-label="Filtrar por sucursal"
-                  disabled={sucursalesSupervisionQuery.isLoading}
-                >
-                  <option value="">Todas las sucursales</option>
-                  {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
-                    <option key={sucursal} value={sucursal}>
-                      {sucursal}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={supervisorNombreCompletadoFiltro}
-                  onChange={(event) => setSupervisorNombreCompletadoFiltro(event.target.value)}
-                  className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
-                  aria-label="Filtrar por supervisor"
-                  disabled={nombresSupervisorSupervisionCompletadoQuery.isLoading}
-                >
-                  <option value="">Todos los supervisores</option>
-                  {(nombresSupervisorSupervisionCompletadoQuery.data ?? []).map((supervisor) => (
-                    <option key={supervisor} value={supervisor}>
-                      {supervisor}
-                    </option>
-                  ))}
-                </select>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Sucursal
+                  <select
+                    value={sucursalCompletadoFiltro}
+                    onChange={(event) => {
+                      setSucursalCompletadoFiltro(event.target.value)
+                      setSupervisorNombreCompletadoFiltro('')
+                    }}
+                    className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={sucursalesSupervisionQuery.isLoading}
+                  >
+                    <option value="">Todas las sucursales</option>
+                    {(sucursalesSupervisionQuery.data ?? []).map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Supervisor
+                  <select
+                    value={supervisorNombreCompletadoFiltro}
+                    onChange={(event) => setSupervisorNombreCompletadoFiltro(event.target.value)}
+                    className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={nombresSupervisorSupervisionCompletadoQuery.isLoading}
+                  >
+                    <option value="">Todos los supervisores</option>
+                    {(nombresSupervisorSupervisionCompletadoQuery.data ?? []).map((supervisor) => (
+                      <option key={supervisor} value={supervisor}>
+                        {supervisor}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Buscar por
+                  <select
+                    value={tipoFechaCompletadoFiltro}
+                    onChange={(event) => setTipoFechaCompletadoFiltro(event.target.value as 'registro' | 'supervision')}
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                  >
+                    <option value="registro">Fecha Registro</option>
+                    <option value="supervision">Fecha Supervision</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha desde
+                  <input
+                    type="date"
+                    value={fechaDesdeFiltro}
+                    onChange={(event) => setFechaDesdeFiltro(event.target.value || formatLocalDateInput(new Date()))}
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha hasta
+                  <input
+                    type="date"
+                    value={fechaHastaFiltro}
+                    onChange={(event) => setFechaHastaFiltro(event.target.value || formatLocalDateInput(new Date()))}
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
               </>
             ) : null}
             <button
@@ -546,7 +606,8 @@ const BackOfficeSupervisionPage = () => {
                 </h4>
                 <div className="grid gap-3 md:grid-cols-3">
                   {[
-                    { label: 'Fecha', value: formatDateTime(detalle.fechaRegistro) },
+                    { label: 'Fecha Agendada', value: formatDateTime(detalle.fechaRegistro) },
+                    { label: 'Fecha Supervision', value: formatDateTime(detalle.fechaSupervision) },
                     { label: 'Supervisor', value: resolveSupervisor(detalle) },
                     { label: 'Tecnico principal', value: resolveTecnicoPrincipal(detalle) },
                     { label: 'Tecnico auxiliar', value: resolveTecnicoAuxiliar(detalle) },
@@ -567,6 +628,7 @@ const BackOfficeSupervisionPage = () => {
                   Referencias
                 </h4>
                 <div className="space-y-2 text-sm">
+                  <p><span className="text-slate-500">Agendado por:</span> <span className="font-semibold text-slate-700">{detalle.creadoPor || '-'}</span></p>
                   <p><span className="text-slate-500">Orden de trabajo:</span> <span className="font-semibold text-slate-700">{detalle.ordenTrabajo || '-'}</span></p>
                   <p><span className="text-slate-500">Codigo:</span> <span className="font-semibold text-slate-700">{detalle.codigo || '-'}</span></p>
                   <p><span className="text-slate-500">Tecnologia:</span> <span className="font-semibold text-slate-700">{detalle.tecnologia || '-'}</span></p>
@@ -626,12 +688,14 @@ const BackOfficeSupervisionPage = () => {
                   Galeria de Evidencias
                 </h4>
                 <span className="text-xs text-slate-500">
-                  {photoFields.filter((photo) => resolveImageSrc(detalle[photo.key])).length} fotos registradas
+                  {detalleFotosQuery.isLoading
+                    ? 'Cargando fotos...'
+                    : `${photoFields.filter((photo) => resolveImageSrc(detalleConFotos?.[photo.key])).length} fotos registradas`}
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {photoFields.map((photo) => {
-                  const src = resolveImageSrc(detalle[photo.key])
+                  const src = detalleFotosQuery.isLoading ? null : resolveImageSrc(detalleConFotos?.[photo.key])
                   return (
                     <div key={photo.key} className="rounded-xl border border-slate-200 bg-white p-2">
                       {src ? (
@@ -643,7 +707,9 @@ const BackOfficeSupervisionPage = () => {
                           <img src={src} alt={photo.label} className="h-28 w-full rounded-lg object-cover" />
                         </button>
                       ) : (
-                        <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-500">Sin imagen</div>
+                        <div className="flex h-28 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-500">
+                          {detalleFotosQuery.isLoading ? 'Cargando...' : 'Sin imagen'}
+                        </div>
                       )}
                       <p className="mt-2 truncate text-[11px] text-slate-500">{photo.label}</p>
                     </div>

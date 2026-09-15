@@ -19,6 +19,7 @@ export type SupervisionRegistro = {
   idSupervision: string
   id?: string
   fechaRegistro?: string
+  fechaSupervision?: string
   idSupervisor?: string
   supervisor?: string
   idTecnicoPrincipal?: string
@@ -51,6 +52,8 @@ export type SupervisionRegistro = {
   estadoSup?: 'pendiente' | 'completado' | string
   origen?: string
   origenExterno?: boolean
+  sucursal?: string
+  creadoPor?: string
 }
 
 export type SupervisionListParams = {
@@ -60,6 +63,7 @@ export type SupervisionListParams = {
   sucursal?: string
   idSupervisor?: string
   supervisorNombre?: string
+  tipoFecha?: 'registro' | 'supervision'
 }
 
 export type SupervisionTecnicosParams = {

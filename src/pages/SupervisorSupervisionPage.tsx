@@ -1,7 +1,7 @@
 ﻿import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faBriefcase, faCalendarDays, faCamera, faCameraRetro, faCheckCircle, faClipboardList, faClock, faCloudArrowUp, faComments, faEllipsisVertical, faEye, faIdCard, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUser, faUserGear } from '@fortawesome/free-solid-svg-icons'
+import { faBriefcase, faCalendarDays, faCamera, faCameraRetro, faCheckCircle, faClipboardList, faClock, faCloudArrowUp, faComments, faEllipsisVertical, faEye, faIdCard, faListUl, faLocationDot, faMagnifyingGlass, faRotateRight, faScrewdriverWrench, faUser, faUserGear, faUserPen } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
@@ -12,6 +12,7 @@ import UbicacionManualCapture from '../components/common/UbicacionManualCapture'
 import {
   aprobarInicioJornadaPendiente,
   createSupervision,
+  fetchBackofficeSucursalesSupervision,
   fetchHistoricoJornadaDetalle,
   fetchInicioJornadaFirma,
   fetchInicioJornadaImagen,
@@ -29,7 +30,6 @@ import {
   fetchSupervisores,
   realizarSupervisionPendiente,
 } from '../api/supervisionApi'
-import { fetchSucursales } from '../services/authApi'
 import type {
   SupervisionCreatePayload,
   SupervisionInicioPendiente,
@@ -191,13 +191,6 @@ const formatDateParts = (value?: string): { date: string; time: string } => {
       minute: '2-digit',
     }).format(date),
   }
-}
-
-const formatIsoDateDisplay = (value?: string): string => {
-  if (!value) return '-'
-  const [year, month, day] = value.split('-')
-  if (!year || !month || !day) return value
-  return `${day}/${month}/${year}`
 }
 
 const startOfToday = (): Date => {
@@ -521,6 +514,11 @@ const SupervisorSupervisionPage = () => {
   const [agendaEstadoVista, setAgendaEstadoVista] = useState<AgendaEstadoVista>('pendientes')
   const [sucursalFiltro, setSucursalFiltro] = useState('')
   const [supervisorFiltro, setSupervisorFiltro] = useState('')
+  const [agendaPendienteFechaDesdeFiltro, setAgendaPendienteFechaDesdeFiltro] = useState('')
+  const [agendaPendienteFechaHastaFiltro, setAgendaPendienteFechaHastaFiltro] = useState('')
+  const [agendaCompletadaFechaDesdeFiltro, setAgendaCompletadaFechaDesdeFiltro] = useState(() => getTodayIsoDate())
+  const [agendaCompletadaFechaHastaFiltro, setAgendaCompletadaFechaHastaFiltro] = useState(() => getTodayIsoDate())
+  const [agendaTipoFechaCompletadoFiltro, setAgendaTipoFechaCompletadoFiltro] = useState<'registro' | 'supervision'>('registro')
   const [zoomImageSrc, setZoomImageSrc] = useState<string | null>(null)
   const [inicioPendienteDetalle, setInicioPendienteDetalle] = useState<SupervisionInicioPendiente | null>(null)
   const [jornadaDetalleModo, setJornadaDetalleModo] = useState<'inicio' | 'cierre'>('inicio')
@@ -566,7 +564,7 @@ const SupervisorSupervisionPage = () => {
 
   const sucursalesQuery = useQuery({
     queryKey: ['supervision', 'sucursales-filtro'],
-    queryFn: fetchSucursales,
+    queryFn: fetchBackofficeSucursalesSupervision,
     staleTime: 300_000,
   })
 
@@ -589,15 +587,37 @@ const SupervisorSupervisionPage = () => {
   })
 
   const listadoPendientesQuery = useQuery({
-    queryKey: ['supervision', 'listado-pendientes', filtroActivo, sucursalFiltro, supervisorFiltro],
+    queryKey: ['supervision', 'listado-pendientes', agendaPendienteFechaDesdeFiltro, agendaPendienteFechaHastaFiltro, sucursalFiltro, supervisorFiltro],
     queryFn: () =>
       fetchSupervisionesPendientes({
-        fechaDesde: filtroActivo.fechaDesde || undefined,
-        fechaHasta: filtroActivo.fechaHasta || undefined,
+        fechaDesde: agendaPendienteFechaDesdeFiltro || undefined,
+        fechaHasta: agendaPendienteFechaHastaFiltro || undefined,
         sucursal: sucursalFiltro || undefined,
         idSupervisor: supervisorFiltro || undefined,
         limite: 300,
       }),
+  })
+
+  const agendaCompletadasQuery = useQuery({
+    queryKey: [
+      'supervision',
+      'agenda-completadas',
+      agendaCompletadaFechaDesdeFiltro,
+      agendaCompletadaFechaHastaFiltro,
+      sucursalFiltro,
+      supervisorFiltro,
+      agendaTipoFechaCompletadoFiltro,
+    ],
+    queryFn: () =>
+      fetchSupervisiones({
+        fechaDesde: agendaCompletadaFechaDesdeFiltro || undefined,
+        fechaHasta: agendaCompletadaFechaHastaFiltro || undefined,
+        sucursal: sucursalFiltro || undefined,
+        idSupervisor: supervisorFiltro || undefined,
+        tipoFecha: agendaTipoFechaCompletadoFiltro,
+        limite: 300,
+      }),
+    enabled: vistaTopbar === 'agenda',
   })
 
   const detalleQuery = useQuery({
@@ -702,16 +722,16 @@ const SupervisorSupervisionPage = () => {
   const catalogoTecnicos = tecnicosQuery.data ?? []
   const listados = listadoQuery.data ?? []
   const listadosPendientes = listadoPendientesQuery.data ?? []
-  const agendaFechaSeleccionada = filtroActivo.fechaDesde || filtroDraft.fechaDesde || getTodayIsoDate()
+  const agendaCompletadas = agendaCompletadasQuery.data ?? []
   const listadosCompletadosAgenda = useMemo(
-    () => listados.filter(isSupervisionCompletada),
-    [listados]
+    () => agendaCompletadas.filter(isSupervisionCompletada),
+    [agendaCompletadas]
   )
   const supervisionesCompletadasAgenda = listadosCompletadosAgenda.length
   const agendaRows = agendaEstadoVista === 'completadas' ? listadosCompletadosAgenda : listadosPendientes
-  const agendaRowsLoading = agendaEstadoVista === 'completadas' ? listadoQuery.isLoading : listadoPendientesQuery.isLoading
-  const agendaRowsError = agendaEstadoVista === 'completadas' ? listadoQuery.error : listadoPendientesQuery.error
-  const agendaRowsIsError = agendaEstadoVista === 'completadas' ? listadoQuery.isError : listadoPendientesQuery.isError
+  const agendaRowsLoading = agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.isLoading : listadoPendientesQuery.isLoading
+  const agendaRowsError = agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.error : listadoPendientesQuery.error
+  const agendaRowsIsError = agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.isError : listadoPendientesQuery.isError
   const iniciosPendientes = iniciosPendientesQuery.data ?? []
   const iniciosPendientesHoy = useMemo(
     () => iniciosPendientes.filter(isJornadaToday),
@@ -994,7 +1014,7 @@ const SupervisorSupervisionPage = () => {
             <span className="inline-flex w-fit items-center rounded-full bg-blue-200 px-2 py-0.5 text-[10px] font-medium text-[#0f2f63]">
               {resolveTipoSupervision(row)}
             </span>
-            {row.origen === 'REV_PENALIZADA' || row.origenExterno ? (
+            {row.origen === 'CORREO' || row.origen === 'REV_PENALIZADA' || row.origenExterno ? (
               <span className="inline-flex w-fit items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
                 Revision penalizada
               </span>
@@ -1063,6 +1083,10 @@ const SupervisorSupervisionPage = () => {
     () => new Map<string, string>((tiposTrabajoQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])),
     [tiposTrabajoQuery.data]
   )
+  const tipoPenalizacionMap = useMemo(
+    () => new Map<string, string>((tiposPenalizacionQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])),
+    [tiposPenalizacionQuery.data]
+  )
   const resolveTipoSupervisionDetalle = (row: SupervisionRegistro): string => {
     const id = normalizeId(row.idTipoSupervision || row.tipoSupervision)
     const byCatalog = id ? tipoSupervisionMap.get(id) : undefined
@@ -1075,6 +1099,13 @@ const SupervisorSupervisionPage = () => {
     const byCatalog = id ? tipoTrabajoMap.get(id) : undefined
     if (byCatalog?.trim()) return byCatalog.trim()
     if (row.tipoTrabajo?.trim() && row.tipoTrabajo.trim() !== id) return row.tipoTrabajo.trim()
+    return id || '-'
+  }
+  const resolveTipoPenalizacionDetalle = (row: SupervisionRegistro): string => {
+    const id = normalizeId(row.idTipoPenalizacion || row.tipoPenalizacion)
+    const byCatalog = id ? tipoPenalizacionMap.get(id) : undefined
+    if (byCatalog?.trim()) return byCatalog.trim()
+    if (row.tipoPenalizacion?.trim() && row.tipoPenalizacion.trim() !== id) return row.tipoPenalizacion.trim()
     return id || '-'
   }
 
@@ -1205,7 +1236,7 @@ const SupervisorSupervisionPage = () => {
           })}
         </div>
 
-        {vistaTopbar !== 'aprobacion' ? (
+        {vistaTopbar === 'supervisiones' ? (
           <details open className="group border-t border-slate-200 px-2 py-1 sm:px-3">
             <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
               <span className="group-open:hidden">Mostrar filtros y acciones</span>
@@ -1213,26 +1244,28 @@ const SupervisorSupervisionPage = () => {
               <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
             </summary>
             <div className="pb-2 pt-1.5">
-              <div className={`grid gap-2 ${vistaTopbar === 'agenda' ? 'md:grid-cols-[1fr_1fr_1fr_auto]' : 'md:grid-cols-4'}`}>
-                <Field label="Sucursal" compact>
+              <div className="grid gap-2 md:grid-cols-4">
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Sucursal
                   <select
-                    className="input-base"
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                     value={sucursalFiltro}
                     onChange={(event) => setSucursalFiltro(event.target.value)}
                     disabled={sucursalesQuery.isLoading}
                   >
                     <option value="">Mi sucursal</option>
                     <option value="TODOS">Todos</option>
-                    {(sucursalesQuery.data?.data ?? []).map((item) => (
-                      <option key={item.idSucursal} value={item.sucursal}>
-                        {item.sucursal}
+                    {(sucursalesQuery.data ?? []).map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
                       </option>
                     ))}
                   </select>
-                </Field>
-                <Field label="Supervisor" compact>
+                </label>
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Supervisor
                   <select
-                    className="input-base"
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                     value={supervisorFiltro}
                     onChange={(event) => setSupervisorFiltro(event.target.value)}
                     disabled={supervisoresFiltroQuery.isLoading}
@@ -1245,88 +1278,53 @@ const SupervisorSupervisionPage = () => {
                       </option>
                     ))}
                   </select>
-                </Field>
-                {vistaTopbar === 'agenda' ? (
-                  <>
-                    <Field label="Fecha de agenda" compact>
-                      <input
-                        className="input-base"
-                        type="date"
-                        value={agendaFechaSeleccionada}
-                        onChange={(event) => {
-                          const nextFiltro = { fechaDesde: event.target.value, fechaHasta: event.target.value }
-                          setFiltroDraft(nextFiltro)
-                          setFiltroActivo(nextFiltro)
-                        }}
-                      />
-                    </Field>
-                    <div className="flex items-end">
-                      <Button
-                        type="button"
-                        className="w-full whitespace-nowrap px-4 text-xs"
-                        onClick={() => {
-                          setRealizandoPendienteId('')
-                          setForm(emptyForm())
-                          setErrorForm(null)
-                          setTecnicoFilter('')
-                          setRegistroModalOpen(true)
-                        }}
-                      >
-                        <FontAwesomeIcon icon={faCalendarDays} />
-                        Agendar supervision
-                      </Button>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <Field label="Fecha desde" compact>
-                      <input
-                        className="input-base"
-                        type="date"
-                        value={filtroDraft.fechaDesde}
-                        onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaDesde: event.target.value }))}
-                      />
-                    </Field>
-                    <Field label="Fecha hasta" compact>
-                      <input
-                        className="input-base"
-                        type="date"
-                        value={filtroDraft.fechaHasta}
-                        onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaHasta: event.target.value }))}
-                      />
-                    </Field>
-                  </>
-                )}
+                </label>
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha desde
+                  <input
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                    type="date"
+                    value={filtroDraft.fechaDesde}
+                    onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaDesde: event.target.value }))}
+                  />
+                </label>
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha hasta
+                  <input
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                    type="date"
+                    value={filtroDraft.fechaHasta}
+                    onChange={(event) => setFiltroDraft((prev) => ({ ...prev, fechaHasta: event.target.value }))}
+                  />
+                </label>
               </div>
-              {vistaTopbar === 'supervisiones' ? (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    className="px-3 text-xs"
-                    onClick={() => {
-                      setRealizandoPendienteId('')
-                      setForm(emptyForm())
-                      setErrorForm(null)
-                      setTecnicoFilter('')
-                      setRegistroModalOpen(true)
-                    }}
-                  >
-                    + Nueva supervision
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="px-3 text-xs"
-                    onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}
-                  >
-                    Limpiar
-                  </Button>
-                  <Button type="button" className="px-3 text-xs" onClick={() => setFiltroActivo(filtroDraft)}>
-                    <FontAwesomeIcon icon={faMagnifyingGlass} />
-                    Buscar
-                  </Button>
-                </div>
-              ) : null}
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  className="px-3 text-xs"
+                  onClick={() => {
+                    setRealizandoPendienteId('')
+                    setForm(emptyForm())
+                    setErrorForm(null)
+                    setTecnicoFilter('')
+                    setRegistroModalOpen(true)
+                  }}
+                >
+                  + Nueva supervision
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="px-3 text-xs"
+                  onClick={() => { setFiltroDraft(emptyFiltro()); setFiltroActivo(emptyFiltro()) }}
+                >
+                  Limpiar
+                </Button>
+                <Button type="button" className="px-3 text-xs" onClick={() => setFiltroActivo(filtroDraft)}>
+                  <FontAwesomeIcon icon={faMagnifyingGlass} />
+                  Buscar
+                </Button>
+              </div>
             </div>
           </details>
         ) : null}
@@ -1472,41 +1470,137 @@ const SupervisorSupervisionPage = () => {
       ) : vistaTopbar === 'agenda' ? (
         <div className="grid gap-3">
           <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-lg font-extrabold text-[#081a4b]">
-                  Supervisiones {agendaEstadoVista === 'completadas' ? 'completadas' : 'pendientes'} agendadas
-                </h3>
-                <p className="mt-1 text-sm font-medium text-slate-500">
-                  Total: {agendaRows.length} supervisiones del {formatIsoDateDisplay(agendaFechaSeleccionada)}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-1 flex flex-wrap items-center gap-1 pb-1">
+              <button
+                type="button"
+                onClick={() => setAgendaEstadoVista('pendientes')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                  agendaEstadoVista === 'pendientes' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-brand-700'
+                }`}
+              >
+                <FontAwesomeIcon icon={faClock} />
+                <span>Pendientes</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${agendaEstadoVista === 'pendientes' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  {listadosPendientes.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setAgendaEstadoVista('completadas')}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
+                  agendaEstadoVista === 'completadas' ? 'bg-brand-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-brand-700'
+                }`}
+              >
+                <FontAwesomeIcon icon={faCheckCircle} />
+                <span>Completadas</span>
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${agendaEstadoVista === 'completadas' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  {supervisionesCompletadasAgenda}
+                </span>
+              </button>
+              <Button
+                type="button"
+                className="ml-auto"
+                onClick={() => {
+                  setRealizandoPendienteId('')
+                  setForm(emptyForm())
+                  setErrorForm(null)
+                  setTecnicoFilter('')
+                  setRegistroModalOpen(true)
+                }}
+              >
+                <FontAwesomeIcon icon={faCalendarDays} />
+                Agendar
+              </Button>
+            </div>
+
+            <div className="flex min-w-0 items-end gap-2 overflow-x-auto pb-1">
+              <div className="flex min-w-max shrink-0 items-end gap-2">
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Sucursal
+                  <select
+                    value={sucursalFiltro}
+                    onChange={(event) => setSucursalFiltro(event.target.value)}
+                    className="h-8 w-48 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={sucursalesQuery.isLoading}
+                  >
+                    <option value="">Mi sucursal</option>
+                    <option value="TODOS">Todos</option>
+                    {(sucursalesQuery.data ?? []).map((sucursal) => (
+                      <option key={sucursal} value={sucursal}>
+                        {sucursal}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Supervisor
+                  <select
+                    value={supervisorFiltro}
+                    onChange={(event) => setSupervisorFiltro(event.target.value)}
+                    className="h-8 w-52 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    disabled={supervisoresFiltroQuery.isLoading}
+                  >
+                    <option value="">Mi usuario</option>
+                    <option value="TODOS">Todos</option>
+                    {(supervisoresFiltroQuery.data ?? []).map((item) => (
+                      <option key={item.idSupervisor} value={item.idSupervisor}>
+                        {item.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {agendaEstadoVista === 'completadas' ? (
+                  <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                    Buscar por
+                    <select
+                      value={agendaTipoFechaCompletadoFiltro}
+                      onChange={(event) => setAgendaTipoFechaCompletadoFiltro(event.target.value as 'registro' | 'supervision')}
+                      className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                    >
+                      <option value="registro">Fecha Registro</option>
+                      <option value="supervision">Fecha Supervision</option>
+                    </select>
+                  </label>
+                ) : null}
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha desde
+                  <input
+                    type="date"
+                    value={agendaEstadoVista === 'completadas' ? agendaCompletadaFechaDesdeFiltro : agendaPendienteFechaDesdeFiltro}
+                    onChange={(event) =>
+                      agendaEstadoVista === 'completadas'
+                        ? setAgendaCompletadaFechaDesdeFiltro(event.target.value || getTodayIsoDate())
+                        : setAgendaPendienteFechaDesdeFiltro(event.target.value)
+                    }
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
+                <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha hasta
+                  <input
+                    type="date"
+                    value={agendaEstadoVista === 'completadas' ? agendaCompletadaFechaHastaFiltro : agendaPendienteFechaHastaFiltro}
+                    onChange={(event) =>
+                      agendaEstadoVista === 'completadas'
+                        ? setAgendaCompletadaFechaHastaFiltro(event.target.value || getTodayIsoDate())
+                        : setAgendaPendienteFechaHastaFiltro(event.target.value)
+                    }
+                    className="h-8 w-36 rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
+                  />
+                </label>
                 <button
                   type="button"
-                  onClick={() => setAgendaEstadoVista('pendientes')}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
-                    agendaEstadoVista === 'pendientes'
-                      ? 'border-amber-300 bg-amber-50 text-amber-700'
-                      : 'border-slate-200 bg-white text-slate-700'
-                  }`}
+                  onClick={() => void (agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.refetch() : listadoPendientesQuery.refetch())}
+                  disabled={agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.isFetching : listadoPendientesQuery.isFetching}
+                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-brand-600 disabled:cursor-wait disabled:opacity-60"
+                  title="Actualizar"
                 >
-                  <FontAwesomeIcon icon={faClock} />
-                  Pendientes
-                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-amber-700">{listadosPendientes.length}</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAgendaEstadoVista('completadas')}
-                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold ${
-                    agendaEstadoVista === 'completadas'
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-700'
-                  }`}
-                >
-                  <FontAwesomeIcon icon={faCheckCircle} />
-                  Completadas
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-700">{supervisionesCompletadasAgenda}</span>
+                  <FontAwesomeIcon
+                    icon={faRotateRight}
+                    className={(agendaEstadoVista === 'completadas' ? agendaCompletadasQuery.isFetching : listadoPendientesQuery.isFetching) ? 'animate-spin' : ''}
+                    aria-hidden="true"
+                  />
+                  <span className="sr-only">Actualizar</span>
                 </button>
               </div>
             </div>
@@ -1525,6 +1619,7 @@ const SupervisorSupervisionPage = () => {
               ) : (
                 agendaRows.map((row) => {
                   const { date, time } = formatDateParts(row.fechaRegistro)
+                  const { date: dateSupervision, time: timeSupervision } = formatDateParts(row.fechaSupervision)
                   const supervisor = row.supervisor || row.idSupervisor || '-'
                   const tecnico = row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || row.idTecnicoPrincipal || '-'
                   const auxiliar = row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || row.idTecnicoAuxiliar || '-'
@@ -1542,7 +1637,7 @@ const SupervisorSupervisionPage = () => {
                             {resolveTipoSupervisionDetalle(row)}
                           </span>
                         </div>
-                        <div className="grid gap-3 lg:grid-cols-[0.8fr_1.3fr_1.3fr_1fr_1fr_1fr]">
+                        <div className="grid gap-3 lg:grid-cols-[0.8fr_1.3fr_1.3fr_1fr_1fr_1fr_1fr_1.2fr]">
                           <div>
                             <p className="text-xs font-bold text-slate-500">Id</p>
                             <p className="mt-1 text-xl font-medium text-[#081a4b]">{row.id || row.idSupervision}</p>
@@ -1579,10 +1674,25 @@ const SupervisorSupervisionPage = () => {
                           <div>
                             <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
                               <FontAwesomeIcon icon={faCalendarDays} />
-                              Fecha
+                              Fecha Agendada
                             </p>
                             <p className="mt-1 text-sm font-medium text-slate-900">{date}</p>
                             <p className="text-xs font-normal text-slate-700">{time}</p>
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faCalendarDays} />
+                              Fecha Supervision
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{dateSupervision}</p>
+                            <p className="text-xs font-normal text-slate-700">{timeSupervision}</p>
+                          </div>
+                          <div>
+                            <p className="flex items-center gap-2 text-xs font-bold text-slate-500">
+                              <FontAwesomeIcon icon={faUserPen} />
+                              Creado por
+                            </p>
+                            <p className="mt-1 text-sm font-medium text-slate-900">{row.creadoPor || '-'}</p>
                           </div>
                         </div>
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 pt-2">
@@ -1846,6 +1956,7 @@ const SupervisorSupervisionPage = () => {
                     inputMode="numeric"
                     value={form.codigo}
                     maxLength={30}
+                    disabled={camposBaseBloqueados}
                     onChange={(e) => setForm((p) => ({ ...p, codigo: e.target.value.replace(/[^0-9]/g, '') }))}
                   />
                 </Field>
@@ -1960,7 +2071,12 @@ const SupervisorSupervisionPage = () => {
                 <textarea className="input-base min-h-28" value={form.observacion} onChange={(e) => setForm((p) => ({ ...p, observacion: e.target.value }))} />
               </Field>
               <Field label="Descripcion adicional observacion">
-                <textarea className="input-base min-h-28" value={form.descripcionAdicionalObservacion} onChange={(e) => setForm((p) => ({ ...p, descripcionAdicionalObservacion: e.target.value }))} />
+                <textarea
+                  className="input-base min-h-28"
+                  value={form.descripcionAdicionalObservacion}
+                  disabled={camposBaseBloqueados}
+                  onChange={(e) => setForm((p) => ({ ...p, descripcionAdicionalObservacion: e.target.value }))}
+                />
               </Field>
             </div>
           </section>
@@ -2027,7 +2143,8 @@ const SupervisorSupervisionPage = () => {
               <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4">
                 <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-900"><FontAwesomeIcon icon={faUserGear} className="text-blue-700" />Informacion General</h4>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Fecha</p><p className="text-sm font-semibold">{formatDateTime(detalle.fechaRegistro)}</p></div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Fecha Agendada</p><p className="text-sm font-semibold">{formatDateTime(detalle.fechaRegistro)}</p></div>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Fecha Supervision</p><p className="text-sm font-semibold">{formatDateTime(detalle.fechaSupervision)}</p></div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Supervisor</p><p className="text-sm font-semibold">{detalle.supervisor || detalle.idSupervisor || '-'}</p></div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Tecnico principal</p><p className="text-sm font-semibold">{detalle.tecnicoPrincipal || detalle.idTecnicoPrincipal || '-'}</p></div>
                   <div className="rounded-lg border border-slate-200 bg-slate-50 p-2"><p className="text-[10px] uppercase text-slate-500">Tecnico auxiliar</p><p className="text-sm font-semibold">{detalle.tecnicoAuxiliar || detalle.idTecnicoAuxiliar || '-'}</p></div>
@@ -2044,7 +2161,7 @@ const SupervisorSupervisionPage = () => {
                   <p><span className="text-slate-500">Tecnologia:</span> <span className="font-semibold">{detalle.tecnologia || '-'}</span></p>
                   <p><span className="text-slate-500">Tipo revision:</span> <span className="font-semibold">{detalle.tipoRevision || '-'}</span></p>
                   <p><span className="text-slate-500">Supervision por:</span> <span className="font-semibold">{detalle.supervisionPor || '-'}</span></p>
-                  <p><span className="text-slate-500">Penalizacion:</span> <span className="font-semibold">{detalle.tipoPenalizacion || '-'}</span></p>
+                  <p><span className="text-slate-500">Penalizacion:</span> <span className="font-semibold">{resolveTipoPenalizacionDetalle(detalle)}</span></p>
                 </div>
               </section>
             </div>
