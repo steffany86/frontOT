@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
+import MapaSeleccionUbicacion from '../components/common/MapaSeleccionUbicacion'
 import Modal from '../components/common/Modal'
 import { fetchEstados, fetchRamales, fetchRutas, fetchTiposServicio, fetchTiposTecnologia, type CatalogItem } from '../api/catalogApi'
 import { fetchMe, fetchSucursales } from '../api/authApi'
@@ -40,8 +41,10 @@ type AgendaNavState = {
 
 type UnknownRecord = Record<string, unknown>
 type GeoSample = { latitude: number; longitude: number; accuracy: number }
+type SaveStep = 'validaciones' | 'registrando' | 'corte-tap' | 'listo'
 
 const GEO_BYPASS_HOSTS = ['desktop-b4oj8tg']
+const MAPA_CENTRO_FALLBACK = { lat: -17.783327, lng: -63.18214 }
 const OT_DASHBOARD_FORCE_REFRESH_KEY = 'ot-dashboard-force-refresh'
 const PDF_MAX_BYTES = MAX_UPLOAD_BYTES
 const IMAGE_MAX_BYTES = MAX_UPLOAD_BYTES
@@ -265,16 +268,6 @@ const formatDateDDMMYYYY = (date: Date): string => {
   return `${day}/${month}/${year}`
 }
 
-const parseLatLonPegado = (texto: string): { lat: number; lon: number } | null => {
-  const match = texto.match(/(-?\d{1,3}\.\d+)[,\s]+(-?\d{1,3}\.\d+)/)
-  if (!match) return null
-  const lat = Number(match[1])
-  const lon = Number(match[2])
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
-  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
-  return { lat, lon }
-}
-
 const buildDetailedApiError = (error: unknown, fallback: string): string => {
   if (!axios.isAxiosError(error)) return getApiErrorMessage(error, fallback)
 
@@ -350,24 +343,25 @@ const RegistrarOTAgendaPage = () => {
   const [observacion, setObservacion] = useState('')
   const [latitud, setLatitud] = useState<number | null>(null)
   const [longitud, setLongitud] = useState<number | null>(null)
-  const [ubicacionManualTexto, setUbicacionManualTexto] = useState('')
-  const [ubicacionVentaManualTexto, setUbicacionVentaManualTexto] = useState('')
   const [latitudVenta, setLatitudVenta] = useState<number | null>(null)
   const [longitudVenta, setLongitudVenta] = useState<number | null>(null)
   const [ventaLocationTouched, setVentaLocationTouched] = useState(false)
+  const [ventaMapaModalOpen, setVentaMapaModalOpen] = useState(false)
+  const [ventaDraft, setVentaDraft] = useState<{ lat: number; lng: number } | null>(null)
   const [idTipoServicioManual, setIdTipoServicioManual] = useState(() => (navState?.idTipoServicio ?? '').trim())
   const [otManualInput, setOtManualInput] = useState(() => (navState?.ot ?? '').trim())
   const [clienteManualInput, setClienteManualInput] = useState(() => (navState?.clienteNro ?? '').trim())
   const [otDuplicateExists, setOtDuplicateExists] = useState(false)
   const [isCheckingOtDuplicate, setIsCheckingOtDuplicate] = useState(false)
   const otDuplicateCheckToken = useRef(0)
-  const [geoLoading] = useState(false)
+  const [geoLoading, setGeoLoading] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
   const [confirmModalOpen, setConfirmModalOpen] = useState(false)
   const [calibrationModalOpen, setCalibrationModalOpen] = useState(false)
   const [calibrationBusy, setCalibrationBusy] = useState(false)
+  const [saveStep, setSaveStep] = useState<SaveStep>('validaciones')
   const [isPrevalidating, setIsPrevalidating] = useState(false)
   const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false)
   const [validatedSteps, setValidatedSteps] = useState<Set<number>>(() => new Set())
@@ -414,6 +408,36 @@ const RegistrarOTAgendaPage = () => {
     return sessionHost || browserHost
   }, [session?.hostName])
   const isGeoBypassMachine = useMemo(() => GEO_BYPASS_HOSTS.includes(hostName), [hostName])
+
+  const capturarUbicacionActual = useCallback(() => {
+    setGeoError(null)
+    if (!('geolocation' in navigator)) {
+      setGeoError('Este dispositivo o navegador no soporta geolocalizacion.')
+      return
+    }
+    setGeoLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLatitud(position.coords.latitude)
+        setLongitud(position.coords.longitude)
+        setGeoLoading(false)
+      },
+      (geoErr) => {
+        setGeoLoading(false)
+        setGeoError(
+          geoErr.code === geoErr.PERMISSION_DENIED
+            ? 'Debes permitir el acceso a tu ubicacion para registrar la OT.'
+            : 'No se pudo obtener tu ubicacion. Intenta de nuevo.'
+        )
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
+  }, [])
+
+  useEffect(() => {
+    capturarUbicacionActual()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const rutasQuery = useQuery({
     queryKey: ['catalogos-rutas-agenda-base', session?.idUsuario ?? 0],
@@ -547,6 +571,28 @@ const RegistrarOTAgendaPage = () => {
   )
   const latitudVisible = latitud ?? latitudFallback
   const longitudVisible = longitud ?? longitudFallback
+  const mapaCentro =
+    latitudVisible !== null && longitudVisible !== null
+      ? { lat: latitudVisible, lng: longitudVisible }
+      : isGeoBypassMachine
+        ? MAPA_CENTRO_FALLBACK
+        : null
+
+  const abrirModalUbicacionVenta = () => {
+    if (!mapaCentro) return
+    const inicial = latitudVenta !== null && longitudVenta !== null ? { lat: latitudVenta, lng: longitudVenta } : mapaCentro
+    setVentaDraft(inicial)
+    setVentaMapaModalOpen(true)
+  }
+
+  const confirmarUbicacionVenta = () => {
+    if (!ventaDraft) return
+    setLatitudVenta(Number(ventaDraft.lat.toFixed(6)))
+    setLongitudVenta(Number(ventaDraft.lng.toFixed(6)))
+    setVentaLocationTouched(true)
+    setSubmitError(null)
+    setVentaMapaModalOpen(false)
+  }
 
   useEffect(() => {
     if (ventaLocationTouched) return
@@ -720,6 +766,18 @@ const RegistrarOTAgendaPage = () => {
       .toUpperCase()
   }, [effectiveIdTipoServicio, isManualMode, tiposServicioQuery.data, tor])
   const isTorSip = effectiveTor.trim().toUpperCase() === 'SIP'
+  const saveSteps = useMemo(() => {
+    const steps: { key: SaveStep; label: string }[] = [
+      { key: 'validaciones', label: 'Validando cierre de almacen y cuadre de ruta' },
+      { key: 'registrando', label: 'Registrando la orden de trabajo y subiendo el archivo' },
+    ]
+    if (effectiveTor === 'TE' || effectiveTor === 'SE') {
+      steps.push({ key: 'corte-tap', label: 'Creando Corte TAP' })
+    }
+    steps.push({ key: 'listo', label: 'Listo' })
+    return steps
+  }, [effectiveTor])
+  const saveStepIndex = saveSteps.findIndex((step) => step.key === saveStep)
 
   const estadoOrigen = useMemo(() => {
     const fromState = (navState?.estado ?? '').trim()
@@ -1217,6 +1275,7 @@ const RegistrarOTAgendaPage = () => {
       const torNormalizado = effectiveTor
       let corteTapMessage = ''
       if (torNormalizado === 'TE' || torNormalizado === 'SE') {
+        setSaveStep('corte-tap')
         try {
           const idTecnico = hiddenIdVendedor ?? 0
           const codigoClienteCorte = clienteInputValue.trim()
@@ -1236,6 +1295,7 @@ const RegistrarOTAgendaPage = () => {
           corteTapMessage = ` | OT registrada, pero no se pudo crear Corte TAP: ${getApiErrorMessage(error)}`
         }
       }
+      setSaveStep('listo')
       setSubmitError(null)
       setRegistroGuardado(true)
       setConfirmModalOpen(false)
@@ -1364,6 +1424,8 @@ const RegistrarOTAgendaPage = () => {
     setDuplicateOrdenModalOpen(false)
     setConfirmModalOpen(false)
     setCalibrationBusy(true)
+    setSaveStep('validaciones')
+    setCalibrationModalOpen(true)
 
     try {
       const canContinue = await runPreRegisterValidations()
@@ -1376,7 +1438,7 @@ const RegistrarOTAgendaPage = () => {
             ? { latitude: 0, longitude: 0, accuracy: 0 }
             : null
       if (!coordinates) {
-        setSubmitError('Debes ingresar la ubicacion (pegala desde Google Maps) antes de registrar la OT.')
+        setSubmitError('Debes esperar a que se detecte tu ubicacion antes de registrar la OT.')
         return
       }
       if (!validateReadyToRegister(coordinates)) return
@@ -1384,6 +1446,7 @@ const RegistrarOTAgendaPage = () => {
         latitud: ventaLocationTouched ? latitudVenta ?? coordinates.latitude : coordinates.latitude,
         longitud: ventaLocationTouched ? longitudVenta ?? coordinates.longitude : coordinates.longitude,
       }
+      setSaveStep('registrando')
       await mutation.mutateAsync({
         latitud: coordinates.latitude,
         longitud: coordinates.longitude,
@@ -1393,6 +1456,7 @@ const RegistrarOTAgendaPage = () => {
     } finally {
       setCalibrationBusy(false)
       setCalibrationModalOpen(false)
+      setSaveStep('validaciones')
     }
   }
 
@@ -1961,80 +2025,33 @@ const RegistrarOTAgendaPage = () => {
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
-              <p className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-center text-base font-extrabold uppercase leading-snug text-amber-800">
-                Entra a Google, copia la direccion y peguela aqui
+              <p className="text-sm font-bold text-slate-800">Ubicacion</p>
+              <p className="mt-2">
+                {geoLoading
+                  ? 'Detectando tu ubicacion...'
+                  : latitudVisible !== null && longitudVisible !== null
+                    ? `lat=${latitudVisible.toFixed(6)}, lon=${longitudVisible.toFixed(6)}`
+                    : 'Ubicacion no detectada.'}
               </p>
-              <div className="mt-2">
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="secondary"
-                  onClick={() => window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer')}
-                >
-                  Abrir Google Maps
-                </Button>
-                <input
-                  className="input-base mt-2"
-                  value={ubicacionManualTexto}
-                  placeholder="Pega aqui la direccion o coordenadas copiadas de Google Maps"
-                  onChange={(event) => {
-                    const texto = event.target.value
-                    setUbicacionManualTexto(texto)
-                    const parsed = parseLatLonPegado(texto)
-                    if (parsed) {
-                      setLatitud(parsed.lat)
-                      setLongitud(parsed.lon)
-                      setGeoError(null)
-                    } else {
-                      setLatitud(null)
-                      setLongitud(null)
-                    }
-                  }}
-                />
-              </div>
-              <div className="mt-2">lat={latitudVisible ?? 'N/D'}, lon={longitudVisible ?? 'N/D'}</div>
               {geoError ? <div className="mt-2 text-rose-600">{geoError}</div> : null}
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
               <p className="text-sm font-bold text-slate-800">Ubicacion de venta</p>
-              <p className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-center text-base font-extrabold uppercase leading-snug text-amber-800">
-                Entra a Google, copia la direccion y peguela aqui
-              </p>
-              <div className="mt-2">
-                <Button
-                  className="w-full"
-                  type="button"
-                  variant="secondary"
-                  onClick={() => window.open('https://www.google.com/maps', '_blank', 'noopener,noreferrer')}
-                >
-                  Abrir Google Maps
-                </Button>
-                <input
-                  className="input-base mt-2"
-                  value={ubicacionVentaManualTexto}
-                  placeholder="Pega aqui la direccion o coordenadas copiadas de Google Maps"
-                  onChange={(event) => {
-                    const texto = event.target.value
-                    setUbicacionVentaManualTexto(texto)
-                    const parsed = parseLatLonPegado(texto)
-                    if (parsed) {
-                      setLatitudVenta(Number(parsed.lat.toFixed(6)))
-                      setLongitudVenta(Number(parsed.lon.toFixed(6)))
-                      setVentaLocationTouched(true)
-                      setSubmitError(null)
-                    } else {
-                      setLatitudVenta(null)
-                      setLongitudVenta(null)
-                      setVentaLocationTouched(false)
-                    }
-                  }}
-                />
-              </div>
               <p className="mt-2">lat={latitudVenta ?? 'N/D'}, lon={longitudVenta ?? 'N/D'}</p>
               <p className={ventaLocationTouched ? 'mt-1 font-semibold text-emerald-700' : 'mt-1 font-semibold text-amber-700'}>
-                {ventaLocationTouched ? 'Ubicacion de venta confirmada.' : ''}
+                {ventaLocationTouched ? 'Ubicacion de venta confirmada.' : 'Debes seleccionar la ubicacion de venta en el mapa.'}
               </p>
+              <Button
+                className="mt-2 w-full"
+                type="button"
+                variant="secondary"
+                onClick={abrirModalUbicacionVenta}
+                disabled={!mapaCentro}
+              >
+                {ventaLocationTouched ? 'Ajustar ubicacion de venta' : 'Seleccionar ubicacion de venta'}
+              </Button>
+              {!mapaCentro ? <p className="mt-2 text-amber-700">Esperando tu ubicacion para habilitar el mapa...</p> : null}
             </div>
             </div>
           </div>
@@ -2125,12 +2142,51 @@ const RegistrarOTAgendaPage = () => {
         </div>
       </Modal>
 
-      <Modal open={calibrationModalOpen} title="Calibrando GPS" onClose={() => (calibrationBusy ? undefined : setCalibrationModalOpen(false))}>
-        <div className="flex items-center gap-3">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
-          <p className="font-medium text-slate-700">Registrando OT...</p>
+      <Modal open={calibrationModalOpen} title="Registrando OT" onClose={() => (calibrationBusy ? undefined : setCalibrationModalOpen(false))}>
+        <div className="space-y-3">
+          {saveSteps.map((step, index) => {
+            const estado = index < saveStepIndex ? 'hecho' : index === saveStepIndex ? 'actual' : 'pendiente'
+            return (
+              <div key={step.key} className="flex items-center gap-3">
+                {estado === 'hecho' ? (
+                  <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-600">
+                    ✓
+                  </span>
+                ) : estado === 'actual' ? (
+                  <span className="h-6 w-6 flex-shrink-0 animate-spin rounded-full border-2 border-slate-300 border-t-blue-600" />
+                ) : (
+                  <span className="h-6 w-6 flex-shrink-0 rounded-full border-2 border-slate-200" />
+                )}
+                <p className={`text-sm ${estado === 'pendiente' ? 'text-slate-400' : 'font-medium text-slate-700'}`}>{step.label}</p>
+              </div>
+            )
+          })}
         </div>
-        <p className="mt-3 text-xs text-slate-500">Este proceso puede tardar para obtener la mejor precision posible.</p>
+        <p className="mt-4 text-xs text-slate-500">No cierres ni recargues la pagina mientras se registra la OT.</p>
+      </Modal>
+
+      <Modal
+        open={ventaMapaModalOpen}
+        title="Ubicacion de venta"
+        onClose={() => setVentaMapaModalOpen(false)}
+        maxWidthClass="max-w-2xl"
+        actions={
+          <>
+            <Button type="button" variant="secondary" onClick={() => setVentaMapaModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button type="button" onClick={confirmarUbicacionVenta} disabled={!ventaDraft}>
+              Confirmar ubicacion
+            </Button>
+          </>
+        }
+      >
+        <p className="mb-2 text-xs text-slate-500">
+          Busca una direccion, toca el mapa o arrastra el marcador para ajustar el punto exacto de la venta.
+        </p>
+        {mapaCentro && ventaDraft ? (
+          <MapaSeleccionUbicacion center={mapaCentro} value={ventaDraft} onChange={setVentaDraft} height={360} />
+        ) : null}
       </Modal>
 
       <Modal

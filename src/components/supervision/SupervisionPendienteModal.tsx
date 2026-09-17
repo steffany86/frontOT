@@ -233,8 +233,8 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                 value={form.idSupervisorAsignado}
                 onChange={(event) => {
                   const newSuperId = event.target.value
-                  setForm((prev) => ({ 
-                    ...prev, 
+                  setForm((prev) => ({
+                    ...prev,
                     idSupervisorAsignado: newSuperId,
                     idTecnicoPrincipal: '',
                     idTecnicoAuxiliar: '',
@@ -277,10 +277,10 @@ const SupervisionPendienteModal = ({ open, onClose, onSuccess }: SupervisionPend
                   disabled={!form.idSupervisorAsignado || tecnicosQuery.isLoading}
                 >
                   <option value="">
-                    {!form.idSupervisorAsignado 
-                      ? 'Selecciona supervisor primero' 
-                      : tecnicosQuery.isLoading 
-                      ? 'Cargando tecnicos...' 
+                    {!form.idSupervisorAsignado
+                      ? 'Selecciona supervisor primero'
+                      : tecnicosQuery.isLoading
+                      ? 'Cargando tecnicos...'
                       : 'Selecciona tecnico'}
                   </option>
                   {tecnicos.map((tec) => (

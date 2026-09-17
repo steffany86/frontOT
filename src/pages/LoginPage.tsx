@@ -115,8 +115,18 @@ const LoginPage = () => {
       <div className="pointer-events-none absolute inset-0 bg-[url('/ImangeFondoLogin.png')] bg-cover bg-[0%_center] bg-no-repeat opacity-[0.62]" />
 
       <div className="relative mx-auto w-full max-w-[1280px] p-0 lg:p-0">
+        <div className="mb-6 flex flex-col items-center text-center lg:hidden">
+          <span className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#2563eb] to-[#1440ad] text-2xl text-white shadow-[0_12px_26px_rgba(37,99,235,0.35)]">
+            <FontAwesomeIcon icon={faShieldHalved} />
+          </span>
+          <h1 className="text-[26px] font-extrabold leading-[1.15] tracking-[-0.02em] text-[#10245a]">
+            Acceso Técnico <span className="text-[#1d4ed8]">Tigo Hogar</span>
+          </h1>
+          <p className="mt-1.5 max-w-xs text-sm text-[#60739b]">Plataforma interna para técnicos y operadores</p>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-[1.35fr_0.9fr]">
-          <section className="order-2 rounded-[24px] bg-transparent p-6 lg:order-1 lg:p-10">
+          <section className="hidden rounded-[24px] bg-transparent lg:order-1 lg:block lg:p-10">
             <div className="flex items-center gap-3">
               <img src="/LogoMakiropng.png" alt="Tigo" className="h-14 w-auto" />
               <div className="border-l border-[#d6e0f6] pl-4">
@@ -153,16 +163,21 @@ const LoginPage = () => {
 
           </section>
 
-          <section className="order-1 rounded-[24px] border border-[#dbe4f9] bg-white/94 p-6 shadow-[0_14px_34px_rgba(15,23,42,0.08)] lg:order-2 lg:p-10">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="mb-6 flex items-center gap-4">
-                <span className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-[#eaf1ff] text-3xl text-[#1d4ed8]">
+          <section className="overflow-hidden rounded-[28px] border border-[#dbe4f9] bg-white/95 shadow-[0_14px_34px_rgba(15,23,42,0.08)] lg:order-2 lg:rounded-[24px] lg:bg-white/94 lg:p-10">
+            <div className="h-1.5 w-full bg-gradient-to-r from-[#2563eb] to-[#1d4ed8] lg:hidden" />
+            <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-5 sm:p-7 lg:p-0">
+              <div className="mb-2 text-center lg:hidden">
+                <h2 className="text-base font-extrabold text-[#0f2454]">Ingresa tus credenciales</h2>
+              </div>
+
+              <div className="mb-6 hidden items-center gap-4 lg:flex">
+                <span className="inline-flex h-16 w-16 items-center justify-center rounded-3xl bg-[#eaf1ff] text-2xl text-[#1d4ed8]">
                   <FontAwesomeIcon icon={faShieldHalved} />
                 </span>
                 <div>
-                  <p className="text-[11px] font-bold text-[#1d4ed8]">Inicio de sesión</p>
-                  <h2 className="text-[14px] font-extrabold leading-[1.2] tracking-[-0.01em] text-[#0f2454]">Acceso para técnicos</h2>
-                  <p className="mt-1 text-[10px] text-[#687da6]">Ingresa tus credenciales corporativas</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#1d4ed8]">Inicio de sesión</p>
+                  <h2 className="text-xl font-extrabold leading-[1.2] tracking-[-0.01em] text-[#0f2454]">Acceso para técnicos</h2>
+                  <p className="mt-1 text-xs text-[#687da6]">Ingresa tus credenciales corporativas</p>
                 </div>
               </div>
 
@@ -212,8 +227,8 @@ const LoginPage = () => {
           </section>
         </div>
 
-        <div className="pt-3 text-center text-sm text-[#6f82aa]">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
-        <div className="pt-1 text-center text-xs text-[#a7b3cf]">
+        <div className="pt-4 text-center text-xs text-[#6f82aa] sm:pt-3 sm:text-sm">© 2024 Tigo Bolivia S.A. | Uso exclusivo para personal autorizado</div>
+        <div className="pt-1 text-center text-[10px] text-[#a7b3cf] sm:text-xs">
           Version Front: {formatFechaBoliviana(__BUILD_TIME__)} &nbsp;|&nbsp; Back: {backendFecha ?? (backendVersionQuery.isLoading ? 'cargando...' : 'no disponible')}
         </div>
       </div>

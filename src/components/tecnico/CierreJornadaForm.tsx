@@ -6,7 +6,7 @@ import Button from '../common/Button'
 import Field from '../common/Field'
 import Modal from '../common/Modal'
 import SignaturePad from '../common/SignaturePad'
-import UbicacionManualCapture from '../common/UbicacionManualCapture'
+import UbicacionAutoCapture from '../common/UbicacionAutoCapture'
 import { cerrarJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 
@@ -161,7 +161,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             <p className="text-sm font-bold text-slate-900">Ubicacion</p>
           </div>
           <Field label="Ubicacion georeferenciada">
-            <UbicacionManualCapture
+            <UbicacionAutoCapture
               value={ubicacionGeoRef}
               onChange={(value) => {
                 setUbicacionGeoRef(value)

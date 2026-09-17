@@ -8,7 +8,7 @@ import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
-import UbicacionManualCapture from '../components/common/UbicacionManualCapture'
+import UbicacionAutoCapture from '../components/common/UbicacionAutoCapture'
 import {
   aprobarInicioJornadaPendiente,
   createSupervision,
@@ -2055,7 +2055,7 @@ const SupervisorSupervisionPage = () => {
               <h4 className="mb-4 flex items-center gap-2 text-base font-semibold uppercase tracking-wide text-slate-800"><FontAwesomeIcon icon={faLocationDot} className="text-brand-600" />Ubicacion</h4>
               <div className="space-y-3">
                 <Field label="Coordenadas / direccion">
-                  <UbicacionManualCapture
+                  <UbicacionAutoCapture
                     value={form.ubicacion}
                     onChange={(value) => setForm((p) => ({ ...p, ubicacion: value }))}
                   />

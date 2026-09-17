@@ -15,7 +15,7 @@ import Button from '../common/Button'
 import Field from '../common/Field'
 import ImageLightbox from '../common/ImageLightbox'
 import SignaturePad from '../common/SignaturePad'
-import UbicacionManualCapture from '../common/UbicacionManualCapture'
+import UbicacionAutoCapture from '../common/UbicacionAutoCapture'
 import { registrarInicioJornada } from '../../api/inicioJornadaApi'
 import { getApiErrorMessage } from '../../services/httpClient'
 import { useFileSizeLimitModal } from '../../hooks/useFileSizeLimitModal'
@@ -309,7 +309,7 @@ const InicioJornadaChecklistForm = ({
           </div>
           <div ref={ubicacionRef}>
             <Field label="Ubicacion georreferenciada" error={mostrarErrorUbicacion ? 'La ubicacion georreferenciada es obligatoria.' : undefined}>
-              <UbicacionManualCapture
+              <UbicacionAutoCapture
                 value={ubicacionGeoRef}
                 onChange={(value) => {
                   setUbicacionGeoRef(value)
