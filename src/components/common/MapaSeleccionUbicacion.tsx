@@ -51,6 +51,17 @@ const MapaSeleccionUbicacion = ({ center, value, onChange, height = 320 }: MapaS
   const [buscando, setBuscando] = useState(false)
   const debounceRef = useRef<number | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const contenedorRef = useRef<HTMLDivElement | null>(null)
+
+  // El contenedor puede cambiar de tamano despues de montarse (modal a pantalla completa,
+  // barra del navegador movil): Leaflet debe recalcular o el zoom/arrastre se desfasa.
+  useEffect(() => {
+    const elemento = contenedorRef.current
+    if (!elemento || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => mapRef.current?.invalidateSize())
+    observer.observe(elemento)
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current)
@@ -91,7 +102,7 @@ const MapaSeleccionUbicacion = ({ center, value, onChange, height = 320 }: MapaS
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-slate-300" style={{ height }}>
+    <div ref={contenedorRef} className="relative overflow-hidden rounded-xl border border-slate-300" style={{ height }}>
       <div className="absolute left-2 right-14 top-2 z-[1000]">
         <input
           className="input-base w-full bg-white shadow-md"
@@ -142,7 +153,9 @@ const MapaSeleccionUbicacion = ({ center, value, onChange, height = 320 }: MapaS
         ref={mapRef}
         center={[center.lat, center.lng]}
         zoom={18}
-        maxZoom={19}
+        maxZoom={20}
+        bounceAtZoomLimits={false}
+        zoomSnap={1}
         attributionControl={false}
         zoomControl={false}
         style={{ height: '100%', width: '100%' }}
@@ -154,18 +167,21 @@ const MapaSeleccionUbicacion = ({ center, value, onChange, height = 320 }: MapaS
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               attribution="Tiles &copy; Esri"
-              maxZoom={19}
+              maxZoom={20}
+              maxNativeZoom={19}
             />
             <TileLayer
               url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
-              maxZoom={19}
+              maxZoom={20}
+              maxNativeZoom={17}
             />
           </>
         ) : (
           <TileLayer
             url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
             attribution="Tiles &copy; Esri"
-            maxZoom={19}
+            maxZoom={20}
+            maxNativeZoom={17}
           />
         )}
         <CapturadorClicks onChange={onChange} />

@@ -122,7 +122,7 @@ const SistemasProduccionPage = () => {
           <div className="flex flex-col gap-3 lg:w-64">
             <Button
               type="button"
-              disabled={toggleMutation.isPending || status?.active}
+              disabled
               onClick={() => toggleMutation.mutate(true)}
               className="w-full bg-red-600 hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
             >
