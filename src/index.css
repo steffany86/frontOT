@@ -84,12 +84,24 @@
 }
 
 @layer components {
+  /* Mismo margen lateral que la cabecera general (Header): px-4 / lg:px-7 */
   .bento-main {
-    @apply relative flex-1 overflow-x-hidden px-4 py-4 lg:px-6 lg:py-5;
+    @apply relative flex-1 overflow-x-hidden px-4 py-4 lg:px-7 lg:py-5;
   }
 
+  /* Pagina maestra: ocupa todo el ancho para alinear con la cabecera general. */
   .bento-page {
-    @apply mx-auto grid w-full min-w-0 max-w-[1240px] gap-3 sm:gap-4;
+    @apply grid w-full min-w-0 gap-2;
+  }
+
+  /* Titulos unicos del sistema (cabecera de pagina y de panel). */
+  /* Misma escala que el titulo del Header general: 14px celular, 16px tablet, 18px escritorio. */
+  .page-title {
+    @apply text-sm font-bold leading-tight text-slate-900 sm:text-base md:text-lg;
+  }
+
+  .page-panel-title {
+    @apply text-sm font-bold leading-tight text-slate-900 sm:text-base md:text-lg;
   }
 
   .bento-page > * {
@@ -164,6 +176,10 @@
     min-width: 0;
     max-width: 100%;
     box-sizing: border-box;
+  }
+
+  .field-invalid .input-base {
+    @apply border-rose-500 bg-rose-50/40 ring-2 ring-rose-200;
   }
 
   .input-base[type='date'] {
@@ -256,4 +272,89 @@
       -webkit-overflow-scrolling: touch;
     }
   }
+}
+
+/* Formularios de Supervision V2: un solo tamano de letra (11px) en el contenido de los modales. */
+/* Los elementos con tamaño propio muy pequeño (text-[8px], [9px], [10px]: etiquetas y chips) conservan su tamaño. */
+.sup-v2-fs,
+.sup-v2-fs :is(p, span, label, input, select, textarea, button, td, th, li, div, h4, h5, a, option, summary):not([class*='text-[8px]']):not([class*='text-[9px]']):not([class*='text-[10px]']) {
+  font-size: 11px !important;
+}
+
+.sup-v2-fs .btn-primary,
+.sup-v2-fs .btn-secondary,
+.supervision-page .btn-primary,
+.supervision-page .btn-secondary {
+  font-size: 11px !important;
+  padding: 0.4rem 0.75rem !important;
+}
+
+/* Celular: la letra del contenido baja un poco para que todo se adapte a la pantalla. */
+@media (max-width: 639px) {
+  .sup-v2-fs,
+  .sup-v2-fs :is(p, span, label, input, select, textarea, button, td, th, li, div, h4, h5, a, option, summary):not([class*='text-[8px]']):not([class*='text-[9px]']):not([class*='text-[10px]']),
+  .sup-v2-fs .btn-primary,
+  .sup-v2-fs .btn-secondary {
+    font-size: 10.5px !important;
+  }
+}
+
+/* Formularios de Supervision V2: menos espacio entre componentes (pensado para el celular). */
+.sup-v2-fs .input-base {
+  padding-top: 0.35rem !important;
+  padding-bottom: 0.35rem !important;
+  border-radius: 0.75rem !important;
+}
+/* El relleno lateral solo se fuerza si el campo no define el suyo (p.ej. pl-9 con icono). */
+.sup-v2-fs .input-base:not([class*='pl-']):not([class*='px-']) {
+  padding-left: 0.65rem !important;
+}
+.sup-v2-fs .input-base:not([class*='pr-']):not([class*='px-']) {
+  padding-right: 0.65rem !important;
+}
+.sup-v2-fs label.flex {
+  gap: 0.2rem !important;
+}
+.sup-v2-fs .gap-4,
+.sup-v2-fs .gap-3 {
+  gap: 0.5rem !important;
+}
+.sup-v2-fs [class*='space-y-'] > * + * {
+  margin-top: 0.5rem !important;
+}
+.sup-v2-fs section.p-4,
+.sup-v2-fs section.px-4 {
+  padding: 0.6rem 0.75rem !important;
+}
+/* Titulos de panel: misma escala que el titulo de pagina (se adapta al ancho de pantalla). */
+.sup-v2-fs .glass-panel h3 {
+  font-size: 0.875rem !important;
+  line-height: 1.25rem !important;
+}
+@media (min-width: 640px) {
+  .sup-v2-fs .glass-panel h3 {
+    font-size: 1rem !important;
+  }
+}
+@media (min-width: 768px) {
+  .sup-v2-fs .glass-panel h3 {
+    font-size: 1.125rem !important;
+  }
+}
+.sup-v2-fs .glass-panel.p-4,
+.sup-v2-fs .glass-panel.sm:p-4 {
+  padding: 0.6rem 0.75rem !important;
+}
+.sup-v2-fs h4.mb-2,
+.sup-v2-fs h4.mb-3 {
+  margin-bottom: 0.35rem !important;
+}
+
+/* Cabecera de pagina compacta en paginas con formato V2 */
+.sup-v2-fs .bento-page-head h2 {
+  font-size: 1rem !important;
+  line-height: 1.5rem !important;
+}
+.sup-v2-fs .bento-page-head {
+  padding-block: 0.25rem;
 }

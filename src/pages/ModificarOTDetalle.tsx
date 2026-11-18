@@ -683,24 +683,24 @@ const ModificarOTDetalle = () => {
   ]
 
   return (
-    <div className="bento-page ot-realizada-page">
-      <div className="px-1">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="bento-page ot-realizada-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">
+            <h2 className="page-title">
               Modificar OT {otData?.ordenTrabajo || idVenta || ''}
             </h2>
-            <p className="text-sm text-slate-500">{otData?.grupo || 'Modificacion de detalle de OT finalizada.'}</p>
+            <p className="text-slate-500">{otData?.grupo || 'Modificacion de detalle de OT finalizada.'}</p>
           </div>
           <Button type="button" variant="secondary" onClick={volver}>Volver</Button>
         </div>
-      </div>
+      </section>
 
-      {isLoadingOt ? <FormCard title="" hideHeader compact><p className="text-sm text-slate-500">Cargando OT...</p></FormCard> : null}
+      {isLoadingOt ? <FormCard title="" hideHeader compact><p className="text-[11px] text-slate-500">Cargando OT...</p></FormCard> : null}
       {loadError ? (
         <FormCard title="" hideHeader compact>
-          <p className="text-sm font-semibold text-rose-600">{loadError}</p>
-          <Button type="button" variant="secondary" className="mt-3" onClick={volver}>Volver al listado</Button>
+          <p className="text-[11px] font-semibold text-rose-600">{loadError}</p>
+          <Button type="button" variant="secondary" className="mt-2" onClick={volver}>Volver al listado</Button>
         </FormCard>
       ) : null}
 
@@ -709,31 +709,31 @@ const ModificarOTDetalle = () => {
           <FormCard title="" hideHeader compact>
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
-                <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={otData.ordenTrabajo || String(otData.idVenta)} disabled />
+                <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Nro Orden</label>
+                <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={otData.ordenTrabajo || String(otData.idVenta)} disabled />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Cod Cliente</label>
-                <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={otData.codigoCliente ?? ''} disabled />
+                <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Cod Cliente</label>
+                <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={otData.codigoCliente ?? ''} disabled />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">Grupo</label>
-                <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={otData.grupo || ''} disabled />
+                <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Grupo</label>
+                <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={otData.grupo || ''} disabled />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-700">FechaHoraDetalle</label>
-                <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={formatDateTime(otData.fechaHoraDetalle)} disabled />
+                <label className="mb-0.5 block text-[10px] font-medium text-slate-500">FechaHoraDetalle</label>
+                <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={formatDateTime(otData.fechaHoraDetalle)} disabled />
               </div>
             </div>
           </FormCard>
 
-          {!otData.puedeModificar ? <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">{otData.bloqueo}</div> : null}
+          {!otData.puedeModificar ? <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">{otData.bloqueo}</div> : null}
 
           <FormCard title="Agregar producto" description="Aplica las mismas validaciones de cuadre, cierre, series y saldo del registro original." compact>
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
               <Field label="Tipo Material" compact>
                 <select
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   value={addTipoMaterialId}
                   onChange={(event) => setAddTipoMaterialId(event.target.value)}
                   disabled={!otData.puedeModificar || tipoMaterialQuery.isLoading || addMaterialMutation.isPending}
@@ -746,7 +746,7 @@ const ModificarOTDetalle = () => {
               </Field>
               <Field label="Producto" compact>
                 <select
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   value={addProductoId}
                   onChange={(event) => setAddProductoId(event.target.value)}
                   disabled={!otData.puedeModificar || !addTipoMaterialId || productosQuery.isLoading || addMaterialMutation.isPending || addProductoBloqueado}
@@ -759,7 +759,7 @@ const ModificarOTDetalle = () => {
               </Field>
               <Field label="Serie" error={addSerieError ?? undefined} compact>
                 <input
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   value={addSerie}
                   onChange={(event) => setAddSerie(needsSerie ? applyMask(event.target.value, serieMask) : event.target.value)}
                   onBlur={handleAddSerieBlur}
@@ -772,7 +772,7 @@ const ModificarOTDetalle = () => {
               </Field>
               <Field label="ChipID" error={addChipError ?? undefined} compact>
                 <input
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   value={addChipId}
                   onChange={(event) => setAddChipId(needsChip ? applyMask(event.target.value, chipIdMask) : event.target.value)}
                   onBlur={handleAddChipBlur}
@@ -785,7 +785,7 @@ const ModificarOTDetalle = () => {
               </Field>
               <Field label="Cantidad" compact>
                 <input
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   type="number"
                   min="0"
                   step="any"
@@ -797,7 +797,7 @@ const ModificarOTDetalle = () => {
               <div className="flex items-end gap-2">
                 <Button
                   type="button"
-                  className="h-9 w-full"
+                  className="h-8 w-full"
                   disabled={
                     !otData.puedeModificar ||
                     !addTipoMaterialId ||
@@ -817,7 +817,7 @@ const ModificarOTDetalle = () => {
                 <Button
                   type="button"
                   variant="secondary"
-                  className="h-9 w-full"
+                  className="h-8 w-full"
                   disabled={!otData.puedeModificar || addMaterialMutation.isPending}
                   onClick={limpiarAgregarProducto}
                 >
@@ -857,6 +857,7 @@ const ModificarOTDetalle = () => {
       ) : null}
 
       <Modal
+        compactText
         open={Boolean(feedback)}
         title={feedback?.title ?? ''}
         onClose={cerrarFeedback}

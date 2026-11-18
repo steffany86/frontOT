@@ -484,7 +484,7 @@ const OtListPage = () => {
   const emptyLabel = isTecnico ? 'NO HAY DATOS PARA LA FECHA' : 'NO HAY DATOS PARA LA FECHA'
 
   return (
-    <div className="bento-page">
+    <div className="bento-page sup-v2-fs">
       <div className="bento-page-head flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">Lista de OT pendientes</h2>

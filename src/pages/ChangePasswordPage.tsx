@@ -73,18 +73,18 @@ const ChangePasswordPage = () => {
   }
 
   return (
-    <div className="min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+    <div className="sup-v2-fs min-h-screen px-4 py-4 sm:px-6 lg:px-8">
       <div className="mx-auto flex min-h-[calc(100vh-3rem)] max-w-xl items-center">
-        <form onSubmit={handleSubmit} className="glass-panel flex w-full flex-col gap-5 p-8">
+        <form onSubmit={handleSubmit} className="glass-panel flex w-full flex-col gap-2 p-4">
           <div>
-            <h2 className="text-2xl font-semibold text-slate-900">Cambio obligatorio de contraseña</h2>
-            <p className="text-sm text-slate-500">Debes actualizar tu contraseña para continuar.</p>
+            <h2 className="page-title">Cambio obligatorio de contraseña</h2>
+            <p className="text-slate-500">Debes actualizar tu contraseña para continuar.</p>
           </div>
 
           <Field label="Contraseña actual">
             <div className="relative">
               <input
-                className="input-base pr-16"
+                className="input-base pr-12"
                 type={showActual ? 'text' : 'password'}
                 value={actual}
                 onChange={(event) => setActual(event.target.value)}
@@ -92,7 +92,7 @@ const ChangePasswordPage = () => {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+                className="absolute inset-y-0 right-2 my-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
                 onClick={() => setShowActual((prev) => !prev)}
                 disabled={mutation.isPending}
                 aria-label={showActual ? 'Ocultar contraseña actual' : 'Mostrar contraseña actual'}
@@ -105,7 +105,7 @@ const ChangePasswordPage = () => {
           <Field label="Nueva contraseña">
             <div className="relative">
               <input
-                className="input-base pr-16"
+                className="input-base pr-12"
                 type={showNueva ? 'text' : 'password'}
                 value={nueva}
                 onChange={(event) => setNueva(event.target.value)}
@@ -113,7 +113,7 @@ const ChangePasswordPage = () => {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+                className="absolute inset-y-0 right-2 my-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
                 onClick={() => setShowNueva((prev) => !prev)}
                 disabled={mutation.isPending}
                 aria-label={showNueva ? 'Ocultar nueva contraseña' : 'Mostrar nueva contraseña'}
@@ -126,7 +126,7 @@ const ChangePasswordPage = () => {
           <Field label="Confirmar nueva contraseña">
             <div className="relative">
               <input
-                className="input-base pr-16"
+                className="input-base pr-12"
                 type={showConfirmacion ? 'text' : 'password'}
                 value={confirmacion}
                 onChange={(event) => setConfirmacion(event.target.value)}
@@ -134,7 +134,7 @@ const ChangePasswordPage = () => {
               />
               <button
                 type="button"
-                className="absolute inset-y-0 right-2 my-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
+                className="absolute inset-y-0 right-2 my-auto inline-flex h-6 w-6 items-center justify-center rounded-md text-slate-600 hover:bg-slate-100"
                 onClick={() => setShowConfirmacion((prev) => !prev)}
                 disabled={mutation.isPending}
                 aria-label={showConfirmacion ? 'Ocultar confirmación de contraseña' : 'Mostrar confirmación de contraseña'}
@@ -144,8 +144,8 @@ const ChangePasswordPage = () => {
             </div>
           </Field>
 
-          {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
-          {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div> : null}
+          {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-600">{error}</div> : null}
+          {success ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">{success}</div> : null}
 
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button type="button" variant="secondary" onClick={handleCancel} disabled={mutation.isPending} className="w-full">

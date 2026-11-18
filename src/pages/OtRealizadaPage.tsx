@@ -1837,7 +1837,7 @@ const OtRealizadaPage = () => {
     }
     let cancelled = false
     setSerieSelectorLoading(true)
-    fetchSeriesSuggestions('', 50, {
+    fetchSeriesSuggestions('', 500, {
       idProducto: productoId,
       idRuta: idRutaValidacion ?? undefined,
       tipoMaterial: tipoMaterialId,
@@ -4295,32 +4295,32 @@ const OtRealizadaPage = () => {
   }, [sessionRemainingMs])
 
   return (
-    <div className="bento-page ot-realizada-page">
-      <div className="px-1">
-        <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">RegistrarOrdenAgenda_Detalle</h2>
-        <p className="text-sm text-slate-500">Registro de OT y detalle de materiales usados.</p>
+    <div className="bento-page sup-v2-fs ot-realizada-page">
+      <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4">
+        <h2 className="page-title">RegistrarOrdenAgenda_Detalle</h2>
+        <p className="text-slate-500">Registro de OT y detalle de materiales usados.</p>
         {sessionTimeLabel ? (
           <p className={`mt-1 text-xs ${sessionIsNearExpiry ? 'text-rose-600' : 'text-slate-500'}`}>
             Sesion restante estimada: {sessionTimeLabel}
             {sessionIsNearExpiry ? ' (por vencer, guarda pronto)' : ''}
           </p>
         ) : null}
-      </div>
+      </section>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
         <FormCard title="" hideHeader>
           <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Nro Orden</label>
-              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={numeroOrden} disabled />
+              <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Nro Orden</label>
+              <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={numeroOrden} disabled />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Cod Cliente</label>
-              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={clienteVisible} disabled />
+              <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Cod Cliente</label>
+              <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={clienteVisible} disabled />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-700">Fecha</label>
-              <input className="input-base rounded-md bg-slate-50 py-1.5 text-sm" value={fechaTrabajo} disabled />
+              <label className="mb-0.5 block text-[10px] font-medium text-slate-500">Fecha</label>
+              <input className="input-base rounded-md bg-slate-50 py-1 text-[11px]" value={fechaTrabajo} disabled />
             </div>
           </div>
         </FormCard>
@@ -4343,7 +4343,7 @@ const OtRealizadaPage = () => {
           <fieldset disabled={formInteractionLocked} className="m-0 min-w-0 border-0 p-0">
             <FormCard title="" hideHeader compact>
             {error ? (
-              <div className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
+              <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div>
             ) : null}
             <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-1 xl:col-span-1">
@@ -4384,7 +4384,7 @@ const OtRealizadaPage = () => {
                 </label>
                 <select
                   ref={tipoMaterialSelectRef}
-                  className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm"
+                  className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px]"
                   value={tipoMaterialId}
                   onChange={(event) => {
                     setTipoMaterialId(event.target.value)
@@ -4419,12 +4419,12 @@ const OtRealizadaPage = () => {
                 </select>
               </div>
               <div className="min-w-0 md:col-span-1 xl:col-span-2">
-                <label className="flex w-full flex-col gap-1.5 text-sm text-slate-700">
+                <label className="flex w-full flex-col gap-1 text-[11px] text-slate-700">
                   <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Producto</span>
                   <button
                     type="button"
                     ref={productoSelectRef}
-                    className="input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-left !text-sm"
+                    className="input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-left !text-[11px]"
                     onClick={() => setProductoSelectorOpen(true)}
                     onBlur={() => {
                       if (!tipoMaterialEditEnabled) lockProducto()
@@ -4441,7 +4441,7 @@ const OtRealizadaPage = () => {
                     ref={serieInputRef}
                     inputMode={serieInputMode}
                     pattern={serieInputMode === 'numeric' ? '[0-9]*' : undefined}
-                    className={`input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm ${serieDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
+                    className={`input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px] ${serieDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                     value={serie}
                     onFocus={handleSerieFocus}
                     onClick={handleSerieFocus}
@@ -4469,7 +4469,7 @@ const OtRealizadaPage = () => {
                       <button
                         key={item.serial}
                         type="button"
-                        className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
+                        className="block w-full border-b border-slate-100 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           setSerie(item.serial)
@@ -4496,7 +4496,7 @@ const OtRealizadaPage = () => {
                     ref={chipIdInputRef}
                     inputMode={chipInputMode}
                     pattern={chipInputMode === 'numeric' ? '[0-9]*' : undefined}
-                    className={`input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm ${chipDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
+                    className={`input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px] ${chipDisabled ? 'bg-slate-50 text-slate-400' : ''}`}
                     value={chipId}
                     onFocus={handleChipFocus}
                     onKeyDown={handleChipKeyDown}
@@ -4515,7 +4515,7 @@ const OtRealizadaPage = () => {
                 <Field label="Cantidad" compact>
                   <input
                     ref={cantidadInputRef}
-                    className={`input-base !rounded-xl !border !border-slate-300 !px-3 !py-1.5 !text-sm text-right ${!productoId || needsSerie ? 'bg-slate-50 text-slate-400' : ''}`}
+                    className={`input-base !rounded-xl !border !border-slate-300 !px-2.5 !py-1 !text-[11px] text-right ${!productoId || needsSerie ? 'bg-slate-50 text-slate-400' : ''}`}
                     type="number"
                     min="0"
                     step={cantidadPermiteDecimales ? '0.01' : '1'}
@@ -4570,7 +4570,7 @@ const OtRealizadaPage = () => {
         ) : !isTorSip ? (
           <fieldset disabled={formInteractionLocked} className="m-0 min-w-0 border-0 p-0">
             <FormCard title="Cargo Usuario" description="Carga de productos de cargo usuario.">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-6">
               <div className="min-w-0 md:col-span-2 xl:col-span-6">
                 <Field label="Producto">
                   <button
@@ -4601,7 +4601,7 @@ const OtRealizadaPage = () => {
                         </label>
                       <span className="text-xs text-slate-500">El producto es serializado.</span>
                     </div>
-                    <div className="flex flex-col gap-2 text-sm text-slate-700">
+                    <div className="flex flex-col gap-1 text-[11px] text-slate-700">
                         <input
                           ref={cargoUsuarioSerieRef}
                           inputMode={cargoUsuarioSerieInputMode}
@@ -4624,7 +4624,7 @@ const OtRealizadaPage = () => {
                             <button
                               key={item}
                               type="button"
-                              className="block w-full border-b border-slate-100 px-3 py-2 text-left text-sm font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
+                              className="block w-full border-b border-slate-100 px-2 py-1.5 text-left text-[11px] font-semibold text-slate-700 last:border-b-0 active:bg-blue-50"
                               onMouseDown={(event) => event.preventDefault()}
                               onClick={() => {
                                 handleCargoUsuarioSerieChange(item)
@@ -4651,7 +4651,7 @@ const OtRealizadaPage = () => {
                           ChipID
                         </label>
                       </div>
-                      <div className="flex flex-col gap-2 text-sm text-slate-700">
+                      <div className="flex flex-col gap-1 text-[11px] text-slate-700">
                         <input
                           ref={cargoUsuarioChipRef}
                           inputMode={cargoUsuarioChipInputMode}
@@ -4735,10 +4735,10 @@ const OtRealizadaPage = () => {
             </div>
 
             {cargoUsuarioError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{cargoUsuarioError}</div>
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{cargoUsuarioError}</div>
             ) : null}
             {cargoUsuarioSuccess ? (
-              <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{cargoUsuarioSuccess}</div>
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-600">{cargoUsuarioSuccess}</div>
             ) : null}
 
             </FormCard>
@@ -4746,7 +4746,7 @@ const OtRealizadaPage = () => {
         ) : null}
 
         {headerWarning ? (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">{headerWarning}</div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">{headerWarning}</div>
         ) : null}
         {saldoPopup ? (
           <div
@@ -4762,7 +4762,7 @@ const OtRealizadaPage = () => {
             <p className="mt-1 text-sm">{saldoPopup.message}</p>
           </div>
         ) : null}
-        {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div> : null}
+        {success ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-600">{success}</div> : null}
 
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button className="w-full sm:w-auto" type="button" variant="secondary" onClick={handleBackToDashboard} disabled={mutation.isPending || isPrevalidating}>
@@ -4788,13 +4788,14 @@ const OtRealizadaPage = () => {
       </form>
 
       <Modal
+        compactText
         open={productoSelectorOpen}
         title="Selecciona producto"
         onClose={() => {
           setProductoSelectorOpen(false)
           setProductoSearch('')
         }}
-        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        containerClassName="w-[min(94vw,42rem)] rounded-2xl bg-white p-3 shadow-2xl"
         contentClassName="p-0"
         actions={
           <Button type="button" variant="secondary" onClick={() => { setProductoSelectorOpen(false); setProductoSearch('') }}>
@@ -4806,7 +4807,7 @@ const OtRealizadaPage = () => {
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar producto</label>
           <input
             type="search"
-            className="input-base rounded-xl py-2 text-sm"
+            className="input-base rounded-xl py-1 text-[11px]"
             value={productoSearch}
             onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -4823,9 +4824,9 @@ const OtRealizadaPage = () => {
         </div>
         <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
           {productosQuery.isLoading ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando productos...</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Cargando productos...</div>
           ) : filteredProductoOptions.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin productos disponibles.</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Sin productos disponibles.</div>
           ) : (
             filteredProductoOptions.map((option) => {
               const selected = option.value === productoId
@@ -4833,7 +4834,7 @@ const OtRealizadaPage = () => {
                 <button
                   key={option.value}
                   type="button"
-                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 text-left text-lg font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
                   onClick={() => selectProducto(option.value)}
                 >
                   <span className="min-w-0 break-words">{option.label}</span>
@@ -4846,13 +4847,14 @@ const OtRealizadaPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={cargoUsuarioProductoSelectorOpen}
         title="Selecciona producto"
         onClose={() => {
           setCargoUsuarioProductoSelectorOpen(false)
           setCargoUsuarioProductoSearch('')
         }}
-        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        containerClassName="w-[min(94vw,42rem)] rounded-2xl bg-white p-3 shadow-2xl"
         contentClassName="p-0"
         actions={
           <Button type="button" variant="secondary" onClick={() => { setCargoUsuarioProductoSelectorOpen(false); setCargoUsuarioProductoSearch('') }}>
@@ -4864,7 +4866,7 @@ const OtRealizadaPage = () => {
           <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Buscar producto</label>
           <input
             type="search"
-            className="input-base rounded-xl py-2 text-sm"
+            className="input-base rounded-xl py-1 text-[11px]"
             value={cargoUsuarioProductoSearch}
             onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -4881,9 +4883,9 @@ const OtRealizadaPage = () => {
         </div>
         <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">
           {cargoUsuarioProductosQuery.isLoading ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando productos...</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Cargando productos...</div>
           ) : filteredCargoUsuarioProductoOptions.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin productos disponibles.</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Sin productos disponibles.</div>
           ) : (
             filteredCargoUsuarioProductoOptions.map((option) => {
               const selected = option.value === cargoUsuarioProductoId
@@ -4891,7 +4893,7 @@ const OtRealizadaPage = () => {
                 <button
                   key={option.value}
                   type="button"
-                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-4 py-4 text-left text-lg font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  className="flex w-full items-center justify-between gap-4 border-b border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
                   onClick={() => selectCargoUsuarioProducto(option.value)}
                 >
                   <span className="min-w-0 break-words">{option.label}</span>
@@ -4904,13 +4906,14 @@ const OtRealizadaPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={serieSelectorOpen}
         title="Selecciona serie"
         onClose={() => {
           setSerieSelectorOpen(false)
           setSerieSelectorSearch('')
         }}
-        containerClassName="w-[min(94vw,42rem)] rounded-[2rem] bg-white p-5 shadow-2xl"
+        containerClassName="w-[min(94vw,42rem)] rounded-2xl bg-white p-3 shadow-2xl"
         contentClassName="p-0"
         actions={
           <Button type="button" variant="secondary" onClick={() => { setSerieSelectorOpen(false); setSerieSelectorSearch('') }}>
@@ -4923,7 +4926,7 @@ const OtRealizadaPage = () => {
           <input
             ref={serieSelectorSearchRef}
             type="search"
-            className="input-base rounded-xl py-2 text-sm"
+            className="input-base rounded-xl py-1 text-[11px]"
             value={serieSelectorSearch}
             onPointerDown={(event) => event.stopPropagation()}
             onMouseDown={(event) => event.stopPropagation()}
@@ -4939,9 +4942,9 @@ const OtRealizadaPage = () => {
           />
         </div>
         <div className="max-h-[64dvh] overflow-y-auto rounded-2xl border border-slate-200 bg-slate-50">          {serieSelectorLoading ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Cargando series...</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Cargando series...</div>
           ) : filteredSerieSuggestions.length === 0 ? (
-            <div className="px-4 py-6 text-center text-sm font-semibold text-slate-500">Sin series disponibles.</div>
+            <div className="px-3 py-4 text-center text-[11px] font-semibold text-slate-500">Sin series disponibles.</div>
           ) : (
             filteredSerieSuggestions.map((item) => {
               const selected = item.serial === serie
@@ -4950,7 +4953,7 @@ const OtRealizadaPage = () => {
                 <button
                   key={item.serial}
                   type="button"
-                  className="flex w-full items-center justify-between border-b border-slate-200 bg-white px-4 py-4 text-left text-xl font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
+                  className="flex w-full items-center justify-between border-b border-slate-200 bg-white px-3 py-2 text-left text-[12px] font-medium text-slate-800 last:border-b-0 active:bg-blue-50"
                   onClick={() => {
                     setSerie(item.serial)
                     if (item.chipId) {
@@ -4977,6 +4980,7 @@ const OtRealizadaPage = () => {
         </div>
       </Modal>
       <Modal
+        compactText
         open={successModalOpen}
         title="Registro exitoso"
         onClose={handleSuccessModalAccept}
@@ -4991,6 +4995,7 @@ const OtRealizadaPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={errorModalOpen}
         title="No se pudo completar el proceso"
         onClose={handleErrorModalClose}

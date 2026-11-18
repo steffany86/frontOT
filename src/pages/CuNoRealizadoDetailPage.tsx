@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import { fetchCuDetail } from '../api/cuApi'
 import { formatDate } from '../utils/dates'
 
@@ -17,45 +18,41 @@ const CuNoRealizadoDetailPage = () => {
   const detail = query.data
 
   return (
-    <div className="bento-page">
-      <div className="bento-page-head">
-        <h2 className="text-2xl font-semibold text-slate-900">Detalle CU No Realizado</h2>
-        <p className="text-sm text-slate-500">Información completa del caso.</p>
-      </div>
+    <PageLayout title="Detalle CU No Realizado" subtitle="Información completa del caso.">
 
       <FormCard title={`CU #${cuId}`} description="Detalle del registro seleccionado.">
         {query.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando información...</p>
+          <p className="text-slate-500">Cargando información...</p>
         ) : detail ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-400">Cliente</p>
-              <p className="mt-1 text-sm font-semibold text-slate-700">{detail.cliente}</p>
-              <p className="mt-2 text-xs text-slate-500">{detail.direccion}</p>
+          <div className="grid gap-2 md:grid-cols-2">
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-medium uppercase text-slate-500">Cliente</p>
+              <p className="font-semibold text-slate-700">{detail.cliente}</p>
+              <p className="text-slate-500">{detail.direccion}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-400">Técnico</p>
-              <p className="mt-1 text-sm font-semibold text-slate-700">{detail.tecnico}</p>
-              <p className="mt-2 text-xs text-slate-500">Fecha: {formatDate(detail.fecha)}</p>
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-medium uppercase text-slate-500">Técnico</p>
+              <p className="font-semibold text-slate-700">{detail.tecnico}</p>
+              <p className="text-slate-500">Fecha: {formatDate(detail.fecha)}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-400">Motivo</p>
-              <p className="mt-1 text-sm text-slate-700">{detail.motivo}</p>
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-medium uppercase text-slate-500">Motivo</p>
+              <p className="text-slate-700">{detail.motivo}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="text-xs uppercase text-slate-400">Estado</p>
-              <p className="mt-1 text-sm text-slate-700">{detail.estado}</p>
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+              <p className="text-[10px] font-medium uppercase text-slate-500">Estado</p>
+              <p className="text-slate-700">{detail.estado}</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-white p-4 md:col-span-2">
-              <p className="text-xs uppercase text-slate-400">Descripción</p>
-              <p className="mt-1 text-sm text-slate-700">{detail.descripcion}</p>
+            <div className="rounded-lg border border-slate-200 bg-white px-3 py-2 md:col-span-2">
+              <p className="text-[10px] font-medium uppercase text-slate-500">Descripción</p>
+              <p className="text-slate-700">{detail.descripcion}</p>
             </div>
           </div>
         ) : (
-          <p className="text-sm text-rose-600">No se encontró el registro.</p>
+          <p className="text-rose-600">No se encontró el registro.</p>
         )}
       </FormCard>
-    </div>
+    </PageLayout>
   )
 }
 

@@ -263,53 +263,55 @@ const NodoZonaPage = () => {
   }
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Nodo Zona</h2>
-          <p className="text-sm text-slate-500">Catalogos de nodos, distritos y estados de corte TAP.</p>
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <div className="min-w-0">
+            <h2 className="page-title">Nodo Zona</h2>
+            <p className="text-slate-500">Catalogos de nodos, distritos y estados de corte TAP.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button type="button" className="h-8" onClick={() => setShowCreate((value) => !value)}>
+              <FontAwesomeIcon icon={showCreate ? faXmark : faPlus} />
+              <span>{showCreate ? 'Cancelar' : 'Nuevo'}</span>
+            </Button>
+            <Button type="button" variant="secondary" className="h-8" onClick={() => query.refetch()} disabled={query.isFetching}>
+              <FontAwesomeIcon icon={faRotate} className={query.isFetching ? 'animate-spin' : ''} />
+              <span>{query.isFetching ? 'Actualizando...' : 'Actualizar'}</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button type="button" onClick={() => setShowCreate((value) => !value)}>
-            <FontAwesomeIcon icon={showCreate ? faXmark : faPlus} />
-            <span>{showCreate ? 'Cancelar' : 'Crear'}</span>
-          </Button>
-          <Button type="button" variant="secondary" onClick={() => query.refetch()} disabled={query.isFetching}>
-            <FontAwesomeIcon icon={faRotate} />
-            <span>{query.isFetching ? 'Actualizando...' : 'Actualizar'}</span>
-          </Button>
+
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-200 px-2 py-1.5 sm:px-3">
+          {tabConfigs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                activeTab === tab.key ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+              }`}
+              onClick={() => {
+                setActiveTab(tab.key)
+                setSearch('')
+                setPageByTab((prev) => ({ ...prev, [tab.key]: 1 }))
+                setShowCreate(false)
+                setNodoZonaSearch('')
+                setNodoZonaSuggestionsOpen(false)
+                setError(null)
+                setMessage(null)
+              }}
+            >
+              {tab.title}
+            </button>
+          ))}
         </div>
-      </div>
+      </section>
 
-      <div className="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-sm">
-        {tabConfigs.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
-              activeTab === tab.key ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
-            }`}
-            onClick={() => {
-              setActiveTab(tab.key)
-              setSearch('')
-              setPageByTab((prev) => ({ ...prev, [tab.key]: 1 }))
-              setShowCreate(false)
-              setNodoZonaSearch('')
-              setNodoZonaSuggestionsOpen(false)
-              setError(null)
-              setMessage(null)
-            }}
-          >
-            {tab.title}
-          </button>
-        ))}
-      </div>
-
-      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-      {message ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</div> : null}
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{error}</div> : null}
+      {message ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">{message}</div> : null}
 
       {query.error ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
           {getApiErrorMessage(query.error, `No se pudo cargar ${activeConfig.title.toLowerCase()}.`)}
         </div>
       ) : null}
@@ -317,7 +319,7 @@ const NodoZonaPage = () => {
       {showCreate ? (
         <FormCard title={activeConfig.createTitle} description="Registrar nuevo dato activo." overflowVisible>
           <form
-            className="grid gap-3 md:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
+            className="grid items-end gap-2 md:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
             onSubmit={(event) => {
               event.preventDefault()
               const payload = Object.fromEntries(Object.entries(form).map(([key, value]) => [key, value.trim()]))
@@ -325,12 +327,12 @@ const NodoZonaPage = () => {
             }}
           >
             {activeConfig.fields.map((field) => (
-              <label key={field.key} className="relative space-y-1 text-sm font-semibold text-slate-700">
+              <label key={field.key} className="relative flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                 <span>{field.label}</span>
                 {field.inputType === 'nodo-zona-select' ? (
                   <div className="relative">
                     <input
-                      className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                       value={nodoZonaSearch}
                       placeholder={zonasQuery.isLoading ? 'Cargando nodos...' : 'Buscar nodo zona...'}
                       disabled={zonasQuery.isLoading}
@@ -356,7 +358,7 @@ const NodoZonaPage = () => {
                             <button
                               key={option.value}
                               type="button"
-                              className="block w-full px-3 py-2 text-left text-sm text-slate-700 hover:bg-blue-50 hover:text-blue-700"
+                              className="block w-full px-2.5 py-1.5 text-left text-slate-700 hover:bg-blue-50 hover:text-blue-700"
                               onMouseDown={(event) => {
                                 event.preventDefault()
                                 selectNodoZonaAsociado(option.value)
@@ -366,20 +368,20 @@ const NodoZonaPage = () => {
                             </button>
                           ))
                         ) : (
-                          <div className="px-3 py-2 text-sm text-slate-500">Sin coincidencias.</div>
+                          <div className="px-2.5 py-1.5 text-slate-500">Sin coincidencias.</div>
                         )}
                       </div>
                     ) : null}
                   </div>
                 ) : field.inputType === 'readonly' ? (
                   <input
-                    className="h-10 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 text-sm text-slate-700 outline-none"
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-600 outline-none"
                     value={form[field.key] ?? ''}
                     readOnly
                   />
                 ) : (
                   <input
-                    className="h-10 w-full rounded-lg border border-slate-300 px-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                     maxLength={field.key === 'estado' ? 150 : 50}
                     value={form[field.key] ?? ''}
                     onChange={(event) => updateForm(field, event.target.value)}
@@ -388,7 +390,7 @@ const NodoZonaPage = () => {
               </label>
             ))}
             <div className="flex items-end">
-              <Button type="submit" className="h-10 w-full md:w-auto" disabled={!canSubmit}>
+              <Button type="submit" className="h-8 w-full md:w-auto" disabled={!canSubmit}>
                 <FontAwesomeIcon icon={faPlus} />
                 <span>{createMutation.isPending ? 'Guardando...' : 'Guardar'}</span>
               </Button>
@@ -401,10 +403,10 @@ const NodoZonaPage = () => {
         title={activeConfig.title}
         description={`${filteredRows.length} de ${rows.length} registros`}
         actions={
-          <div className="relative w-full min-w-[260px] max-w-sm">
-            <FontAwesomeIcon icon={faFilter} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <div className="relative w-full min-w-[220px] max-w-xs">
+            <FontAwesomeIcon icon={faFilter} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              className="h-10 w-full rounded-lg border border-slate-300 pl-9 pr-3 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              className="h-8 w-full rounded-md bg-slate-100 pl-8 pr-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
               placeholder="Filtrar datos..."
               value={search}
               onChange={(event) => {
@@ -416,7 +418,7 @@ const NodoZonaPage = () => {
         }
       >
         {query.isLoading ? (
-          <div className="flex items-center justify-center gap-2 px-4 py-10 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-2 px-3 py-6 text-slate-500">
             <FontAwesomeIcon icon={faDatabase} />
             <span>{activeConfig.loadingText}</span>
           </div>
@@ -424,12 +426,12 @@ const NodoZonaPage = () => {
 
         {!query.isLoading && columns.length > 0 ? (
           <div className="overflow-x-auto rounded-lg border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200 text-left text-sm">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase text-slate-500">
+            <table className="min-w-full divide-y divide-slate-200 text-left">
+              <thead className="bg-slate-100 text-[10px] font-semibold uppercase text-slate-600">
                 <tr>
-                  <th className="w-24 whitespace-nowrap px-3 py-2">Acc.</th>
+                  <th className="w-16 whitespace-nowrap px-2 py-1.5">Acc.</th>
                   {columns.map((column) => (
-                    <th key={column} className="whitespace-nowrap px-3 py-2">
+                    <th key={column} className="whitespace-nowrap px-2 py-1.5">
                       {column}
                     </th>
                   ))}
@@ -438,10 +440,10 @@ const NodoZonaPage = () => {
               <tbody className="divide-y divide-slate-100 bg-white">
                 {pagedRows.map((row, rowIndex) => (
                   <tr key={`${activeTab}-${getRowId(row) ?? rowIndex}`} className="hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-3 py-2">
+                    <td className="whitespace-nowrap px-2 py-1">
                       <button
                         type="button"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md border border-rose-200 bg-white text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                         title="Eliminar"
                         disabled={deleteMutation.isPending || getRowId(row) === null}
                         onClick={() => {
@@ -456,7 +458,7 @@ const NodoZonaPage = () => {
                       </button>
                     </td>
                     {columns.map((column) => (
-                      <td key={column} className="max-w-[360px] whitespace-nowrap px-3 py-2 text-slate-700">
+                      <td key={column} className="max-w-[360px] whitespace-nowrap px-2 py-1 text-slate-700">
                         <span className="block overflow-hidden text-ellipsis" title={formatCell(row[column])}>
                           {formatCell(row[column])}
                         </span>
@@ -470,19 +472,19 @@ const NodoZonaPage = () => {
         ) : null}
 
         {!query.isLoading && filteredRows.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-10 text-sm text-slate-500">
+          <div className="flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-6 text-slate-500">
             <FontAwesomeIcon icon={faTriangleExclamation} />
             <span>No hay datos para mostrar.</span>
           </div>
         ) : null}
 
         {!query.isLoading && filteredRows.length > 0 ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-600">
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-slate-600">
             <span>
               Mostrando {(safePage - 1) * PAGE_SIZE + 1}-{Math.min(safePage * PAGE_SIZE, filteredRows.length)} de {filteredRows.length}
             </span>
             <div className="flex items-center gap-2">
-              <Button type="button" variant="secondary" className="h-9 px-3" disabled={safePage <= 1} onClick={() => setActivePage(safePage - 1)}>
+              <Button type="button" variant="secondary" className="h-8 px-3" disabled={safePage <= 1} onClick={() => setActivePage(safePage - 1)}>
                 Anterior
               </Button>
               <span className="font-semibold text-slate-700">
@@ -491,7 +493,7 @@ const NodoZonaPage = () => {
               <Button
                 type="button"
                 variant="secondary"
-                className="h-9 px-3"
+                className="h-8 px-3"
                 disabled={safePage >= totalPages}
                 onClick={() => setActivePage(safePage + 1)}
               >

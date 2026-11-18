@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import Modal from '../components/common/Modal'
 import {
   buildCuadreAutomaticoProgressUrl,
@@ -237,8 +238,9 @@ const SistemasCuadreAutomaticoPage = () => {
   }
 
   return (
-    <div className="space-y-5 pb-8">
+    <PageLayout title="Cuadre automatico" subtitle="Ejecuta el proceso legacy de cuadres automaticos por fecha y sucursal.">
       <Modal
+        compactText
         open={processModalOpen}
         title={processRunning ? 'Cuadre automatico en proceso' : error ? 'Proceso detenido' : 'Cuadre automatico finalizado'}
         onClose={() => {
@@ -355,13 +357,8 @@ const SistemasCuadreAutomaticoPage = () => {
         </div>
       </Modal>
 
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Cuadre automatico</h2>
-        <p className="text-sm text-slate-600">Ejecuta el proceso legacy de cuadres automaticos por fecha y sucursal.</p>
-      </div>
-
       <FormCard title="Parametros">
-        <div className="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-end">
+        <div className="grid gap-2 md:grid-cols-[180px_minmax(0,1fr)_auto] md:items-end">
           <Field label="Fecha">
             <input className="input-base bg-white" type="date" value={fecha} onChange={(event) => { setFecha(event.target.value); setResultado(null) }} />
           </Field>
@@ -378,11 +375,11 @@ const SistemasCuadreAutomaticoPage = () => {
           </Button>
         </div>
         {cierreEstado ? (
-          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mt-2 flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-sm font-bold text-slate-900">Cierre de almacen</p>
-              <p className="text-xs text-slate-600">{cierreEstado.mensaje}</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
+              <p className="font-bold text-slate-900">Cierre de almacen</p>
+              <p className="text-slate-600">{cierreEstado.mensaje}</p>
+              <p className="font-semibold text-slate-500">
                 Pendientes cuadre: {quantity(cierreEstado.pendientesCuadre)} | Almacen: {cierreEstado.cierreAlmacenRegistrado ? 'SI' : 'NO'} | PR/PD: {cierreEstado.cierrePrPdRegistrado ? 'SI' : 'NO'}
               </p>
             </div>
@@ -394,81 +391,81 @@ const SistemasCuadreAutomaticoPage = () => {
           </div>
         ) : null}
         {cierreResultado?.length ? (
-          <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-800">
             {cierreResultado.map((item) => `${item.tipo}: ${item.estado}${item.idRegistro ? ` #${item.idRegistro}` : ''}`).join(' | ')}
           </div>
         ) : null}
-        {error ? <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div> : null}
+        {error ? <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">{error}</div> : null}
         {previewQuery.isError ? (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
             {getApiErrorMessage(previewQuery.error, 'No se pudo cargar el preview de rutas.')}
           </div>
         ) : null}
       </FormCard>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-xs font-bold uppercase text-slate-500">Rutas</p>
-          <p className="mt-1 text-2xl font-black text-slate-900">{quantity(resumen.total)}</p>
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <p className="text-[10px] font-medium uppercase text-slate-500">Rutas</p>
+          <p className="text-base font-bold text-slate-900">{quantity(resumen.total)}</p>
         </div>
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
-          <p className="text-xs font-bold uppercase text-emerald-700">Listas</p>
-          <p className="mt-1 text-2xl font-black text-emerald-800">{quantity(resumen.listos)}</p>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+          <p className="text-[10px] font-medium uppercase text-emerald-700">Listas</p>
+          <p className="text-base font-bold text-emerald-800">{quantity(resumen.listos)}</p>
         </div>
-        <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
-          <p className="text-xs font-bold uppercase text-blue-700">Registradas</p>
-          <p className="mt-1 text-2xl font-black text-blue-800">{quantity(resumen.registrados)}</p>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+          <p className="text-[10px] font-medium uppercase text-blue-700">Registradas</p>
+          <p className="text-base font-bold text-blue-800">{quantity(resumen.registrados)}</p>
         </div>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs font-bold uppercase text-amber-700">Omitidas</p>
-          <p className="mt-1 text-2xl font-black text-amber-800">{quantity(resumen.omitidos)}</p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <p className="text-[10px] font-medium uppercase text-amber-700">Omitidas</p>
+          <p className="text-base font-bold text-amber-800">{quantity(resumen.omitidos)}</p>
         </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-xs font-bold uppercase text-red-700">Errores</p>
-          <p className="mt-1 text-2xl font-black text-red-800">{quantity(resumen.errores)}</p>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2">
+          <p className="text-[10px] font-medium uppercase text-red-700">Errores</p>
+          <p className="text-base font-bold text-red-800">{quantity(resumen.errores)}</p>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <div className="border-b border-slate-200 px-4 py-3">
-          <h3 className="text-base font-bold text-slate-900">{resultado ? 'Resultado de ejecucion' : 'Preview de rutas'}</h3>
+      <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-3 py-1.5 sm:px-4">
+          <h3 className="page-panel-title">{resultado ? 'Resultado de ejecucion' : 'Preview de rutas'}</h3>
         </div>
         <div className="max-h-[60vh] overflow-auto">
-          <table className="min-w-full text-left text-sm">
-            <thead className="sticky top-0 bg-slate-100 text-xs uppercase text-slate-600">
+          <table className="min-w-full text-left">
+            <thead className="sticky top-0 bg-slate-100 text-[10px] uppercase text-slate-600">
               <tr>
-                <th className="px-3 py-3">Ruta</th>
-                <th className="px-3 py-3">Vendedor</th>
-                <th className="px-3 py-3 text-right">OT</th>
-                <th className="px-3 py-3">Estado</th>
-                <th className="px-3 py-3">Mensaje</th>
-                <th className="px-3 py-3 text-right">Cuadre</th>
+                <th className="px-2 py-1.5">Ruta</th>
+                <th className="px-2 py-1.5">Vendedor</th>
+                <th className="px-2 py-1.5 text-right">OT</th>
+                <th className="px-2 py-1.5">Estado</th>
+                <th className="px-2 py-1.5">Mensaje</th>
+                <th className="px-2 py-1.5 text-right">Cuadre</th>
               </tr>
             </thead>
             <tbody>
               {previewQuery.isLoading && !resultado ? (
-                <tr><td className="px-3 py-8 text-center text-slate-500" colSpan={6}>Consultando rutas...</td></tr>
+                <tr><td className="px-3 py-4 text-center text-slate-500" colSpan={6}>Consultando rutas...</td></tr>
               ) : previewQuery.isError && !resultado ? (
-                <tr><td className="px-3 py-8 text-center text-red-600" colSpan={6}>No se pudo consultar rutas.</td></tr>
+                <tr><td className="px-3 py-4 text-center text-red-600" colSpan={6}>No se pudo consultar rutas.</td></tr>
               ) : rutas.length ? rutas.map((row, index) => (
                 <tr key={`${row.idRuta ?? 'ruta'}-${index}`} className="odd:bg-white even:bg-slate-50">
-                  <td className="px-3 py-3 font-semibold text-slate-800">{row.idRuta} - {row.ruta}</td>
-                  <td className="px-3 py-3 text-slate-700">{row.vendedor ?? '-'}</td>
-                  <td className="px-3 py-3 text-right font-semibold">{quantity(row.cantidadOt)}</td>
-                  <td className="px-3 py-3">
-                    <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${statusClass(row.estado)}`}>{row.estado}</span>
+                  <td className="px-2 py-1.5 font-semibold text-slate-800">{row.idRuta} - {row.ruta}</td>
+                  <td className="px-2 py-1.5 text-slate-700">{row.vendedor ?? '-'}</td>
+                  <td className="px-2 py-1.5 text-right font-semibold">{quantity(row.cantidadOt)}</td>
+                  <td className="px-2 py-1.5">
+                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusClass(row.estado)}`}>{row.estado}</span>
                   </td>
-                  <td className="min-w-[260px] px-3 py-3 text-slate-700">{row.mensaje || '-'}</td>
-                  <td className="px-3 py-3 text-right font-semibold">{row.idCuadre ?? '-'}</td>
+                  <td className="min-w-[260px] px-2 py-1.5 text-slate-700">{row.mensaje || '-'}</td>
+                  <td className="px-2 py-1.5 text-right font-semibold">{row.idCuadre ?? '-'}</td>
                 </tr>
               )) : (
-                <tr><td className="px-3 py-8 text-center text-slate-500" colSpan={6}>Sin rutas pendientes para la fecha seleccionada.</td></tr>
+                <tr><td className="px-3 py-4 text-center text-slate-500" colSpan={6}>Sin rutas pendientes para la fecha seleccionada.</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </section>
-    </div>
+    </PageLayout>
   )
 }
 

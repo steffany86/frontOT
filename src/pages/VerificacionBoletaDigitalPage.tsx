@@ -597,7 +597,7 @@ const VerificacionBoletaDigitalPage = () => {
   }
 
   return (
-    <div className="bento-page max-w-full overflow-x-hidden">
+    <div className="bento-page sup-v2-fs max-w-full gap-2 overflow-x-hidden">
       <input
         ref={fileInputRef}
         type="file"
@@ -606,6 +606,7 @@ const VerificacionBoletaDigitalPage = () => {
         onChange={handleReplacementFileChange}
       />
       <Modal
+        compactText
         open={uploadModal.open}
         title={
           uploadModal.status === 'choose'
@@ -656,17 +657,17 @@ const VerificacionBoletaDigitalPage = () => {
         }
       >
         {uploadModal.status === 'choose' ? (
-          <div className="space-y-3">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+          <div className="space-y-2">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-slate-700">
               <p className="text-xs font-semibold uppercase text-slate-500">Nombre de archivo esperado</p>
-              <p className="mt-1 break-all text-base font-bold text-slate-900">
+              <p className="break-all text-xs font-bold text-slate-900">
                 {selectedUploadRow && isImageRow(selectedUploadRow)
                   ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot)
                   : getExpectedPdfFileName(selectedUploadRow) || '-'}
               </p>
             </div>
-            <p className="text-sm text-slate-600">Selecciona qué deseas hacer con el archivo actual.</p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <p className="text-slate-600">Selecciona qué deseas hacer con el archivo actual.</p>
+            <div className="grid gap-2 sm:grid-cols-2">
               <Button type="button" onClick={chooseNewUpload}>
                 <FontAwesomeIcon icon={faUpload} />
                 <span>Subir archivo nuevo</span>
@@ -677,16 +678,16 @@ const VerificacionBoletaDigitalPage = () => {
             </div>
           </div>
         ) : uploadModal.status === 'confirm' ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+          <div className="space-y-2">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-slate-700">
               <p className="text-xs font-semibold uppercase text-slate-500">
                 {selectedUploadRow && isImageRow(selectedUploadRow) ? 'Archivo actual:' : 'Nombre de archivo esperado:'}
               </p>
-              <p className="mt-1 break-all text-base font-bold text-slate-900">
+              <p className="break-all text-xs font-bold text-slate-900">
                 {selectedUploadRow && isImageRow(selectedUploadRow) ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot) : getExpectedPdfFileName(selectedUploadRow) || '-'}
               </p>
             </div>
-            <div className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               <p className="min-w-0">
                 <span className="block text-xs font-semibold uppercase text-slate-500">OT</span>
                 <span className="break-words font-semibold text-slate-800">{selectedUploadRow?.ot || '-'}</span>
@@ -708,7 +709,7 @@ const VerificacionBoletaDigitalPage = () => {
               />
             </Field>
             {uploadRenameError ? (
-              <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
                 {uploadRenameError}
               </div>
             ) : (
@@ -720,16 +721,16 @@ const VerificacionBoletaDigitalPage = () => {
             )}
           </div>
         ) : uploadModal.status === 'rename' ? (
-          <div className="space-y-4">
-            <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-slate-700">
+          <div className="space-y-2">
+            <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-slate-700">
               <p className="text-xs font-semibold uppercase text-slate-500">Nombre esperado</p>
-              <p className="mt-1 break-all text-base font-bold text-slate-900">
+              <p className="break-all text-xs font-bold text-slate-900">
                 {selectedUploadRow && isImageRow(selectedUploadRow)
                   ? getFileName(selectedUploadRow.rutaPdf, selectedUploadRow.ot)
                   : getExpectedPdfFileName(selectedUploadRow) || '-'}
               </p>
             </div>
-            <p className="text-sm text-slate-600">El archivo actual se conservará; solo se cambiará su nombre y la ruta registrada.</p>
+            <p className="text-slate-600">El archivo actual se conservará; solo se cambiará su nombre y la ruta registrada.</p>
             <Field label="Nuevo nombre del archivo">
               <input
                 className={`input-base ${uploadRenameError ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
@@ -741,7 +742,7 @@ const VerificacionBoletaDigitalPage = () => {
                 placeholder={selectedUploadRow && isImageRow(selectedUploadRow) ? 'imagen.png' : 'SA-00000000.pdf'}
               />
             </Field>
-            {uploadRenameError ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">{uploadRenameError}</div> : null}
+            {uploadRenameError ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{uploadRenameError}</div> : null}
           </div>
         ) : uploadModal.status === 'loading' ? (
           <div className="flex items-center gap-3">
@@ -749,13 +750,14 @@ const VerificacionBoletaDigitalPage = () => {
             <span>{uploadModal.message}</span>
           </div>
         ) : (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
             {uploadModal.message || 'No coincide el nombre del PDF.'}
           </div>
         )}
       </Modal>
       <FileSizeLimitModal />
       <Modal
+        compactText
         open={Boolean(selectedDetailRow)}
         title={`Detalle de boleta ${selectedDetailRow?.id || selectedDetailRow?.ot || ''}`}
         onClose={() => setSelectedDetailRow(null)}
@@ -766,111 +768,132 @@ const VerificacionBoletaDigitalPage = () => {
         }
       >
         {selectedDetailRow ? (
-          <div className="max-h-[70vh] space-y-4 overflow-y-auto pr-1">
-            <div className="grid gap-2 rounded-xl border border-blue-100 bg-blue-50 p-3 text-sm sm:grid-cols-3">
+          <div className="max-h-[70vh] space-y-2 overflow-y-auto pr-1">
+            <div className="grid gap-2 rounded-lg border border-blue-100 bg-blue-50 p-2 sm:grid-cols-3">
               <p><span className="block text-[10px] font-bold uppercase text-slate-500">Id venta</span><span className="font-bold text-slate-900">{selectedDetailRow.id || '-'}</span></p>
-              <p><span className="block text-[10px] font-bold uppercase text-slate-500">Cliente</span><span className="text-sm font-normal text-black">{selectedDetailRow.cliente || '-'}</span></p>
+              <p><span className="block text-[10px] font-bold uppercase text-slate-500">Cliente</span><span className="font-normal text-slate-900">{selectedDetailRow.cliente || '-'}</span></p>
               <p><span className="block text-[10px] font-bold uppercase text-slate-500">OT</span><span className="font-bold text-slate-900">{selectedDetailRow.ot || '-'}</span></p>
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {Object.entries(selectedDetailRow.raw).map(([key, value]) => (
-                <div key={key} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{formatDetailLabel(key)}</p>
-                  <p className="mt-1 break-words text-xs font-semibold text-slate-800">{formatDetailValue(value)}</p>
+                <div key={key} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                  <p className="text-[10px] font-medium uppercase text-slate-500">{formatDetailLabel(key)}</p>
+                  <p className="break-words font-semibold text-slate-800">{formatDetailValue(value)}</p>
                 </div>
               ))}
             </div>
           </div>
         ) : null}
       </Modal>
-      <div className="bento-page-head [&>h2:last-of-type]:hidden">
-        <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Resumen de Boletas Digitales</h2>
-        <p className="mt-1 text-sm text-slate-500">Gestiona y verifica los registros operativos físicos contra los digitales para la región de Santa Cruz.</p>
-        <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Verificación Boleta Digital</h2>
-      </div>
-
-      <section className="min-w-0 max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
-          <div className="flex max-w-full gap-1 overflow-x-auto rounded-lg border border-slate-200 bg-white p-1 shadow-sm">
-            {[
-              { id: 'all', label: 'Todos', count: rows.length },
-              { id: 'iguales', label: 'Iguales', count: statusSummary.iguales },
-              { id: 'diferentes', label: 'Diferentes', count: statusSummary.diferentes },
-              { id: 'sin_pdf', label: 'Sin PDF', count: statusSummary.sinPdf },
-              { id: 'imagenes', label: 'Con imagen', count: statusSummary.imagenes },
-              { id: 'editados', label: 'Editados', count: statusSummary.editados },
-            ].map((tab) => {
-              const active = statusFilter === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  className={`shrink-0 rounded-md px-3 py-1.5 text-xs font-bold transition ${active ? 'bg-[#002253] text-white shadow-sm' : 'bg-white text-slate-600 hover:bg-slate-50 hover:text-[#002253]'}`}
-                  onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
-                >
-                  {tab.label}
-                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[11px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                    {tab.count}
-                  </span>
-                </button>
-              )
-            })}
+      <section className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <div className="min-w-0">
+            <h2 className="truncate page-title">Verificación Boleta Digital</h2>
+            <p className="truncate text-slate-500">Registros operativos físicos contra digitales, región Santa Cruz.</p>
+          </div>
+          <div className="ml-auto flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setStatusFilter((current) => (current === 'iguales' ? 'all' : 'iguales'))}
+              className={`min-w-[54px] rounded-lg border px-1.5 py-1 text-center transition sm:min-w-[68px] sm:px-2.5 border-emerald-100 bg-emerald-50/70 ${statusFilter === 'iguales' ? 'ring-2 ring-blue-300' : ''}`}
+            >
+              <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-emerald-700">Iguales</p>
+              <p className="text-base font-extrabold leading-none text-emerald-600">{statusSummary.iguales}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter((current) => (current === 'diferentes' ? 'all' : 'diferentes'))}
+              className={`min-w-[54px] rounded-lg border px-1.5 py-1 text-center transition sm:min-w-[68px] sm:px-2.5 border-rose-100 bg-rose-50/70 ${statusFilter === 'diferentes' ? 'ring-2 ring-blue-300' : ''}`}
+            >
+              <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-rose-700">Diferentes</p>
+              <p className="text-base font-extrabold leading-none text-rose-600">{statusSummary.diferentes}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter((current) => (current === 'sin_pdf' ? 'all' : 'sin_pdf'))}
+              className={`min-w-[54px] rounded-lg border px-1.5 py-1 text-center transition sm:min-w-[68px] sm:px-2.5 border-amber-100 bg-amber-50/70 ${statusFilter === 'sin_pdf' ? 'ring-2 ring-blue-300' : ''}`}
+            >
+              <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-amber-700">Sin PDF</p>
+              <p className="text-base font-extrabold leading-none text-amber-600">{statusSummary.sinPdf}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusFilter((current) => (current === 'imagenes' ? 'all' : 'imagenes'))}
+              className={`min-w-[54px] rounded-lg border px-1.5 py-1 text-center transition sm:min-w-[68px] sm:px-2.5 border-sky-100 bg-sky-50/70 ${statusFilter === 'imagenes' ? 'ring-2 ring-blue-300' : ''}`}
+            >
+              <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-sky-700">Imagen</p>
+              <p className="text-base font-extrabold leading-none text-sky-600">{statusSummary.imagenes}</p>
+            </button>
           </div>
         </div>
-        <div className="grid gap-2 border-b border-slate-200 bg-white px-4 py-3 sm:grid-cols-4">
+
+        <div className="flex max-w-full flex-wrap items-center gap-1 overflow-x-auto border-t border-slate-200 px-2 py-1.5 sm:px-3">
           {[
-            ['iguales', 'Iguales', statusSummary.iguales, 'emerald'],
-            ['diferentes', 'Diferentes', statusSummary.diferentes, 'rose'],
-            ['sin_pdf', 'Sin PDF', statusSummary.sinPdf, 'amber'],
-            ['imagenes', 'Con imagen', statusSummary.imagenes, 'sky'],
-          ].map(([id, label, count, color]) => (
-            <button
-              key={id}
-              type="button"
-              className={`min-h-[3rem] rounded-lg border px-3 py-1.5 text-left transition ${statusFilter === id ? `border-${color}-400 bg-${color}-50 text-${color}-900` : `border-${color}-200 bg-${color}-50 text-${color}-700 hover:border-${color}-400`}`}
-              onClick={() => setStatusFilter((current) => (current === id ? 'all' : id as typeof statusFilter))}
-            >
-              <span className="text-[10px] font-semibold uppercase tracking-wide">{label}</span>
-              <span className="block text-lg font-extrabold leading-5">{count}</span>
-            </button>
-          ))}
+            { id: 'all', label: 'Todos', count: rows.length },
+            { id: 'iguales', label: 'Iguales', count: statusSummary.iguales },
+            { id: 'diferentes', label: 'Diferentes', count: statusSummary.diferentes },
+            { id: 'sin_pdf', label: 'Sin PDF', count: statusSummary.sinPdf },
+            { id: 'imagenes', label: 'Con imagen', count: statusSummary.imagenes },
+            { id: 'editados', label: 'Editados', count: statusSummary.editados },
+          ].map((tab) => {
+            const active = statusFilter === tab.id
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                onClick={() => setStatusFilter(tab.id as typeof statusFilter)}
+              >
+                {tab.label}
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-blue-500 text-white' : 'bg-slate-500 text-white'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            )
+          })}
         </div>
-        <div className="mx-4 my-4 flex min-w-0 flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 xl:flex-row xl:items-end xl:justify-between">
-          <div className={`grid min-w-0 max-w-full flex-1 gap-2 sm:grid-cols-2 ${
-            canExportExcel
-              ? 'lg:grid-cols-[minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto_auto]'
-              : 'lg:grid-cols-[minmax(0,145px)_minmax(0,145px)_minmax(0,320px)_auto_auto]'
-          } lg:items-end`}>
-            <Field label="Desde" compact>
+
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
+            <span className="group-open:hidden">Mostrar filtros</span>
+            <span className="hidden group-open:inline">Ocultar filtros</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="flex flex-wrap items-end gap-2 pb-1 pt-1.5">
+            <label className="flex w-36 flex-col gap-0.5 font-medium text-slate-500">
+              Desde
               <input
-                className={`input-base rounded-lg py-2 text-xs ${fechaRangeError && !fechaInicio ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
+                className={`h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 ${fechaRangeError && !fechaInicio ? 'ring-1 ring-rose-300 bg-rose-50' : ''}`}
                 type="date"
                 value={fechaInicio}
                 onChange={(event) => setFechaInicio(event.target.value)}
               />
-            </Field>
-            <Field label="Hasta" compact>
+            </label>
+            <label className="flex w-36 flex-col gap-0.5 font-medium text-slate-500">
+              Hasta
               <input
-                className={`input-base rounded-lg py-2 text-xs ${fechaRangeError && !fechaFin ? 'border-rose-400 bg-rose-50 ring-1 ring-rose-200' : ''}`}
+                className={`h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 ${fechaRangeError && !fechaFin ? 'ring-1 ring-rose-300 bg-rose-50' : ''}`}
                 type="date"
                 value={fechaFin}
                 onChange={(event) => setFechaFin(event.target.value)}
               />
-            </Field>
-            <Field label="Buscar" compact>
+            </label>
+            <label className="flex min-w-[14rem] flex-1 flex-col gap-0.5 font-medium text-slate-500 sm:max-w-sm">
+              Buscar
               <div className="relative">
-                <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <FontAwesomeIcon icon={faSearch} className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
-                  className="input-base rounded-lg py-2 pl-9 text-xs"
+                  className="h-8 w-full rounded-md bg-slate-100 pl-8 pr-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Buscar por OT, ID cliente, nombre..."
                 />
               </div>
-            </Field>
+            </label>
             <Button
               type="button"
               variant="secondary"
+              className="h-8"
               onClick={() => {
                 setFechaInicio(defaultFechaInicio)
                 setFechaFin(defaultFechaFin)
@@ -883,6 +906,7 @@ const VerificacionBoletaDigitalPage = () => {
             <Button
               type="button"
               variant="primary"
+              className="h-8"
               onClick={() => otsQuery.refetch()}
               disabled={otsQuery.isFetching || !hasValidDateRange}
             >
@@ -890,28 +914,28 @@ const VerificacionBoletaDigitalPage = () => {
               <span>{otsQuery.isFetching ? 'Aplicando...' : 'Aplicar'}</span>
             </Button>
             {canExportExcel ? (
-              <Button type="button" variant="secondary" onClick={() => void exportarExcel()} disabled={exportandoExcel} className="sm:col-span-2 lg:col-span-1">
+              <Button type="button" variant="secondary" className="h-8" onClick={() => void exportarExcel()} disabled={exportandoExcel}>
                 <FontAwesomeIcon icon={faFileExcel} />
                 <span>{exportandoExcel ? 'Exportando...' : 'Exportar'}</span>
               </Button>
             ) : null}
           </div>
-        </div>
+        </details>
 
         {!hasValidDateRange ? (
-          <div className="m-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="m-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
             Selecciona un rango de fechas valido para cargar las boletas.
           </div>
         ) : null}
 
         {otsQuery.isError ? (
-          <div className="m-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="m-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
             {getApiErrorMessage(otsQuery.error, 'No se pudo cargar el listado.')}
           </div>
         ) : null}
 
         {actionError ? (
-          <div className="m-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="m-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
             {actionError}
           </div>
         ) : null}
@@ -930,7 +954,7 @@ const VerificacionBoletaDigitalPage = () => {
         </div>
 
         <div ref={tableScrollRef} onScroll={() => syncHorizontalScroll('table')} className="hidden max-h-[68vh] max-w-full overflow-x-auto overflow-y-auto md:block">
-          <table className="w-full min-w-[900px] table-fixed divide-y divide-slate-200 text-xs leading-tight">
+          <table className="w-full min-w-[900px] table-fixed divide-y divide-slate-200 leading-tight">
             <colgroup>
               <col className="w-[13%]" />
               <col className="w-[22%]" />
@@ -958,8 +982,8 @@ const VerificacionBoletaDigitalPage = () => {
                 </tr>
               ) : visibleRows.length === 0 ? (
                 <tr>
-                  <td className="px-4 py-12 text-center" colSpan={7}>
-                    <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
+                  <td className="px-3 py-6 text-center" colSpan={7}>
+                    <p className="text-sm font-bold uppercase text-slate-700">NO HAY DATOS PARA LA FECHA</p>
                   </td>
                 </tr>
               ) : (
@@ -976,8 +1000,8 @@ const VerificacionBoletaDigitalPage = () => {
                     </td>
                     <td className="px-2 py-1.5 text-slate-900">
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-normal text-black" title={row.cliente}>{row.cliente || '-'}</div>
-                        <div className="truncate text-sm font-normal text-black" title={row.ot}>{row.ot || '-'}</div>
+                        <div className="truncate font-normal text-slate-900" title={row.cliente}>{row.cliente || '-'}</div>
+                        <div className="truncate font-normal text-slate-900" title={row.ot}>{row.ot || '-'}</div>
                       </div>
                     </td>
                     <td className="truncate px-2 py-1.5 text-slate-700" title={row.tecnico}>{row.tecnico || '-'}</td>

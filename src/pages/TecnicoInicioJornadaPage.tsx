@@ -224,9 +224,9 @@ const TecnicoInicioJornadaPage = () => {
   }
 
   return (
-    <div className="bento-page">
+    <div className="bento-page sup-v2-fs gap-2">
       <div className="bento-page-head">
-        <h2 className="text-2xl font-semibold text-slate-900">Inicio de Jornada - Trabajo en Alturas</h2>
+        <h2 className="page-title">Inicio de Jornada - Trabajo en Alturas</h2>
         <p className="text-sm text-slate-500">Debes completar este checklist antes de iniciar actividades.</p>
       </div>
 
@@ -234,7 +234,7 @@ const TecnicoInicioJornadaPage = () => {
       {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div> : null}
 
       <FormCard title="Datos generales" description={`ID Técnico: ${estadoQuery.data?.idTecnico ?? usuario?.idUsuario ?? '-'}`}>
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <Field label="Encargado (Supervisor)">
             <input className="input-base bg-slate-100" value={encargadoLabel} readOnly />
           </Field>
@@ -261,7 +261,7 @@ const TecnicoInicioJornadaPage = () => {
       </FormCard>
 
       <FormCard title="Checklist obligatorio" description="Responde SI o NO en cada punto.">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <Field label="¿Están capacitados y cuentan con curso de trabajo en alturas?">
             <select className="input-base" value={capacitado} onChange={(event) => setCapacitado(event.target.value as SiNo)}>
               <option value="SI">SI</option>
@@ -332,7 +332,7 @@ const TecnicoInicioJornadaPage = () => {
             </Field>
           </div>
         </div>
-        <div className="mt-4">
+        <div className="mt-2">
           <Button type="button" onClick={handleSubmit} disabled={registrarMutation.isPending}>
             {registrarMutation.isPending ? 'Guardando...' : 'Registrar inicio de jornada'}
           </Button>
@@ -341,7 +341,7 @@ const TecnicoInicioJornadaPage = () => {
 
       {cierreEstadoQuery.data?.requiereCierre ? (
         <FormCard title="Cierre de jornada" description="Completa este formulario para cerrar tu jornada del día.">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             <Field label="Código cliente">
               <input
                 className="input-base"
@@ -394,7 +394,7 @@ const TecnicoInicioJornadaPage = () => {
               </Field>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-2">
             <Button type="button" onClick={handleCerrarJornada} disabled={cierreMutation.isPending}>
               {cierreMutation.isPending ? 'Guardando cierre...' : 'Registrar cierre de jornada'}
             </Button>

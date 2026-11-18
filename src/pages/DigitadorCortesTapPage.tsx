@@ -11,12 +11,14 @@ const DigitadorCortesTapPage = () => {
   }
 
   return (
-    <div className="bento-page max-w-full gap-2 overflow-hidden">
-      <header className="bento-page-head py-2">
-        <h2>Cortes TAP</h2>
-      </header>
-      <section className="min-w-0 max-w-full overflow-hidden rounded-lg bg-white p-2 sm:p-3">
-        <CortesTapPanel mode="digitador" />
+    <div className="bento-page sup-v2-fs max-w-full gap-2 overflow-hidden">
+      <section className="min-w-0 max-w-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h2 className="shrink-0 page-title">Cortes TAP</h2>
+        </div>
+        <div className="min-w-0 border-t border-slate-200 px-2 py-1.5 sm:px-3">
+          <CortesTapPanel mode="digitador" />
+        </div>
       </section>
     </div>
   )

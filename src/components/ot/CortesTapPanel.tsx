@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCheck, faEye, faPlus, faRotate, faTowerBroadcast } from '@fortawesome/free-solid-svg-icons'
+import { faCheck, faCheckCircle, faClipboardList, faEye, faPlus, faRotate, faTowerBroadcast } from '@fortawesome/free-solid-svg-icons'
 import { fetchCortesTap, finalizarCorteTap, type CorteTapRow } from '../../api/corteTapApi'
 import CorteTapDetailModal from './CorteTapDetailModal'
 import CorteTapCreateModal from './CorteTapCreateModal'
@@ -168,8 +168,8 @@ const CortesTapPanel = ({ mode = 'tecnico' }: Props) => {
     <div className="mt-2 w-full min-w-0 max-w-full overflow-hidden">
       <div className="mb-1 flex flex-wrap items-center gap-1 pb-1">
         {[
-          { id: 'pendientes' as const, label: 'Pendientes', count: pendingRows.length },
-          { id: 'finalizados' as const, label: 'Finalizados', count: finishedRows.length },
+          { id: 'pendientes' as const, label: 'Pendientes', icon: faClipboardList, count: pendingRows.length },
+          { id: 'finalizados' as const, label: 'Finalizados', icon: faCheckCircle, count: finishedRows.length },
         ].map((tab) => {
           const active = activeTab === tab.id
           return (
@@ -180,14 +180,13 @@ const CortesTapPanel = ({ mode = 'tecnico' }: Props) => {
                 setActiveTab(tab.id)
                 setTecnicoFilter('')
               }}
-              className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition ${
-                active
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-brand-700'
+              className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
               }`}
             >
+              <FontAwesomeIcon icon={tab.icon} />
               <span>{tab.label}</span>
-              <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-blue-500 text-white' : 'bg-slate-500 text-white'}`}>
                 {tab.count}
               </span>
             </button>
@@ -200,7 +199,7 @@ const CortesTapPanel = ({ mode = 'tecnico' }: Props) => {
             className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700"
           >
             <FontAwesomeIcon icon={faPlus} />
-            Nuevo Corte TAP
+            Nuevo
           </button>
         ) : null}
       </div>

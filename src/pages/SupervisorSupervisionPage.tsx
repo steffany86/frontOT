@@ -12,7 +12,7 @@ import UbicacionAutoCapture from '../components/common/UbicacionAutoCapture'
 import {
   aprobarInicioJornadaPendiente,
   createSupervision,
-  fetchBackofficeSucursalesSupervision,
+  fetchMisSucursalesSupervision,
   fetchHistoricoJornadaDetalle,
   fetchInicioJornadaFirma,
   fetchInicioJornadaImagen,
@@ -564,7 +564,7 @@ const SupervisorSupervisionPage = () => {
 
   const sucursalesQuery = useQuery({
     queryKey: ['supervision', 'sucursales-filtro'],
-    queryFn: fetchBackofficeSucursalesSupervision,
+    queryFn: fetchMisSucursalesSupervision,
     staleTime: 300_000,
   })
 
@@ -962,9 +962,6 @@ const SupervisorSupervisionPage = () => {
     const tipoSupervisionMap = new Map<string, string>(
       (tiposSupervisionQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])
     )
-    const tipoTrabajoMap = new Map<string, string>(
-      (tiposTrabajoQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])
-    )
 
     const resolveTipoSupervision = (row: SupervisionRegistro): string => {
       const id = normalizeId(row.idTipoSupervision)
@@ -974,37 +971,16 @@ const SupervisorSupervisionPage = () => {
       return id || '-'
     }
 
-    const resolveTipoTrabajo = (row: SupervisionRegistro): string => {
-      const id = normalizeId(row.idTipoTrabajo)
-      const porCatalogo = id ? tipoTrabajoMap.get(id) : undefined
-      if (porCatalogo?.trim()) return porCatalogo.trim()
-      if (row.tipoTrabajo?.trim() && row.tipoTrabajo.trim() !== id) return row.tipoTrabajo.trim()
-      return id || '-'
-    }
-
     return [
       {
-        key: 'fechaRegistro',
-        header: 'Fecha',
-        render: (row) => {
-          const { date, time } = formatDateParts(row.fechaRegistro)
-          return (
-            <div className="leading-tight">
-              <p className="text-[11px] font-medium text-slate-900">{date}</p>
-              <p className="mt-0.5 text-[10px] text-slate-500">{time}</p>
-            </div>
-          )
-        },
+        key: 'id',
+        header: 'Id',
+        render: (row) => <span className="font-mono text-[11px] text-slate-700">{row.id || row.idSupervision || '-'}</span>,
       },
       {
-        key: 'tecnicoPrincipal',
-        header: 'Tecnico Principal',
-        render: (row) => <span className="text-[11px] font-medium text-slate-900">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</span>,
-      },
-      {
-        key: 'tecnicoAuxiliar',
-        header: 'Tecnico Auxiliar',
-        render: (row) => <span className="text-[11px] text-slate-700">{row.tecnicoAuxiliar || tecnicoMap.get(normalizeId(row.idTecnicoAuxiliar))?.tecnico || '-'}</span>,
+        key: 'supervisor',
+        header: 'Supervisor',
+        render: (row) => <span className="text-[11px] font-medium text-slate-900">{row.supervisor || '-'}</span>,
       },
       {
         key: 'tipoSupervision',
@@ -1023,28 +999,50 @@ const SupervisorSupervisionPage = () => {
         ),
       },
       {
-        key: 'tipoTrabajo',
-        header: 'Tipo Trabajo',
-        render: (row) => <span className="text-[11px] text-slate-700">{resolveTipoTrabajo(row)}</span>,
-      },
-      {
-        key: 'estadoSup',
-        header: 'Estado',
-        render: (row) => (
-          <span className={`inline-flex w-fit items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${supervisionEstadoBadgeClass(row)}`}>
-            {isSupervisionCompletada(row) ? 'Completada' : 'Pendiente'}
-          </span>
-        ),
+        key: 'tecnicoPrincipal',
+        header: 'Tecnico',
+        render: (row) => <span className="text-[11px] font-medium text-slate-900">{row.tecnicoPrincipal || tecnicoMap.get(normalizeId(row.idTecnicoPrincipal))?.tecnico || '-'}</span>,
       },
       {
         key: 'codigo',
-        header: 'Codigo',
+        header: 'Codigo Cliente',
         render: (row) => <span className="font-mono text-[11px] text-slate-700">{row.codigo || '-'}</span>,
       },
       {
         key: 'ordenTrabajo',
         header: 'OT',
         render: (row) => <span className="font-mono text-[11px] text-slate-700">{row.ordenTrabajo || '-'}</span>,
+      },
+      {
+        key: 'fechaRegistro',
+        header: 'Fecha Agenda',
+        render: (row) => {
+          const { date, time } = formatDateParts(row.fechaRegistro)
+          return (
+            <div className="leading-tight">
+              <p className="text-[11px] font-medium text-slate-900">{date}</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">{time}</p>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'fechaSupervision',
+        header: 'Fecha Supervision',
+        render: (row) => {
+          const { date, time } = formatDateParts(row.fechaSupervision)
+          return (
+            <div className="leading-tight">
+              <p className="text-[11px] font-medium text-slate-900">{date}</p>
+              <p className="mt-0.5 text-[10px] text-slate-500">{time}</p>
+            </div>
+          )
+        },
+      },
+      {
+        key: 'creadoPor',
+        header: 'Creado Por',
+        render: (row) => <span className="text-[11px] text-slate-700">{row.creadoPor || '-'}</span>,
       },
       {
         key: 'acciones',
@@ -1073,7 +1071,7 @@ const SupervisorSupervisionPage = () => {
         },
       },
     ]
-  }, [idsSupervisionesPendientes, tecnicoMap, tiposSupervisionQuery.data, tiposTrabajoQuery.data])
+  }, [idsSupervisionesPendientes, tecnicoMap, tiposSupervisionQuery.data])
 
   const tipoSupervisionMap = useMemo(
     () => new Map<string, string>((tiposSupervisionQuery.data ?? []).map((item) => [normalizeId(item.id), item.nombre])),

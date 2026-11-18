@@ -370,31 +370,27 @@ const PrivilegiosPage = () => {
 
   const isMutating = saveMutation.isPending || menuPaginasMutation.isPending || sidebarConfigMutation.isPending
   const isRoleLoading = detalleQuery.isLoading
-  const isDetailRefreshing = detalleQuery.isFetching && !detalleQuery.isLoading
   const assignedMenuIds = useMemo(() => getAssignedMenuIds(detalle), [detalle])
   const hasUnsavedChanges = useMemo(() => {
     const assignedSet = new Set(assignedMenuIds)
     if (assignedSet.size !== selectedMenuIds.length) return true
     return selectedMenuIds.some((idMenu) => !assignedSet.has(idMenu))
   }, [assignedMenuIds, selectedMenuIds])
-  const totalMenus = allMenuIds.length
-  const selectedMenus = selectedMenuIds.length
-  const coverage = totalMenus > 0 ? Math.round((selectedMenus / totalMenus) * 100) : 0
 
   return (
-    <div className="bento-page">
-      <section className="glass-panel relative overflow-hidden p-3 sm:p-4">
+    <div className="bento-page sup-v2-fs">
+      <section className="glass-panel relative overflow-hidden p-2 sm:p-3">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute -right-10 -top-16 h-44 w-44 rounded-full bg-brand-100/60 blur-3xl" />
           <div className="absolute -bottom-16 left-1/3 h-40 w-40 rounded-full bg-slate-200/70 blur-3xl" />
         </div>
 
-        <div className="relative space-y-4 sm:space-y-5">
-          <div className="rounded-[1.4rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm sm:p-5">
+        <div className="relative space-y-2">
+          <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h1 className="section-title">Pool de Privilegios</h1>
-                <p className="text-sm text-slate-500">Rol seleccionado: {roleLabel}</p>
+                <h1 className="page-title">Pool de Privilegios</h1>
+                <p className="text-slate-500">Rol seleccionado: {roleLabel}</p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -405,18 +401,18 @@ const PrivilegiosPage = () => {
                 >
                   Configurar sidebar
                 </Button>
-                <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">
+                <span className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
                   {hasUnsavedChanges ? 'Cambios pendientes' : 'Sin cambios'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="grid gap-3 lg:grid-cols-12">
-            <div className="lg:col-span-8 space-y-3 rounded-[1.4rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm sm:p-5">
+          <div className="grid gap-2 lg:grid-cols-12">
+            <div className="lg:col-span-8 space-y-2 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-800">Relacion Menu-Paginas</p>
-                <p className="text-xs text-slate-500">Configura que paginas JSX desbloquea cada menu.</p>
+                <p className="font-semibold text-slate-800">Relacion Menu-Paginas</p>
+                <p className="text-slate-500">Configura que paginas JSX desbloquea cada menu.</p>
               </div>
               <div className="grid gap-2 sm:grid-cols-1 xl:grid-cols-1">
                 <Button
@@ -431,9 +427,9 @@ const PrivilegiosPage = () => {
               </div>
             </div>
 
-            <div className="lg:col-span-4 rounded-[1.4rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm sm:p-5">
-              <label className="flex flex-col gap-2 text-sm text-slate-700">
-                <span className="font-semibold text-slate-800">Rol</span>
+            <div className="lg:col-span-4 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
+              <label className="flex flex-col gap-0.5 text-slate-700">
+                <span className="text-[10px] font-medium text-slate-500">Rol</span>
                 <select
                   className="input-base"
                   value={selectedRoleId ?? ''}
@@ -450,28 +446,10 @@ const PrivilegiosPage = () => {
               </label>
             </div>
 
-            <div className="rounded-[1.2rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm lg:col-span-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Menus marcados</p>
-              <p className="mt-1 text-2xl font-semibold text-slate-900">
-                {selectedMenus}
-                <span className="text-base font-medium text-slate-500"> / {totalMenus}</span>
-              </p>
-            </div>
-
-            <div className="rounded-[1.2rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm lg:col-span-3">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Cobertura</p>
-              <p className="mt-1 text-2xl font-semibold text-brand-700">{coverage}%</p>
-            </div>
-
-            <div className="rounded-[1.2rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm lg:col-span-6">
-              <p className="text-xs uppercase tracking-wide text-slate-500">Estado</p>
-              <p className="mt-1 text-sm font-medium text-slate-700">
-                {isRoleLoading ? 'Cargando menus del rol...' : isDetailRefreshing ? 'Actualizando datos del rol...' : 'Listo para editar'}
-              </p>
-            </div>
           </div>
 
           {rolesQuery.isLoading ? <div className="text-sm text-slate-500">Cargando roles...</div> : null}
+          {isRoleLoading ? <div className="text-sm text-slate-500">Cargando menus del rol...</div> : null}
           {rolesQuery.isError ? (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
               {getApiErrorMessage(rolesQuery.error, 'No se pudieron cargar los roles.')}
@@ -485,7 +463,7 @@ const PrivilegiosPage = () => {
           ) : null}
 
           {!detalleQuery.isLoading && !detalleQuery.isError && detalle ? (
-            <div className="grid gap-3 lg:grid-cols-12">
+            <div className="grid gap-2 lg:grid-cols-12">
               <div className="rounded-[1.4rem] border border-slate-200/90 bg-white/95 p-3 shadow-sm sm:p-4 lg:col-span-8">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1">
                   <p className="text-sm font-semibold text-slate-800">Menus por rol</p>
@@ -503,7 +481,7 @@ const PrivilegiosPage = () => {
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-[1.4rem] border border-slate-200/90 bg-white/95 p-4 shadow-sm sm:p-5 lg:col-span-4">
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm lg:col-span-4">
                 <p className="text-sm font-semibold text-slate-800">Resumen de configuracion</p>
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
                   <p className="text-xs text-slate-500">Rol actual</p>
@@ -534,6 +512,7 @@ const PrivilegiosPage = () => {
       </section>
 
       <Modal
+        compactText
         open={isMenuPaginasModalOpen}
         title="Relacion Menu con Clases Principales"
         onClose={() => {
@@ -622,6 +601,7 @@ const PrivilegiosPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={isSidebarConfigModalOpen}
         title="Configurar botones del sidebar"
         onClose={() => {

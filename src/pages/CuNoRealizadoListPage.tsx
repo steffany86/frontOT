@@ -2,6 +2,7 @@
 import { useNavigate } from 'react-router-dom'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import Table from '../components/common/Table'
 import type { Column } from '../components/common/Table'
 import { fetchCuList } from '../api/cuApi'
@@ -48,25 +49,23 @@ const CuNoRealizadoListPage = () => {
         : null
 
   return (
-    <div className="bento-page">
-      <div className="bento-page-head flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Cargo Usuario No Realizado</h2>
-          <p className="text-sm text-slate-500">Listado de casos pendientes o reprogramados.</p>
-        </div>
-        <Button type="button" onClick={() => navigate('/cu-no-realizado/nuevo')}>
+    <PageLayout
+      title="Cargo Usuario No Realizado"
+      subtitle="Listado de casos pendientes o reprogramados."
+      actions={
+        <Button type="button" className="h-8" onClick={() => navigate('/cu-no-realizado/nuevo')}>
           Registrar CU
         </Button>
-      </div>
-
+      }
+    >
       <FormCard title="Listado CU" description="Se muestran los últimos registros.">
         {errorMessage ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{errorMessage}</div>
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-600">{errorMessage}</div>
         ) : (
           <Table columns={columns} data={query.data ?? []} emptyLabel="NO HAY DATOS PARA LA FECHA" />
         )}
       </FormCard>
-    </div>
+    </PageLayout>
   )
 }
 

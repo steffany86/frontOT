@@ -21,6 +21,7 @@ export interface Sucursal {
   sucursal: string
   ip?: string
   BaseDeDatos?: string
+  tecnologia?: 'HFC' | 'DTH' | string | null
 }
 
 export interface ApiResponse<T> {

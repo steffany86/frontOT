@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import { activarMaintenance, desactivarMaintenance, fetchMaintenanceStatus } from '../api/maintenanceApi'
 import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
@@ -66,60 +67,56 @@ const SistemasProduccionPage = () => {
     return (
       <div className="space-y-4">
         <FormCard title="Poner en produccion" description="Acceso restringido.">
-          <p className="text-sm font-semibold text-red-600">Solo el usuario sistemas puede entrar a este apartado.</p>
+          <p className="font-semibold text-red-600">Solo el usuario sistemas puede entrar a este apartado.</p>
         </FormCard>
       </div>
     )
   }
 
   return (
-    <div className="space-y-5">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Poner en produccion</h2>
-        <p className="text-sm text-slate-600">Controla el bloqueo temporal de login y sesiones durante cambios.</p>
-      </div>
+    <PageLayout title="Poner en produccion" subtitle="Controla el bloqueo temporal de login y sesiones durante cambios.">
 
       <FormCard title="Estado del sistema">
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</p>
-            <p className={`mt-2 text-2xl font-bold ${status?.active ? 'text-red-600' : 'text-emerald-600'}`}>
+        <div className="grid gap-2 md:grid-cols-2">
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p className="text-[10px] font-medium uppercase text-slate-500">Estado</p>
+            <p className={`mt-0.5 text-sm font-bold ${status?.active ? 'text-red-600' : 'text-emerald-600'}`}>
               {statusQuery.isLoading ? 'Consultando...' : status?.active ? 'Cambios en proceso' : 'Operativo'}
             </p>
           </div>
-          <div className="rounded-lg border border-slate-200 bg-white p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ultimo cambio</p>
-            <p className="mt-2 text-sm font-semibold text-slate-900">{formatDate(status?.changedAt)}</p>
-            <p className="text-xs text-slate-500">{status?.changedBy ?? '-'}</p>
+          <div className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+            <p className="text-[10px] font-medium uppercase text-slate-500">Ultimo cambio</p>
+            <p className="mt-0.5 font-semibold text-slate-900">{formatDate(status?.changedAt)}</p>
+            <p className="text-slate-500">{status?.changedBy ?? '-'}</p>
           </div>
         </div>
       </FormCard>
 
       <FormCard title="Control de acceso">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-          <div className="space-y-3">
-            <label className="block text-sm font-semibold text-slate-700">
+        <div className="grid gap-2 lg:grid-cols-[1fr_auto]">
+          <div className="space-y-2">
+            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
               Password sistemas
               <input
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
               />
             </label>
-            <label className="block text-sm font-semibold text-slate-700">
+            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
               Mensaje para usuarios
               <input
                 type="text"
                 value={message}
                 onChange={(event) => setMessage(event.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
               />
             </label>
-            {notice ? <p className="text-sm font-semibold text-emerald-700">{notice}</p> : null}
-            {error ? <p className="text-sm font-semibold text-red-600">{error}</p> : null}
+            {notice ? <p className="font-semibold text-emerald-700">{notice}</p> : null}
+            {error ? <p className="font-semibold text-red-600">{error}</p> : null}
           </div>
-          <div className="flex flex-col gap-3 lg:w-64">
+          <div className="flex flex-col gap-2 lg:w-56">
             <Button
               type="button"
               disabled
@@ -140,7 +137,7 @@ const SistemasProduccionPage = () => {
           </div>
         </div>
       </FormCard>
-    </div>
+    </PageLayout>
   )
 }
 

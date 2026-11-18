@@ -49,11 +49,20 @@ export type SupervisionRegistro = {
   fotoObservacion2?: string
   fotoObservacion3?: string
   fotoObservacion4?: string
+  firmaTecnico?: string
+  firmaAuxiliar?: string
+  firmaCliente?: string
   estadoSup?: 'pendiente' | 'completado' | string
+  /** Id de la llamada de atencion generada desde esta supervision (vacio = no tiene). */
+  idLlamadaAtencion?: string
   origen?: string
   origenExterno?: boolean
   sucursal?: string
   creadoPor?: string
+  cargoCreadoPor?: string
+  idSupervisorAsignado?: string
+  supervisorAsignado?: string
+  mediosError?: string
 }
 
 export type SupervisionListParams = {
@@ -95,6 +104,11 @@ export type SupervisionCreatePayload = {
   fotoObservacion2?: string
   fotoObservacion3?: string
   fotoObservacion4?: string
+  firmaTecnico?: string
+  firmaAuxiliar?: string
+  firmaCliente?: string
+  checklist?: Array<{ idItem: number; respuesta: string; observacion?: string }>
+  materialesCruce?: Array<{ idMaterial: number; cantSistema?: number; cantFisico: number; observacion?: string }>
 }
 
 export type SupervisionCreateResult = {

@@ -11,14 +11,12 @@ import {
   faEye,
   faFilePdf,
   faFilter,
-  faMagnifyingGlass,
   faRotateRight,
-  faTableList,
 } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import { fetchBoletaDigitalArchivo } from '../api/boletaDigitalApi'
-import { fetchCruceAgendaMakiro, marcarCruceVerificaBack, type CruceAgendaMakiroRow } from '../api/cruceAgendaMakiroApi'
+import { fetchCruceAgendaMakiroV2, marcarCruceVerificaBack, type CruceAgendaMakiroRow } from '../api/cruceAgendaMakiroApi'
 import { useAuth } from '../context/AuthContext'
 import { getApiErrorMessage } from '../services/httpClient'
 
@@ -41,12 +39,12 @@ const normalizeKey = (value: string): string => value.trim().toLowerCase().repla
 const columnAliasGroups = {
   tipoCruce: ['TipoCruce', 'tipo_cruce', 'tipoCruce', 'tipo'],
   tecnicoNombre: ['TECNICO', 'tecnico_nombre', 'tecnico', 'nombre_tecnico', 'Tecnico'],
-  estado: ['estado', 'Estado', 'estado_cruce', 'cierre', 'CIERRE'],
+  estado: ['estado', 'Estado', 'estado_cruce'],
   sucursal: ['Sucursal', 'Sucursal_2', 'sucursal', 'Ciudad', 'ciudad'],
-  actualizadoNodo: ['Actualizado_NODO_SI_NO', 'Actualizado_NODO', 'actualizado_nodo', 'actualizadoNodo', 'Act_Nodo'],
-  actualizadoGeo: ['Actualizado_GEO_SI_NO', 'Actualizado_GEO', 'actualizado_geo', 'actualizadoGeo', 'Act_Geo'],
-  actualizadoBoleta: ['Actualizado_BOLETA_SI_NO', 'Actualizado_BOLETA', 'actualizado_boleta', 'actualizadoBoleta', 'Act_Boleta'],
-  actualizadoDigitacion: ['Actualizado_DIGITACION_SI_NO', 'Actualizado_DIGITACION', 'actualizado_digitacion', 'actualizadoDigitacion', 'Act_Digitacion'],
+  actualizadoNodo: ['VerificacionNodo', 'Actualizado_NODO_SI_NO', 'Actualizado_NODO', 'actualizado_nodo', 'actualizadoNodo', 'Act_Nodo'],
+  actualizadoGeo: ['VerificacionGeo', 'Actualizado_GEO_SI_NO', 'Actualizado_GEO', 'actualizado_geo', 'actualizadoGeo', 'Act_Geo'],
+  actualizadoBoleta: ['BoletaDigital', 'Actualizado_BOLETA_SI_NO', 'Actualizado_BOLETA', 'actualizado_boleta', 'actualizadoBoleta', 'Act_Boleta'],
+  actualizadoDigitacion: ['CheckDigitacion', 'Actualizado_DIGITACION_SI_NO', 'Actualizado_DIGITACION', 'actualizado_digitacion', 'actualizadoDigitacion', 'Act_Digitacion'],
   actualizadoVerificaBack: ['Actualizado_VERIFICABACK', 'actualizadoVerificaBack', 'actualizado_verificaback'],
   actualizadoVerificaBackSiNo: ['Actualizado_VERIFICABACK_SI_NO', 'actualizadoVerificaBackSiNo', 'actualizado_verificaback_si_no'],
   usuarioVerificaBack: ['usuarioModificacion_VERIFICABACK', 'usuarioVerificaBack', 'usuario_verificaback'],
@@ -58,10 +56,10 @@ const columnAliasGroups = {
   fechaEjecucion: ['Fecha_Ejecucion', 'fecha_ejecucion', 'fechaEjecucion', 'FechaEjecucion', 'fecha'],
   inicioAgendado: ['inicio_agendado', 'Inicio_Agendado', 'InicioAgendado', 'fechaAgenda', 'FechaAgenda', 'fecha_agenda'],
   ordenTrabajo: ['OT_int', 'OrdenTrabajo', 'ordenTrabajo', 'OT', 'ot', 'numeroOrden', 'NumeroOrden', 'nroOT'],
-  clienteNro: ['cliente_nro', 'CodigoCliente', 'codigoCliente', 'Cliente_Nro', 'clienteNro'],
+  clienteNro: ['NroCliente', 'cliente_nro', 'CodigoCliente', 'codigoCliente', 'Cliente_Nro', 'clienteNro'],
   fechaGeneral: ['Fecha', 'fecha'],
-  geosur: ['GeoSur', 'geoSur', 'latitud'],
-  geooeste: ['GeoOeste', 'geoOeste', 'longitud'],
+  geosur: ['GeoSurSalesforce', 'GeoSur', 'geoSur', 'latitud'],
+  geooeste: ['GeoOesteSalesforce', 'GeoOeste', 'geoOeste', 'longitud'],
   nodoRamalTap: ['Nodo_Ramal_Tap', 'nodoRamalTap'],
   observacion: ['Observacion', 'observacion', 'Observacion_DIGITACION'],
   tipoTecnologia: ['TipoTecnologia', 'tipoTecnologia', 'tipo_tecnologia'],
@@ -139,61 +137,7 @@ const buildColumns = (rows: CruceAgendaMakiroRow[]): string[] => {
 }
 
 const displayHeaderLabel = (column: string): string => {
-  const labels: Record<string, string> = {
-    Id_Venta: 'ID VENTA',
-    IdVenta: 'ID VENTA',
-    idVenta: 'ID VENTA',
-    id_venta: 'ID VENTA',
-    TipoCruce: 'TIPO CRUCE',
-    tipoCruce: 'TIPO CRUCE',
-    tipo_cruce: 'TIPO CRUCE',
-    cliente_nro: 'CLIENTE',
-    codigoCliente: 'CLIENTE',
-    Cliente_Nro: 'CLIENTE',
-    OT_int: 'OT / NRO',
-    OrdenTrabajo: 'OT / NRO',
-    ordenTrabajo: 'OT / NRO',
-    estado: 'ESTADO',
-    estado_cruce: 'ESTADO',
-    Sucursal: 'SUCURSAL',
-    sucursal: 'SUCURSAL',
-    tecnico_nombre: 'TECNICO',
-    TECNICO: 'TECNICO',
-    tecnico: 'TECNICO',
-    Actualizado_NODO_SI_NO: 'REV. NODO',
-    Actualizado_NODO: 'REV. NODO',
-    actualizadoNodo: 'REV. NODO',
-    Actualizado_GEO_SI_NO: 'REV. GEO',
-    Actualizado_GEO: 'REV. GEO',
-    actualizadoGeo: 'REV. GEO',
-    Actualizado_BOLETA_SI_NO: 'REV.BOL',
-    Actualizado_BOLETA: 'REV.BOL',
-    actualizadoBoleta: 'REV.BOL',
-    Actualizado_DIGITACION_SI_NO: 'REV.DIG',
-    Actualizado_DIGITACION: 'REV.DIG',
-    TieneDetalle: 'INGRESO MATERIAL',
-    tiene_detalle: 'INGRESO MATERIAL',
-    IngresoMaterial: 'INGRESO MATERIAL',
-    ingresoMaterial: 'INGRESO MATERIAL',
-    Fecha_Ejecucion: 'FECHA EJECUCION',
-    fechaEjecucion: 'FECHA EJECUCION',
-    Fecha: 'FECHA',
-    inicio_agendado: 'AGENDA',
-    fechaAgenda: 'AGENDA',
-    TOR: 'TOR',
-    M_ORIGEN: 'M ORIGEN',
-    M_CUMPLIMIENTO: 'M CUMPLIMIENTO',
-    GeoSur: 'GEO SUR',
-    GeoOeste: 'GEO OESTE',
-    CIERRE: 'CIERRE',
-    N_T_B: 'N T B',
-    fecha_Ejecuacion_DIGITACION: 'FECHA DIGITACION',
-    Estado_DIGITACION: 'ESTADO DIGITACION',
-    Observacion_DIGITACION: 'OBS DIGITACION',
-    RutaPdf: 'RUTA PDF',
-    rutaPdf: 'RUTA PDF',
-  }
-  return labels[column] ?? column.replace(/_/g, ' ')
+  return column.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/_/g, ' ')
 }
 
 const renderTableValue = (column: string, row: CruceAgendaMakiroRow): string => {
@@ -299,6 +243,63 @@ type CruceMetric = {
   tone: string
 }
 
+const detailColumnOrder = [
+  'TipoCruce', 'Sucursal', 'NroCliente', 'OT', 'Tecnico', 'TipoTecnologia', 'TOR', 'M_Cumplimiento', 'M_Origen',
+  'PlantaExterna', 'Cierre', 'Estado', 'FechaCierreMakiro', 'fecha_Ejecucion_Digitacion', 'FechaCargaMaterial',
+  'IngresoMaterial', 'GeoSurSalesforce', 'GeoOesteSalesforce', 'LongitudUbCliente', 'LatitudUbCliente',
+  'inicio_agendado', 'fin_agendado', 'Duracion', 'BoletaDigital', 'CheckDigitacion', 'VerificacionGeo',
+  'VerificacionNodo', 'VerificacionCentral', 'N_T_B', 'Nodo_Ramal_Tap', 'Bitacora', 'Observacion_Digitacion',
+  'Id_BO_CITA_MAKIRO_Historial',
+]
+
+type DetailField = { label: string; keys: string[]; date?: boolean }
+
+const detailGroups: { title: string; fields: DetailField[] }[] = [
+  {
+    title: 'Cliente',
+    fields: [
+      { label: 'TipoCruce', keys: [...columnAliasGroups.tipoCruce] },
+      { label: 'Sucursal', keys: [...columnAliasGroups.sucursal] },
+      { label: 'NroCliente', keys: [...columnAliasGroups.clienteNro] },
+      { label: 'OT', keys: [...columnAliasGroups.ordenTrabajo] },
+      { label: 'Estado', keys: ['Estado'] },
+      { label: 'inicio_agendado', keys: [...columnAliasGroups.inicioAgendado], date: true },
+      { label: 'fin_agendado', keys: ['fin_agendado', 'Fin_Agendado', 'FinAgendado'], date: true },
+      { label: 'Duracion', keys: ['Duracion'] },
+    ],
+  },
+  {
+    title: 'Informacion',
+    fields: [
+      { label: 'Tecnico', keys: [...columnAliasGroups.tecnicoNombre] },
+      { label: 'TipoTecnologia', keys: [...columnAliasGroups.tipoTecnologia] },
+      { label: 'TOR', keys: ['TOR'] },
+      { label: 'M_Cumplimiento', keys: ['M_Cumplimiento'] },
+      { label: 'M_Origen', keys: ['M_Origen'] },
+      { label: 'PlantaExterna', keys: ['PlantaExterna'] },
+      { label: 'Cierre', keys: ['Cierre'] },
+    ],
+  },
+  {
+    title: 'Makiro',
+    fields: [
+      { label: 'FechaCierreMakiro', keys: ['FechaCierreMakiro'], date: true },
+      { label: 'fecha_ejecucion_Digitacion', keys: ['fecha_ejecucion_Digitacion'], date: true },
+      { label: 'FechaCargaMaterial', keys: ['FechaCargaMaterial'], date: true },
+      { label: 'IngresoMaterial', keys: [...columnAliasGroups.ingresoMaterial] },
+    ],
+  },
+  {
+    title: 'GPS',
+    fields: [
+      { label: 'GeoSurSalesforce', keys: ['GeoSurSalesforce'] },
+      { label: 'GeoOesteSalesforce', keys: ['GeoOesteSalesforce'] },
+      { label: 'LongitudUbCliente', keys: ['LongitudUbCliente'] },
+      { label: 'LatitudUbCliente', keys: ['LatitudUbCliente'] },
+    ],
+  },
+]
+
 const toRowCard = (row: CruceAgendaMakiroRow): RowCard => {
   const idHistorial = readValue(row, [...columnAliasGroups.idHistorial]) || readByToken(row, ['id', 'bo', 'cita', 'makiro', 'historial']) || '-'
   const tipo = readValue(row, [...columnAliasGroups.tipoCruce]) || readByToken(row, ['tipo']) || '-'
@@ -332,8 +333,8 @@ const toRowCard = (row: CruceAgendaMakiroRow): RowCard => {
   const referencia = readByToken(row, ['referencia']) || '-'
   const latitudGps = readValue(row, [...columnAliasGroups.geosur]) || readByToken(row, ['latitud', 'gps']) || readByToken(row, ['latitud']) || '-'
   const longitudGps = readValue(row, [...columnAliasGroups.geooeste]) || readByToken(row, ['longitud', 'gps']) || readByToken(row, ['longitud']) || '-'
-  const latitudIngreso = readByToken(row, ['latitud', 'ingreso']) || '-'
-  const longitudIngreso = readByToken(row, ['longitud', 'ingreso']) || '-'
+  const latitudIngreso = readValue(row, ['LatitudUbCliente']) || readByToken(row, ['latitud', 'ingreso']) || '-'
+  const longitudIngreso = readValue(row, ['LongitudUbCliente']) || readByToken(row, ['longitud', 'ingreso']) || '-'
   const observaciones = readValue(row, [...columnAliasGroups.observacion]) || readByToken(row, ['observ']) || '-'
   const rutaPdf = readValue(row, [...columnAliasGroups.rutaPdf]) || readByToken(row, ['ruta', 'pdf']) || '-'
 
@@ -361,13 +362,13 @@ const toRowCard = (row: CruceAgendaMakiroRow): RowCard => {
   }
 }
 
-interface CruceAgendaMakiroPageProps {
+interface CruceAgendaBackOfficeV2PageProps {
   backOffice?: boolean
 }
 
 type VerificaBackFilter = 'pendientes' | 'verificados'
 
-const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProps) => {
+const CruceAgendaBackOfficeV2Page = ({ backOffice = true }: CruceAgendaBackOfficeV2PageProps) => {
   const queryClient = useQueryClient()
   const { roleName } = useAuth()
   const [fecha, setFecha] = useState(() => formatLocalDateInput(new Date()))
@@ -398,8 +399,8 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
   const canManageVerificaBack = !backOffice && ['backoffice', 'backofficev'].includes(normalizeRoleName(roleName))
 
   const query = useQuery({
-    queryKey: ['cruce-agenda-makiro', fecha],
-    queryFn: () => fetchCruceAgendaMakiro(fecha),
+    queryKey: ['cruce-agenda-makiro-v2', fecha],
+    queryFn: () => fetchCruceAgendaMakiroV2(fecha),
     enabled: Boolean(fecha),
   })
 
@@ -410,7 +411,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
       setVerificaBackRow(null)
       setVerificaBackObservacion('')
       setVerificaBackError(null)
-      queryClient.invalidateQueries({ queryKey: ['cruce-agenda-makiro', fecha] })
+      queryClient.invalidateQueries({ queryKey: ['cruce-agenda-makiro-v2', fecha] })
     },
     onError: (error) => {
       setVerificaBackError(getApiErrorMessage(error, 'No se pudo marcar la revision.'))
@@ -700,10 +701,15 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
 
   const detailRows = useMemo(() => {
     if (!selectedRow) return []
-    return Object.entries(selectedRow)
-      .filter(([key]) => !isInternalColumn(key))
-      .map(([key, value]) => ({ key, value: displayValue(value) }))
-      .sort((a, b) => a.key.localeCompare(b.key, 'es'))
+    const entries = Object.entries(selectedRow).map(([key, value]) => ({ key, value: displayValue(value) }))
+    const orderOf = (key: string): number => {
+      const index = detailColumnOrder.findIndex((name) => normalizeKey(name) === normalizeKey(key))
+      return index === -1 ? detailColumnOrder.length : index
+    }
+    return entries
+      .map((item, position) => ({ item, position }))
+      .sort((a, b) => orderOf(a.item.key) - orderOf(b.item.key) || a.position - b.position)
+      .map(({ item }) => item)
   }, [selectedRow])
 
   const openDetailModal = (index: number) => {
@@ -714,38 +720,23 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
   }
 
   return (
-    <div className="-mt-2 space-y-3 px-3 py-3 text-[13px] sm:px-4 sm:py-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex min-w-0 items-center gap-3 text-blue-700">
-              <FontAwesomeIcon icon={faTableList} className="shrink-0" />
-              <h1 className="min-w-0 text-xl font-bold text-slate-900 sm:text-2xl">Cruce Agenda Makiro</h1>
-            </div>
-            <div className="flex w-full flex-col gap-2 xl:max-w-[850px] xl:flex-row xl:items-stretch">
-              <div className="grid min-w-0 flex-1 grid-cols-4 gap-2">
-                {cruceMetrics.map((item) => (
-                  <div key={item.label} className={`min-w-0 rounded-xl border px-3 py-1.5 shadow-sm ${item.tone}`}>
-                    <p className="truncate text-[11px] font-semibold uppercase">{item.label}</p>
-                    <p className="mt-0.5 truncate text-lg font-extrabold leading-none">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="flex shrink-0 gap-2">
-                <Button type="button" variant="secondary" className="flex-1 px-3 py-2 text-xs xl:flex-none" onClick={() => query.refetch()} disabled={query.isFetching}>
-                  <FontAwesomeIcon icon={faRotateRight} />
-                  Actualizar
-                </Button>
-                <Button type="button" className="flex-1 px-3 py-2 text-xs xl:flex-none" onClick={() => downloadCsv(rowsForDisplay, columns, fecha)} disabled={!rowsForDisplay.length}>
-                  <FontAwesomeIcon icon={faDownload} />
-                  CSV
-                </Button>
-              </div>
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h1 className="shrink-0 page-title">Cruce Agenda Makiro</h1>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <div className="flex gap-1.5">
+              {cruceMetrics.map((item) => (
+                <div key={item.label} className={`min-w-[54px] rounded-lg border px-1.5 py-1 text-center sm:min-w-[68px] sm:px-2.5 ${item.tone}`}>
+                  <p className="truncate text-[8px] font-bold uppercase tracking-tight sm:tracking-wide">{item.label}</p>
+                  <p className="truncate text-base font-extrabold leading-none">{item.value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
         {backOffice ? (
-          <div className="flex items-center gap-1 border-t border-slate-200 px-3 pt-3 sm:px-4">
+          <div className="flex items-center gap-1 border-t border-slate-200 px-2 pt-1.5 sm:px-3">
             {([
               { key: 'pendientes' as const, label: 'Pendientes', count: verificaBackCounts.pendientes },
               { key: 'verificados' as const, label: 'Verificados', count: verificaBackCounts.verificados },
@@ -769,17 +760,17 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
             })}
           </div>
         ) : null}
-        <details className="group mt-2 border-t border-slate-200 pt-1">
-          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
             <span className="group-open:hidden">Mostrar filtros y acciones</span>
             <span className="hidden group-open:inline">Ocultar filtros y acciones</span>
-            <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
           </summary>
-          <div className="pt-1">
+          <div className="pt-1.5">
             <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                 Fecha
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
+                <div className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5">
                   <FontAwesomeIcon icon={faCalendarDay} className="text-blue-600" />
                   <input
                     type="date"
@@ -789,9 +780,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                   />
                 </div>
               </label>
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                 Buscar
-                <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
+                <div className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5">
                   <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
                   <input
                     value={filtro}
@@ -801,16 +792,16 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                   />
                 </div>
               </label>
-              <label className="text-xs font-semibold text-slate-700">
-                Tipo cruce
-                <select value={tipoCruce} onChange={(event) => setTipoCruce(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                TipoCruce
+                <select value={tipoCruce} onChange={(event) => setTipoCruce(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
                   <option value="">Todos</option>
                   {tipoCruceOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
               </label>
-              <label className="text-xs font-semibold text-slate-700">
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                 Sucursal
-                <select value={sucursal} onChange={(event) => setSucursal(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+                <select value={sucursal} onChange={(event) => setSucursal(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
                   <option value="">Todas</option>
                   {sucursalOptions.map((value) => <option key={value} value={value}>{value}</option>)}
                 </select>
@@ -818,9 +809,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
             </div>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-xs font-semibold text-slate-700">
-            tecnico_nombre
-            <select value={tecnicoNombre} onChange={(event) => setTecnicoNombre(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+            Tecnico
+            <select value={tecnicoNombre} onChange={(event) => setTecnicoNombre(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {tecnicoNombreOptions.map((value) => (
                 <option key={value} value={value}>
@@ -829,12 +820,12 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               ))}
             </select>
           </label>
-          <div ref={estadoMenuRef} className="relative text-xs font-semibold text-slate-700">
+          <div ref={estadoMenuRef} className="relative flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
             Estado
             <button
               type="button"
               onClick={() => setEstadoMenuOpen((current) => !current)}
-              className="mt-1 flex w-full items-center justify-between gap-3 rounded-lg border border-slate-300 bg-white px-3 py-2 text-left text-sm outline-none transition focus:border-blue-500"
+              className="flex h-8 w-full items-center justify-between gap-3 rounded-md bg-slate-100 px-2.5 text-left text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100"
               aria-expanded={estadoMenuOpen}
               aria-haspopup="menu"
             >
@@ -878,9 +869,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               </div>
             ) : null}
           </div>
-          <label className="text-xs font-semibold text-slate-700">
-            REV.NODO
-            <select value={actualizadoNodo} onChange={(event) => setActualizadoNodo(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+            VerificacionNodo
+            <select value={actualizadoNodo} onChange={(event) => setActualizadoNodo(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {actualizadoNodoOptions.map((value) => (
                 <option key={value} value={value}>
@@ -889,9 +880,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold text-slate-700">
-            REV.GEO
-            <select value={actualizadoGeo} onChange={(event) => setActualizadoGeo(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+            VerificacionGeo
+            <select value={actualizadoGeo} onChange={(event) => setActualizadoGeo(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {actualizadoGeoOptions.map((value) => (
                 <option key={value} value={value}>
@@ -902,9 +893,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
           </label>
           </div>
           <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-          <label className="text-xs font-semibold text-slate-700">
-            REV.BOLETA
-            <select value={actualizadoBoleta} onChange={(event) => setActualizadoBoleta(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+            BoletaDigital
+            <select value={actualizadoBoleta} onChange={(event) => setActualizadoBoleta(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {actualizadoBoletaOptions.map((value) => (
                 <option key={value} value={value}>
@@ -913,9 +904,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold text-slate-700">
-            REV.DIGITACION
-            <select value={actualizadoDigitacion} onChange={(event) => setActualizadoDigitacion(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+            CheckDigitacion
+            <select value={actualizadoDigitacion} onChange={(event) => setActualizadoDigitacion(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {actualizadoDigitacionOptions.map((value) => (
                 <option key={value} value={value}>
@@ -924,9 +915,9 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               ))}
             </select>
           </label>
-          <label className="text-xs font-semibold text-slate-700">
+          <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
             IngresoMaterial
-            <select value={ingresoMaterial} onChange={(event) => setIngresoMaterial(event.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs outline-none focus:border-blue-500">
+            <select value={ingresoMaterial} onChange={(event) => setIngresoMaterial(event.target.value)} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100">
               <option value="">Todos</option>
               {ingresoMaterialOptions.map((value) => (
                 <option key={value} value={value}>
@@ -935,31 +926,35 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               ))}
             </select>
           </label>
-          <Button type="button" variant="secondary" className="self-end px-3 py-2 text-xs" onClick={clearFilters}>
+          <Button type="button" variant="secondary" className="self-end !px-3 !py-1.5 !text-xs" onClick={clearFilters}>
             Limpiar
           </Button>
           </div>
         </details>
       </section>
 
-      {errorMessage ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{errorMessage}</div> : null}
+      {errorMessage ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{errorMessage}</div> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-3 py-2 sm:px-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <h2 className="text-sm font-bold text-slate-900 sm:text-base">Listado de Ordenes de Trabajo</h2>
-              <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{rowsForDisplay.length} registros</span>
-            </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs text-slate-600 sm:ml-auto">
-              <FontAwesomeIcon icon={faMagnifyingGlass} className="text-slate-400" />
-              Vista resumida
-            </div>
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-1.5 sm:px-4">
+          <div>
+            <h2 className="page-title">Listado de Ordenes de Trabajo</h2>
+            <p className="text-xs text-slate-600">{rowsForDisplay.length} registro(s)</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+              <Button type="button" variant="secondary" className="!px-3 !py-1.5 !text-xs" onClick={() => query.refetch()} disabled={query.isFetching}>
+                <FontAwesomeIcon icon={faRotateRight} className={query.isFetching ? 'mr-1.5 animate-spin' : 'mr-1.5'} />
+                Actualizar
+              </Button>
+              <Button type="button" className="!px-3 !py-1.5 !text-xs" onClick={() => downloadCsv(rowsForDisplay, columns, fecha)} disabled={!rowsForDisplay.length}>
+                <FontAwesomeIcon icon={faDownload} className="mr-1.5" />
+                CSV
+              </Button>
           </div>
         </div>
         <div className="space-y-3 px-4 pb-4 pt-5 md:hidden">
           {query.isFetching ? (
-            <div className="px-4 py-8 text-center text-sm text-slate-500">Cargando datos...</div>
+            <div className="px-3 py-4 text-center text-slate-500">Cargando datos...</div>
           ) : pageRows.length ? (
             pageRows.map((row, index) => {
               const card = toRowCard(row)
@@ -982,7 +977,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[11px] font-bold uppercase text-slate-500">OT / Cliente</p>
+                      <p className="text-[11px] font-bold uppercase text-slate-500">NroCliente / OT</p>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                         <span className="font-bold text-blue-700">{card.ot}</span>
                         <span className="font-semibold text-slate-700">{card.clienteCodigo}</span>
@@ -998,7 +993,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                       <p className="mt-0.5 truncate font-semibold text-slate-700">{card.sucursal}</p>
                     </div>
                     <div className="min-w-0 rounded-lg bg-slate-50 px-2 py-1.5">
-                      <p className="font-semibold uppercase text-slate-400">Tipo</p>
+                      <p className="font-semibold uppercase text-slate-400">TipoCruce</p>
                       <p className="mt-0.5 truncate font-semibold text-slate-700">{card.tipo}</p>
                     </div>
                     <div className="col-span-2 min-w-0 rounded-lg bg-slate-50 px-2 py-1.5">
@@ -1017,7 +1012,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
               )
             })
           ) : (
-            <div className="px-4 py-8 text-center text-sm text-slate-500">Sin datos para la fecha seleccionada.</div>
+            <div className="px-3 py-4 text-center text-slate-500">Sin datos para la fecha seleccionada.</div>
           )}
         </div>
 
@@ -1045,7 +1040,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                                     columnAliasGroups.actualizadoGeo.some((alias) => normalizeKey(alias) === normalizeKey(column)) ||
                                     columnAliasGroups.actualizadoBoleta.some((alias) => normalizeKey(alias) === normalizeKey(column)) ||
                                     columnAliasGroups.actualizadoDigitacion.some((alias) => normalizeKey(alias) === normalizeKey(column))
-                                  ? 'w-[50px]'
+                                  ? 'w-[88px]'
                                   : columnAliasGroups.ingresoMaterial.some((alias) => normalizeKey(alias) === normalizeKey(column))
                                     ? 'w-[82px]'
                                     : 'w-[70px]'
@@ -1054,7 +1049,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                           : 'whitespace-nowrap'
                     }`}
                   >
-                    {backOffice && isClienteColumn ? <><span className="block">COD CLIENTE</span><span className="block">NRO OT</span></> : displayHeaderLabel(column)}
+                    {backOffice && isClienteColumn ? <><span className="block">NroCliente</span><span className="block">OT</span></> : displayHeaderLabel(column).split(' ').map((word) => <span key={word} className="block">{word}</span>)}
                   </th>
                   )
                 })}
@@ -1069,7 +1064,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
             <tbody>
               {query.isFetching ? (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={visibleColumns.length + (backOffice || canManageVerificaBack ? 2 : 1)}>
+                  <td className="px-3 py-4 text-center text-slate-500" colSpan={visibleColumns.length + (backOffice || canManageVerificaBack ? 2 : 1)}>
                     Cargando datos...
                   </td>
                 </tr>
@@ -1142,7 +1137,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                 })
               ) : (
                 <tr>
-                  <td className="px-3 py-8 text-center text-slate-500" colSpan={visibleColumns.length + (backOffice || canManageVerificaBack ? 2 : 1)}>
+                  <td className="px-3 py-4 text-center text-slate-500" colSpan={visibleColumns.length + (backOffice || canManageVerificaBack ? 2 : 1)}>
                     Sin datos para la fecha seleccionada.
                   </td>
                 </tr>
@@ -1150,7 +1145,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
             </tbody>
           </table>
         </div>
-        <div className="flex flex-col items-center gap-3 border-t border-slate-200 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:justify-between sm:px-5">
+        <div className="flex flex-col items-center gap-2 border-t border-slate-200 px-3 py-2 text-slate-600 sm:flex-row sm:justify-between sm:px-4">
           <p className="text-center sm:text-left">
             Mostrando {pageRows.length ? pageStart + 1 : 0} a {pageStart + pageRows.length} de {rowsForDisplay.length} registros
           </p>
@@ -1179,19 +1174,13 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
       </section>
 
       <Modal
+        compactText
         open={detailModalOpen && Boolean(selectedCard)}
         title="Detalle de la OT"
         onClose={() => setDetailModalOpen(false)}
         maxWidthClass="w-[min(96vw,1200px)]"
         contentClassName="text-slate-700"
       >
-        <div className="flex flex-wrap items-center gap-3 border-b border-slate-200 pb-3">
-          <p className="ml-auto text-xl font-bold text-blue-700">{selectedCard?.ot ?? '-'}</p>
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClass(selectedCard?.estado ?? '')}`}>
-            {selectedCard?.estado ?? 'Sin estado'}
-          </span>
-        </div>
-
         <div className="border-b border-slate-200 py-3">
           <div className="flex flex-wrap gap-2">
             <button
@@ -1225,95 +1214,23 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
         </div>
 
         {activeDetailTab === 'resumen' ? (
-          <div className="space-y-3 pt-4">
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-bold text-slate-900">Cliente</p>
+          <div className="grid gap-3 pt-4 lg:grid-cols-2">
+            {detailGroups.map((group) => (
+              <div key={group.title} className="rounded-xl border border-slate-200 p-3">
+                <p className="text-sm font-bold text-slate-900">{group.title}</p>
                 <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-slate-500">Nombre</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.cliente ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Codigo cliente</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.clienteCodigo ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Agenda</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.agenda ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Fecha agenda/ejecucion</p>
-                    <p className="font-semibold text-slate-800">{formatCellDate(selectedCard?.fecha ?? '-')}</p>
-                  </div>
+                  {group.fields.map((field) => {
+                    const raw = readValue(selectedRow ?? {}, field.keys)
+                    return (
+                      <div key={field.label}>
+                        <p className="text-xs text-slate-500">{field.label}</p>
+                        <p className="font-semibold text-slate-800">{raw ? (field.date ? formatCellDate(raw) : raw) : '-'}</p>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-bold text-slate-900">Informacion OT</p>
-                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-slate-500">Tecnico</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.tecnico ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Tipo / Tecnologia</p>
-                    <p className="font-semibold text-slate-800">
-                      {selectedCard?.tipo ?? '-'} / {selectedCard?.tecnologia ?? '-'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">TOR</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.tor ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">NroTrans</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.idHistorial ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Ciudad / Sucursal</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.sucursal ?? '-'}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid gap-3 lg:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-bold text-slate-900">Ubicacion</p>
-                <div className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                  <div>
-                    <p className="text-xs text-slate-500">Latitud (GPS)</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.latitudGps ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Longitud (GPS)</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.longitudGps ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Latitud (Ingreso)</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.latitudIngreso ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Longitud (Ingreso)</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.longitudIngreso ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Nodo</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.nodo ?? '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-slate-500">Referencia</p>
-                    <p className="font-semibold text-slate-800">{selectedCard?.referencia ?? '-'}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 p-3">
-                <p className="text-sm font-bold text-slate-900">Observaciones</p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">{selectedCard?.observaciones ?? '-'}</p>
-              </div>
-            </div>
+            ))}
           </div>
         ) : null}
 
@@ -1358,6 +1275,7 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
       </Modal>
 
       <Modal
+        compactText
         open={Boolean(verificaBackRow)}
         title={verificaBackReadOnly ? 'Detalle de verificacion' : backOffice ? 'Verificar registro' : 'Confirmar revision'}
         onClose={() => {
@@ -1390,14 +1308,14 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
           </>
         }
       >
-        <div className="space-y-4">
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-            <p className="text-xs font-bold uppercase text-slate-500">OT / Cliente</p>
-            <p className="mt-1 font-bold text-slate-900">
+        <div className="space-y-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-[10px] font-medium uppercase text-slate-500">NroCliente / OT</p>
+            <p className="font-bold text-slate-900">
               {verificaBackRow ? toRowCard(verificaBackRow).ot : '-'} / {verificaBackRow ? toRowCard(verificaBackRow).clienteCodigo : '-'}
             </p>
           </div>
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
             Observacion
             <textarea
               value={verificaBackObservacion}
@@ -1406,27 +1324,16 @@ const CruceAgendaMakiroPage = ({ backOffice = false }: CruceAgendaMakiroPageProp
                 setVerificaBackError(null)
               }}
               rows={4}
-              className="mt-1 w-full resize-none rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
+              className="w-full resize-none rounded-md bg-slate-100 px-2.5 py-1.5 text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
               placeholder="Escribe la observacion de la revision"
               disabled={verificaBackMutation.isPending || verificaBackReadOnly}
             />
           </label>
-          {verificaBackError ? <p className="text-sm font-semibold text-rose-600">{verificaBackError}</p> : null}
+          {verificaBackError ? <p className="font-semibold text-rose-600">{verificaBackError}</p> : null}
         </div>
       </Modal>
-
-      <details className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
-        <summary className="cursor-pointer font-semibold">Ver columnas detectadas ({columns.length})</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {columns.map((column) => (
-            <span key={column} className="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-700">
-              {column}
-            </span>
-          ))}
-        </div>
-      </details>
     </div>
   )
 }
 
-export default CruceAgendaMakiroPage
+export default CruceAgendaBackOfficeV2Page

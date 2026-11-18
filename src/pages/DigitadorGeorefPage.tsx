@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCheckCircle, faClipboardList } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import {
@@ -298,7 +300,7 @@ const mapsUrl = (lat: number, lon: number): string => `https://www.google.com/ma
 const MapPanel = ({ title, lat, lon }: { title: string; lat: number | null; lon: number | null }) => {
   if (lat === null || lon === null) {
     return (
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-slate-500">
         {title}: sin coordenadas validas.
       </div>
     )
@@ -306,14 +308,14 @@ const MapPanel = ({ title, lat, lon }: { title: string; lat: number | null; lon:
 
   const url = mapsUrl(lat, lon)
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-800">{title}</p>
+        <p className="text-xs font-semibold text-slate-800">{title}</p>
         <a className="text-xs font-semibold text-blue-600 hover:text-blue-700" href={url} target="_blank" rel="noreferrer">
           Abrir en Maps
         </a>
       </div>
-      <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 sm:grid-cols-2">
+      <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5 text-slate-600 sm:grid-cols-2">
         <div>
           <span className="font-semibold uppercase text-slate-500">Latitud</span>
           <p className="mt-0.5 font-semibold text-slate-800">{formatCoordinate(lat)}</p>
@@ -325,7 +327,7 @@ const MapPanel = ({ title, lat, lon }: { title: string; lat: number | null; lon:
       </div>
       <iframe
         title={title}
-        className="h-64 w-full rounded-lg border border-slate-200"
+        className="h-48 w-full rounded-lg border border-slate-200"
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
         src={`https://maps.google.com/maps?q=${lat},${lon}&z=17&output=embed`}
@@ -426,38 +428,51 @@ const DigitadorGeorefPage = () => {
   }
 
   return (
-    <div className="bento-page gap-3">
-      <section className="sticky top-0 z-20 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
           <div className="min-w-0">
-            <h1 className="text-xl font-extrabold text-slate-900">Georeferencias por revisar</h1>
-            <p className="text-xs text-slate-500">Registros finalizados con distancia mayor o igual a 15 metros.</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => setTab('pendientes')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  tab === 'pendientes' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
-                }`}
-              >
-                Pendientes ({pendientes.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setTab('confirmados')}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
-                  tab === 'confirmados' ? 'bg-blue-600 text-white shadow-sm' : 'border border-slate-200 bg-white text-slate-600 hover:border-blue-300'
-                }`}
-              >
-                Confirmados ({confirmados.length})
-              </button>
-            </div>
+            <h2 className="truncate page-title">Georeferencias por revisar</h2>
+            <p className="text-slate-500">Registros finalizados con distancia mayor o igual a 15 metros.</p>
           </div>
-          <div className="flex flex-wrap items-end gap-2">
-            <label className="block min-w-[14rem]">
-              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Tecnico</span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-200 px-2 py-1.5 sm:px-3">
+          {[
+            { key: 'pendientes' as const, label: 'Pendientes', icon: faClipboardList, count: pendientes.length },
+            { key: 'confirmados' as const, label: 'Confirmados', icon: faCheckCircle, count: confirmados.length },
+          ].map((item) => {
+            const active = tab === item.key
+            return (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setTab(item.key)}
+                className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                  active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <FontAwesomeIcon icon={item.icon} />
+                {item.label}
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-blue-500 text-white' : 'bg-slate-500 text-white'}`}>
+                  {item.count > 99 ? '99+' : item.count}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
+            <span className="group-open:hidden">Mostrar filtros</span>
+            <span className="hidden group-open:inline">Ocultar filtros</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="flex flex-wrap items-end gap-2 pb-1 pt-1.5">
+            <label className="flex min-w-[14rem] flex-col gap-0.5 font-medium text-slate-500">
+              Tecnico
               <select
-                className="input-base h-9 rounded-md py-1.5 text-sm"
+                className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                 value={tecnicoFilter}
                 onChange={(event) => setTecnicoFilter(event.target.value)}
                 disabled={query.isLoading || tecnicoOptions.length === 0}
@@ -470,13 +485,13 @@ const DigitadorGeorefPage = () => {
                 ))}
               </select>
             </label>
-            <label className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Fecha</span>
-              <input className="input-base h-9 rounded-md py-1.5 text-sm" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
+            <label className="flex flex-col gap-0.5 font-medium text-slate-500">
+              Fecha
+              <input className="h-8 rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
             </label>
-            <div className="block">
-              <span className="mb-1 block text-[11px] font-semibold text-slate-600">Diferencia</span>
-              <div className="flex h-9 rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <div className="flex flex-col gap-0.5 font-medium text-slate-500">
+              Diferencia
+              <div className="flex h-8 rounded-md bg-slate-100 p-0.5">
                 {[
                   { value: 'todas', label: 'Todas' },
                   { value: 'mayor15', label: '> 15 m' },
@@ -486,10 +501,8 @@ const DigitadorGeorefPage = () => {
                     key={option.value}
                     type="button"
                     onClick={() => setDistanciaFilter(option.value as typeof distanciaFilter)}
-                    className={`rounded-md px-2.5 text-[11px] font-extrabold transition ${
-                      distanciaFilter === option.value
-                        ? 'bg-slate-950 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-white hover:text-slate-950'
+                    className={`rounded px-2.5 font-semibold transition ${
+                      distanciaFilter === option.value ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white'
                     }`}
                   >
                     {option.label}
@@ -497,11 +510,11 @@ const DigitadorGeorefPage = () => {
                 ))}
               </div>
             </div>
-            <Button type="button" variant="secondary" className="h-9 rounded-lg px-3 py-1.5 text-xs" onClick={() => query.refetch()} disabled={query.isFetching}>
+            <Button type="button" variant="secondary" className="h-8" onClick={() => query.refetch()} disabled={query.isFetching}>
               {query.isFetching ? 'Actualizando...' : 'Actualizar'}
             </Button>
           </div>
-        </div>
+        </details>
       </section>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -524,16 +537,16 @@ const DigitadorGeorefPage = () => {
             )
           })}
           {!query.isLoading && visibleRows.length === 0 ? (
-            <div className="px-4 py-14 text-center">
-              <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950 sm:text-4xl">
+            <div className="px-3 py-8 text-center">
+              <p className="text-sm font-bold uppercase text-slate-700">
                 NO HAY REGISTROS PARA LA FECHA
               </p>
             </div>
           ) : null}
-          {query.isLoading ? <div className="px-4 py-8 text-center text-sm text-slate-500">Cargando registros...</div> : null}
+          {query.isLoading ? <div className="px-3 py-4 text-center text-[11px] text-slate-500">Cargando registros...</div> : null}
         </div>
         {query.isError ? (
-          <div className="border-t border-rose-100 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+          <div className="border-t border-rose-100 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
             {getApiErrorMessage(query.error, 'No se pudieron cargar las georeferencias.')}
           </div>
         ) : null}
@@ -544,48 +557,49 @@ const DigitadorGeorefPage = () => {
         title={selected ? `Detalle OT ${selected.ot} | Cliente ${selected.cliente}` : 'Detalle'}
         onClose={() => setSelected(null)}
         maxWidthClass="max-w-6xl"
+        compactText
       >
         {selected ? (
-          <div className="space-y-4">
-            <div className="grid gap-3 text-sm sm:grid-cols-3">
+          <div className="space-y-2">
+            <div className="grid gap-2 sm:grid-cols-3">
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-500">Distancia</p>
+                <p className="text-[10px] font-medium uppercase text-slate-500">Distancia</p>
                 <p className="font-semibold text-slate-900">{formatMeters(asNumber(selected.row, ['DistanciaMetros']))}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-500">Tecnico</p>
+                <p className="text-[10px] font-medium uppercase text-slate-500">Tecnico</p>
                 <div className="font-semibold text-slate-900">
                   <TecnicoCell row={selected.row} />
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase text-slate-500">Actualizado</p>
+                <p className="text-[10px] font-medium uppercase text-slate-500">Actualizado</p>
                 <p className="font-semibold text-slate-900">{asText(selected.row, ['Actualizado']) || '-'}</p>
               </div>
             </div>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <div className="grid gap-2 lg:grid-cols-2">
               <MapPanel title="Ubicacion tecnico" lat={selected.latVenta} lon={selected.lonVenta} />
               <MapPanel title="Ubicacion C (cliente)" lat={selected.latCliente} lon={selected.lonCliente} />
             </div>
             {hasNtbDifference(selected.row) ? <NtbDifferenceBadge /> : null}
             <div className="rounded-lg border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 px-4 py-3">
-                <p className="text-sm font-semibold text-slate-900">Datos completos del registro</p>
+              <div className="border-b border-slate-100 px-3 py-1.5">
+                <p className="text-xs font-semibold text-slate-900">Datos completos del registro</p>
               </div>
-              <div className="grid max-h-80 overflow-auto text-sm sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid max-h-64 overflow-auto sm:grid-cols-2 lg:grid-cols-3">
                 {getDetailEntries(selected.row).map(([key, value]) => {
                   const markNtb = hasNtbDifference(selected.row) && isNtbKey(key)
                   return (
-                    <div key={key} className={`min-w-0 border-b px-4 py-3 ${markNtb ? 'border-rose-100 bg-rose-50' : 'border-slate-100'}`}>
-                    <p className={`break-words text-xs font-semibold uppercase ${markNtb ? 'text-rose-700' : 'text-slate-500'}`}>{key}</p>
-                    <p className={`mt-1 break-words font-medium ${markNtb ? 'text-rose-700' : 'text-slate-900'}`}>{value}</p>
+                    <div key={key} className={`min-w-0 border-b px-3 py-1.5 ${markNtb ? 'border-rose-100 bg-rose-50' : 'border-slate-100'}`}>
+                    <p className={`break-words text-[10px] font-medium uppercase ${markNtb ? 'text-rose-700' : 'text-slate-500'}`}>{key}</p>
+                    <p className={`break-words font-medium ${markNtb ? 'text-rose-700' : 'text-slate-900'}`}>{value}</p>
                   </div>
                   )
                 })}
               </div>
             </div>
             {confirmarMutation.isError ? (
-              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-600">
                 {getApiErrorMessage(confirmarMutation.error, 'No se pudo confirmar el registro.')}
               </div>
             ) : null}

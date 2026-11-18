@@ -25,6 +25,7 @@ interface TableProps<T> {
   density?: 'normal' | 'compact'
   pageSize?: number
   mobilePlainCards?: boolean
+  flat?: boolean
 }
 
 const Table = <T,>({
@@ -45,6 +46,7 @@ const Table = <T,>({
   density = 'normal',
   pageSize,
   mobilePlainCards = false,
+  flat = false,
 }: TableProps<T>) => {
   const isRowBlock = variant === 'row-block'
   const isCompact = density === 'compact'
@@ -72,7 +74,9 @@ const Table = <T,>({
     return column.render ? column.render(row) : (row as Record<string, ReactNode>)[column.key]
   }
   const getRowClassName = (row: T): string => (typeof rowClassName === 'function' ? rowClassName(row) : rowClassName)
-  const rootClassName = mobilePlainCards
+  const rootClassName = flat
+    ? 'overflow-hidden bg-white'
+    : mobilePlainCards
     ? 'overflow-hidden border-0 bg-transparent shadow-none md:rounded-[1.5rem] md:border md:border-slate-200 md:bg-white md:shadow-soft'
     : 'overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-soft'
 
@@ -205,7 +209,7 @@ const Table = <T,>({
         >
           {!hideHeader ? (
             <thead
-              className={`bg-slate-100 ${isCompact ? 'text-[11px]' : 'text-xs'} uppercase tracking-wide text-slate-500 ${
+              className={`bg-slate-100 ${flat ? 'text-xs text-slate-600' : `${isCompact ? 'text-[11px]' : 'text-xs'} uppercase tracking-wide text-slate-500`} ${
                 stickyHeader ? 'sticky top-0 z-30 shadow-[0_1px_0_rgba(148,163,184,0.45)]' : ''
               }`}
             >
@@ -213,7 +217,7 @@ const Table = <T,>({
                 {columns.map((column) => (
                   <th
                     key={column.key}
-                    className={`${isCompact ? 'px-3 py-2' : 'px-4 py-3'} ${column.className ?? ''} ${
+                    className={`${isCompact || flat ? 'px-3 py-2' : 'px-4 py-3'} ${column.className ?? ''} ${
                       stickyHeader ? 'bg-slate-100' : ''
                     }`}
                   >
@@ -232,7 +236,7 @@ const Table = <T,>({
               </tr>
             ) : (
               visibleData.map((row, index) => (
-                <tr key={index} className={`${isRowBlock ? '' : 'border-t border-slate-200/70'} ${getRowClassName(row)}`}>
+                <tr key={index} className={`${isRowBlock ? '' : flat ? 'border-t border-slate-200' : 'border-t border-slate-200/70'} ${getRowClassName(row)}`}>
                   {columns.map((column, columnIndex) => (
                     <td
                       key={column.key}
@@ -242,7 +246,7 @@ const Table = <T,>({
                           ? `bg-slate-50 ${isCompact ? 'px-3 py-2' : 'px-4 py-3'} border-y border-slate-300 ${
                               columnIndex === 0 ? 'rounded-l-2xl border-l' : ''
                             } ${columnIndex === columns.length - 1 ? 'rounded-r-2xl border-r' : ''}`
-                          : `${isCompact ? 'px-3 py-2' : 'px-4 py-3'}`)
+                          : `${flat ? 'px-3 py-1.5' : isCompact ? 'px-3 py-2' : 'px-4 py-3'}`)
                       }
                     >
                       {renderValue(column, row)}

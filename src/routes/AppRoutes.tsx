@@ -21,9 +21,12 @@ import CuNoRealizadoCreatePage from '../pages/CuNoRealizadoCreatePage'
 import ConformacionCuadrillaPage from '../pages/ConformacionCuadrillaPage'
 import LlamadaAtencionPage from '../pages/LlamadaAtencionPage'
 import SupervisorSupervisionPage from '../pages/SupervisorSupervisionPage'
-import BackOfficeSupervisionPage from '../pages/BackOfficeSupervisionPage'
+import SupervisorSupervisionV2Page from '../pages/SupervisorSupervisionV2Page'
+import SupervisionV2ConfiguracionPage from '../pages/SupervisionV2ConfiguracionPage'
+import ConfiguracionesPage from '../pages/ConfiguracionesPage'
 import CentralGruposPage from '../pages/CentralGruposPage'
 import PrivilegiosPage from '../pages/admin/PrivilegiosPage'
+import DTHPruebaPage from '../pages/DTHPruebaPage'
 import ForbiddenPage from '../pages/ForbiddenPage'
 import TecnicoInicioJornadaPage from '../pages/TecnicoInicioJornadaPage'
 import CuadreTecnicoPage from '../pages/CuadreTecnicoPage'
@@ -37,11 +40,15 @@ import VerificacionBoletaDigitalPage from '../pages/VerificacionBoletaDigitalPag
 import HistoricoJornadasPage from '../pages/HistoricoJornadasPage'
 import NombresNpsPage from '../pages/NombresNpsPage'
 import NodoZonaPage from '../pages/NodoZonaPage'
-import CruceAgendaMakiroPage from '../pages/CruceAgendaMakiroPage'
-import CruceAgendaMakiroBackOfficePage from '../pages/CruceAgendaMakiroBackOfficePage'
+import SeguimientoControlConfPage from '../pages/SeguimientoControlConfPage'
+import CruceAgendaBackOfficeV2Page from '../pages/cruceagenda_BackOfficeV2'
+import CruceAgendaSupervisorV2Page from '../pages/cruceagenda_SupervisorV2'
 import PedidoMaterialPage from '../pages/PedidoMaterialPage'
 import SistemasProduccionPage from '../pages/SistemasProduccionPage'
+import InventarioDptoPage from '../pages/InventarioDptoPage'
 import SistemasCuadreAutomaticoPage from '../pages/SistemasCuadreAutomaticoPage'
+import SistemasSupervisionSucursalesPage from '../pages/SistemasSupervisionSucursalesPage'
+import SistemasActividadesSantiagoPage from '../pages/SistemasActividadesSantiagoPage'
 
 const LegacyOtDetailRedirect = () => {
   const { id } = useParams()
@@ -91,9 +98,12 @@ const AppRoutes = () => {
           <Route path="/supervisor/conformacion-cuadrilla/editar" element={<Navigate to="/supervisor/conformacion-cuadrilla" replace />} />
           <Route path="/supervisor/llamada-atencion" element={<LlamadaAtencionPage />} />
           <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
-          <Route path="/backoffice/supervision" element={<BackOfficeSupervisionPage />} />
+          <Route path="/supervisor/supervision_v2" element={<SupervisorSupervisionV2Page />} />
+          <Route path="/supervisor/supervision_v2Configuracion" element={<SupervisionV2ConfiguracionPage />} />
+          <Route path="/sistemas/configuraciones" element={<ConfiguracionesPage />} />
           <Route path="/backoffice/nombres-nps" element={<NombresNpsPage />} />
           <Route path="/backoffice/nodo-zona" element={<NodoZonaPage />} />
+          <Route path="/backoffice/seguimiento-control-conf" element={<SeguimientoControlConfPage />} />
           <Route path="/jornadas/historico" element={<HistoricoJornadasPage />} />
           <Route path="/central/grupos" element={<CentralGruposPage />} />
           <Route path="/nps" element={<NpsDashboardPage />} />
@@ -103,10 +113,15 @@ const AppRoutes = () => {
           <Route path="/pedidos-material" element={<PedidoMaterialPage />} />
           <Route path="/Registro_TOR" element={<RegistroTorPage />} />
           <Route path="/VerificacionBoletaDigital" element={<VerificacionBoletaDigitalPage />} />
-          <Route path="/almacen/cruce-agenda-makiro" element={<CruceAgendaMakiroPage />} />
-          <Route path="/almacen/cruce-agenda-makiroBackOffice" element={<CruceAgendaMakiroBackOfficePage />} />
+          <Route path="/almacen/cruce-agenda-makiroBackOfficeV2" element={<CruceAgendaBackOfficeV2Page />} />
+          <Route path="/almacen/cruce-agenda-makiroSupervisorV2" element={<CruceAgendaSupervisorV2Page />} />
           <Route path="/sistemas/produccion" element={<SistemasProduccionPage />} />
+          <Route path="/inventario-dpto-91" element={<InventarioDptoPage />} />
+          <Route path="/sistemas/inventario-dpto-91" element={<InventarioDptoPage />} />
           <Route path="/sistemas/cuadre-automatico" element={<SistemasCuadreAutomaticoPage />} />
+          <Route path="/sistemas/supervision-sucursales" element={<SistemasSupervisionSucursalesPage />} />
+          <Route path="/sistemas/actividades" element={<SistemasActividadesSantiagoPage />} />
+            <Route path="/dth/prueba" element={<DTHPruebaPage />} />
             <Route element={<AdminRoute />}>
               <Route path="/admin/privilegios" element={<PrivilegiosPage />} />
             </Route>

@@ -5,7 +5,6 @@ import axios from 'axios'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
-import Tabs from '../components/common/Tabs'
 import Table from '../components/common/Table'
 import type { Column } from '../components/common/Table'
 import type { CatalogItem } from '../api/catalogApi'
@@ -2047,7 +2046,7 @@ const ConformacionCuadrillaPage = () => {
                   <p className="mt-2 break-words text-xl font-extrabold uppercase leading-tight text-blue-700">{tecnicoLabel}</p>
                   <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.06em] text-slate-600">Lider de cuadrilla</p>
                 </div>
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
               </div>
               <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                 <div>
@@ -2071,7 +2070,7 @@ const ConformacionCuadrillaPage = () => {
                   <p className="text-slate-700">{salesforceLabel}</p>
                 </div>
                 {activeTab === 'confirmadas' ? (
-                  <div className="col-span-2 text-xs text-slate-500">
+                  <div className="col-span-2 text-slate-500">
                     <p><span className="font-semibold">Confirmado por:</span> {supervisorConfirmoLabel}</p>
                     <p>ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p>
                   </div>
@@ -3411,7 +3410,7 @@ const findVehiculoConflictRecord = (
   if (!canViewCuadrillas) {
     return (
       <FormCard title="Conformacion de Cuadrillas" description="No tienes permisos para este modulo.">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
           Requiere tsm_ConformacionCuadrillas.
         </div>
       </FormCard>
@@ -3419,51 +3418,54 @@ const findVehiculoConflictRecord = (
   }
 
   return (
-    <div className="bento-page -mt-2 gap-3 sm:gap-4">
-      <section className="rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:px-5">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
           <div className="min-w-0">
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Conformación de Cuadrillas</h2>
-            <p className="mt-0.5 text-sm font-medium tracking-tight text-slate-600">Gestión de personal en {sucursalActivaLabel}</p>
+            <h2 className="page-title">Conformación de Cuadrillas</h2>
+            <p className="text-slate-500">Gestión de personal en {sucursalActivaLabel}</p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1.25fr)_repeat(3,minmax(0,0.8fr))] xl:w-[680px]">
-            <div className="flex min-h-12 items-center rounded-lg border border-blue-100 bg-slate-50 px-3 text-[11px] font-semibold tracking-wide text-slate-700">
-              FECHA ACTIVA: <span className="ml-1 text-blue-700">{fechaActivaLabel}</span>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <div className="rounded-lg border border-blue-100 bg-blue-50/60 px-2.5 py-1 text-center">
+              <p className="text-[8px] font-bold uppercase tracking-wide text-slate-500">Fecha activa</p>
+              <p className="text-xs font-extrabold leading-tight text-blue-700">{fechaActivaLabel}</p>
             </div>
-            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Pendientes</p>
-              <p className="mt-0.5 text-xl font-extrabold leading-none text-blue-700">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
-            </div>
-            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Confirmadas</p>
-              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-400">{confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}</p>
-            </div>
-            <div className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-slate-700">Total</p>
-              <p className="mt-0.5 text-xl font-extrabold leading-none text-slate-900">{pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading ? '...' : totalGeneral}</p>
+            <div className="flex gap-1.5">
+              <div className="min-w-[54px] rounded-lg border border-amber-100 bg-amber-50/70 px-1.5 py-1 text-center sm:min-w-[68px] sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight text-amber-700 sm:tracking-wide">Pendientes</p>
+                <p className="text-base font-extrabold leading-none text-amber-600">{pendientesTotalQuery.isLoading ? '...' : totalPendientes}</p>
+              </div>
+              <div className="min-w-[54px] rounded-lg border border-emerald-100 bg-emerald-50/70 px-1.5 py-1 text-center sm:min-w-[68px] sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight text-emerald-700 sm:tracking-wide">Confirmadas</p>
+                <p className="text-base font-extrabold leading-none text-emerald-600">{confirmadasTotalQuery.isLoading ? '...' : totalConfirmadas}</p>
+              </div>
+              <div className="min-w-[54px] rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 text-center sm:min-w-[68px] sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight text-slate-500 sm:tracking-wide">Total</p>
+                <p className="text-base font-extrabold leading-none text-slate-700">{pendientesTotalQuery.isLoading || confirmadasTotalQuery.isLoading ? '...' : totalGeneral}</p>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {!canAsignarTecnicoGrupo ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
           Solo lectura: para asignar tecnico a grupo necesitas tsm_ConformacionCuadrillas.
         </div>
       ) : null}
       {!canVerDatosTecnico ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
           Ver datos del tecnico bloqueado: requiere tsm_ConformacionCuadrillas.
         </div>
       ) : null}
       {submitError && !modalOpen ? (
-        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{submitError}</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-600">{submitError}</div>
       ) : null}
       {success ? (
-        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-600">{success}</div>
       ) : null}
       {totalsErrorMessage ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
           {totalsErrorMessage}
         </div>
       ) : null}
@@ -3474,16 +3476,29 @@ const findVehiculoConflictRecord = (
         hideHeader
         compact
       >
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="mb-1.5 flex flex-wrap items-end justify-between gap-2 border-b border-slate-200">
           <div className="min-w-0 flex-1">
-            <Tabs items={CUADRILLA_LIST_TABS} activeId={activeTab} onChange={(id) => setActiveTab(id as CuadrillaListTab)} />
+            <div className="flex flex-wrap items-center gap-1">
+              {CUADRILLA_LIST_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                    activeTab === tab.id ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
             <Button
               variant="secondary"
               type="button"
               onClick={() => setShowListFilters((current) => !current)}
-              className="w-full sm:w-auto"
+              className="h-8 w-full sm:w-auto"
             >
               {showListFilters ? 'Ocultar filtros' : 'Filtros'}
             </Button>
@@ -3501,11 +3516,11 @@ const findVehiculoConflictRecord = (
           </div>
         </div>
         {showListFilters ? (
-          <div className="mb-4 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-            <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+          <div className="mb-2 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
               <span>Fecha</span>
               <input
-                className="input-base h-9 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                className="input-base h-8 border-0 bg-slate-100 px-2.5 text-slate-800 focus:ring-2 focus:ring-brand-100"
                 type="date"
                 value={activeTab === 'confirmadas' ? selectedFechaFiltro : generalFechaFiltro}
                 onChange={(event) => {
@@ -3515,10 +3530,10 @@ const findVehiculoConflictRecord = (
                 disabled={activeTab === 'general'}
               />
             </label>
-            <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+            <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
               <span>Buscar</span>
               <input
-                className="input-base h-9 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                className="input-base h-8 border-0 bg-slate-100 px-2.5 text-slate-800 focus:ring-2 focus:ring-brand-100"
                 type="text"
                 value={listSearchInput}
                 onChange={(event) => setListSearchInput(event.target.value)}
@@ -3528,7 +3543,7 @@ const findVehiculoConflictRecord = (
             <Button
               variant="secondary"
               type="button"
-              className="h-9 xl:self-end"
+              className="h-8 xl:self-end"
               onClick={() => {
                 if (activeTab === 'confirmadas') {
                   setFilterFecha(todayValue)
@@ -3541,21 +3556,21 @@ const findVehiculoConflictRecord = (
             </Button>
           </div>
         ) : null}
-        <div className="mb-4 hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600 sm:block">
+        <div className="mb-2 hidden rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-600 sm:block">
           {activeTab === 'confirmadas'
             ? 'Origen de Confirmadas: tabla tbl_ConformacionCuadrillaDiario (endpoint /supervisor/conformacion-cuadrilla/confirmadas).'
             : `Origen activo por sucursal: ${selectedInitialSource === 'DB_SUCRE' ? 'DB Sucre' : 'U Tecnicos'}. El listado y catalogos se cargan desde conformacion-cuadrilla-web.`}
         </div>
         {listQuery.isLoading ? (
-          <div className="mb-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">Cargando listado...</div>
+          <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-500">Cargando listado...</div>
         ) : null}
         {errorMessage ? (
-          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{errorMessage}</div>
+          <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-600">{errorMessage}</div>
         ) : (
           <>
-            <div className="space-y-3 md:hidden">
+            <div className="space-y-2 md:hidden">
               {pagedVisibleData.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-white px-4 py-5 text-center text-sm text-slate-500">
+                <div className="rounded-lg border border-slate-200 bg-white px-3 py-3 text-center text-slate-500">
                   {emptyListMessage}
                 </div>
               ) : (
@@ -3578,42 +3593,42 @@ const findVehiculoConflictRecord = (
                     ? 'PENDIENTE'
                     : readRecordString(row, RECORD_ESTADO_KEYS, row.estado ?? '').trim().toUpperCase()
                   return (
-                    <div key={`mobile-card-${selectionKey}-${index}`} className="overflow-hidden rounded-3xl border border-slate-300 bg-white text-slate-900 shadow-sm">
-                      <div className="p-4">
-                        <div className="grid grid-cols-[minmax(0,1fr)_56px] gap-3">
+                    <div key={`mobile-card-${selectionKey}-${index}`} className="overflow-hidden rounded-xl border border-slate-200 bg-white text-slate-900 shadow-sm">
+                      <div className="p-2.5">
+                        <div className="grid grid-cols-[minmax(0,1fr)_40px] gap-2">
                           <div className="min-w-0">
                             {estadoTabla ? (
-                              <span className={`inline-flex rounded-md px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-[0.08em] ${
+                              <span className={`inline-flex rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${
                                 estadoTabla === 'ACTIVO' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
                               }`}>
                                 {estadoTabla}
                               </span>
                             ) : null}
-                            <p className="mt-2 break-words text-2xl font-extrabold uppercase leading-tight text-blue-700 sm:text-3xl">{tecnicoLabel}</p>
-                            <p className="mt-0.5 text-xs font-bold uppercase tracking-[0.08em] text-slate-600">Lider de cuadrilla</p>
+                            <p className="mt-1 break-words text-sm font-bold uppercase leading-tight text-blue-700">{tecnicoLabel}</p>
+                            <p className="text-[10px] font-medium uppercase text-slate-500">Lider de cuadrilla</p>
                           </div>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
+                          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700"><svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M4 20c1.4-2.8 4.2-4.2 8-4.2s6.6 1.4 8 4.2" /><circle cx="12" cy="9" r="3.2" /><path d="M8 7.8c.3-2.1 1.8-3.8 4-3.8s3.7 1.7 4 3.8" /><path d="M6.5 12h11" /></svg></div>
                         </div>
-                        <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-sm text-slate-700">
-                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Auxiliar</span><span className="font-semibold">{auxiliarLabel}</span></p>
-                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Vehiculo</span><span className="font-semibold text-blue-700">{vehiculoLabel}</span></p>
-                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Habilidad</span><span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold">{habilidadLabel}</span></p>
-                          <p><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">CuentaSF</span>{cuentaSfLabel}</p>
-                          <p className="col-span-2"><span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Salesforce</span>{salesforceLabel}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-1 text-slate-700">
+                          <p><span className="block text-[10px] font-medium uppercase text-slate-500">Auxiliar</span><span className="font-semibold">{auxiliarLabel}</span></p>
+                          <p><span className="block text-[10px] font-medium uppercase text-slate-500">Vehiculo</span><span className="font-semibold text-blue-700">{vehiculoLabel}</span></p>
+                          <p><span className="block text-[10px] font-medium uppercase text-slate-500">Habilidad</span><span className="inline-flex rounded-md bg-slate-100 px-2 py-0.5 font-semibold">{habilidadLabel}</span></p>
+                          <p><span className="block text-[10px] font-medium uppercase text-slate-500">CuentaSF</span>{cuentaSfLabel}</p>
+                          <p className="col-span-2"><span className="block text-[10px] font-medium uppercase text-slate-500">Salesforce</span>{salesforceLabel}</p>
                           {activeTab === 'confirmadas' ? (
-                            <div className="col-span-2 text-xs text-slate-500">
+                            <div className="col-span-2 text-slate-500">
                               <p><span className="font-semibold">Confirmado por:</span> {supervisorConfirmoLabel}</p>
                               <p>ID registro: {registroIdLabel} | Fecha: {fechaRegistroLabel}</p>
                             </div>
                           ) : null}
                         </div>
                       </div>
-                      <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+                      <div className="flex items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-2">
+                        <label className="flex items-center gap-2 font-semibold text-slate-700">
                           <span>Activo</span>
                           <input
                             type="checkbox"
-                            className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
+                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
                             checked={activeChecked}
                             onChange={() => handleToggleConfirmRow(row)}
                             disabled={!canToggleActive}
@@ -3624,7 +3639,7 @@ const findVehiculoConflictRecord = (
                           type="button"
                           onClick={() => void handleOpenDetalle(row)}
                           disabled={rowDetailLoading}
-                          className="h-11 w-12 rounded-xl border-slate-300 px-0 text-lg text-slate-700"
+                          className="h-8 w-10 rounded-lg border-slate-300 px-0 text-slate-700"
                         >
                           {rowDetailLoading ? '...' : '✎'}
                         </Button>
@@ -3646,7 +3661,7 @@ const findVehiculoConflictRecord = (
                 desktopHeightClass="h-[58vh]"
                 stickyHeader
               />
-              <div className="mt-3 flex items-center justify-between text-sm text-slate-600">
+              <div className="mt-2 flex items-center justify-between text-slate-600">
                 <div>Mostrando {Math.min(visibleListData.length, (page - 1) * pageSize + 1)} - {Math.min(visibleListData.length, page * pageSize)} de {visibleListData.length}</div>
                 <div className="flex items-center gap-2">
                   <Button variant="secondary" type="button" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>
@@ -3664,14 +3679,14 @@ const findVehiculoConflictRecord = (
       </FormCard>
 
       {modalOpen ? createPortal(
-        <div className="fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-[1px]">
-          <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-white sm:mx-auto sm:my-6 sm:h-[calc(100dvh-3rem)] sm:w-[calc(100%-3rem)] sm:max-w-[1560px] sm:rounded-3xl sm:border sm:border-slate-200 sm:shadow-2xl">
-            <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4">
+        <div className="sup-v2-fs fixed inset-0 z-50 bg-slate-900/55 backdrop-blur-[1px]">
+          <div className="flex h-[100dvh] w-screen flex-col overflow-hidden bg-white sm:mx-auto sm:my-6 sm:h-[calc(100dvh-3rem)] sm:w-[calc(100%-3rem)] sm:max-w-[1560px] sm:rounded-2xl sm:border sm:border-slate-200 sm:shadow-2xl">
+            <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 sm:px-4">
               <div>
                 <h3 className="text-base font-semibold text-slate-900 sm:text-lg">
                   {editingId ? `Detalle registro #${editingId}` : 'Detalle de cuadrilla'}
                 </h3>
-                <p className="mt-0.5 text-xs text-slate-500">
+                <p className="text-slate-500">
                   {isViewMode
                     ? activeTab === 'general'
                       ? 'Vista desde listado. Puedes editar la cuadrilla.'
@@ -3722,21 +3737,21 @@ const findVehiculoConflictRecord = (
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:w-auto"
+                  className="h-8 w-full rounded-lg border border-slate-200 bg-white px-3 font-semibold text-slate-600 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-200 sm:w-auto"
                 >
                   Cerrar
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4">
-              <div className="glass-panel p-3 sm:p-4">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs text-slate-600">
+            <div className="flex-1 overflow-y-auto p-2 sm:p-3">
+              <div className="glass-panel p-2 sm:p-3">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-600">
             Nota: la fecha se usa automaticamente con hoy y la sucursal se fija desde el login. El auxiliar no puede ser el mismo tecnico.
           </div>
 
 
 
-          <div className="mt-4 space-y-4">
+          <div className="mt-2 space-y-2">
             {gridRows.map((row, index) => {
               const issue = rowIssues[index]
               const shouldHighlightRowIssue = Boolean(issue?.hasIssue) && showStrictValidation && !isLocalViewMode
@@ -3758,10 +3773,10 @@ const findVehiculoConflictRecord = (
               return (
                 <div
                   key={'row-' + index}
-                  className={'rounded-2xl border p-3 shadow-sm sm:p-4 ' + (shouldHighlightRowIssue ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white')}
+                  className={'rounded-xl border p-2.5 shadow-sm ' + (shouldHighlightRowIssue ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white')}
                 >
                   {issue?.idConflict || issue?.missingFields?.length ? (
-                    <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
                       {issue?.idConflict ? (
                         <span className="rounded-full border border-rose-300 bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700">
                           Tecnico y auxiliar no pueden ser iguales
@@ -3791,7 +3806,7 @@ const findVehiculoConflictRecord = (
                           <span>Activo</span>
                           <input
                             type="checkbox"
-                            className="h-5 w-5 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
+                            className="h-4 w-4 rounded border-slate-300 text-sky-600 focus:ring-sky-300"
                             checked={normalizeEstadoValue(row.estado) === 'ACTIVO'}
                             onChange={(event) => handleRowChange(index, 'estado', event.target.checked ? 'ACTIVO' : 'AUSENTE')}
                             disabled={isReadOnlyMode}
@@ -3811,7 +3826,7 @@ const findVehiculoConflictRecord = (
                       ) : null}
                       {false ? (
                         <div className="grid gap-3">
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Estado</span>
                             <select
                               className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -3826,7 +3841,7 @@ const findVehiculoConflictRecord = (
                               ))}
                             </select>
                           </label>
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Actividad</span>
                             <select
                               className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -3914,7 +3929,7 @@ const findVehiculoConflictRecord = (
                           </select>
                         </label>
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Cuenta</span>
                             <input
                               className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -3925,7 +3940,7 @@ const findVehiculoConflictRecord = (
                           </label>
                         ) : null}
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Grupo</span>
                             <select
                               className="input-base h-9 max-h-72 overflow-y-auto border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -3944,7 +3959,7 @@ const findVehiculoConflictRecord = (
                           </label>
                         ) : null}
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Salesforce</span>
                             <input
                               className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -3955,7 +3970,7 @@ const findVehiculoConflictRecord = (
                           </label>
                         ) : null}
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Almacen</span>
                             <input
                               className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -3965,7 +3980,7 @@ const findVehiculoConflictRecord = (
                             />
                           </label>
                         ) : null}
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                           <span>Habilidad</span>
                           <select
                             className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -3982,7 +3997,7 @@ const findVehiculoConflictRecord = (
                           </select>
                         </label>
                         <div className="sm:col-span-2 mt-1 grid gap-3 border-t border-slate-200 pt-3 sm:grid-cols-2">
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Salesforce</span>
                             <select
                               className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -4003,7 +4018,7 @@ const findVehiculoConflictRecord = (
                               ))}
                             </select>
                           </label>
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Cuenta SF</span>
                             <input
                               className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -4014,7 +4029,7 @@ const findVehiculoConflictRecord = (
                           </label>
                         </div>
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>G. digit</span>
                             <input
                               className="input-base h-9 border-slate-400 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -4030,7 +4045,7 @@ const findVehiculoConflictRecord = (
                     <section className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5 md:col-span-2 xl:col-span-5">
                       <p className="text-base font-bold text-slate-900">Asignacion</p>
                       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                           <span>Vehiculo</span>
                           <select
                             className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -4065,7 +4080,7 @@ const findVehiculoConflictRecord = (
                             <span>Ver todos los vehiculos</span>
                           </div>
                         </label>
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                           <span>Fecha</span>
                           <input
                             className="input-base h-9 border-slate-300 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -4076,7 +4091,7 @@ const findVehiculoConflictRecord = (
                       </div>
 
                       <div className="mt-4 grid gap-3 border-t border-slate-200 pt-4 sm:grid-cols-2">
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                           <span>Digitador</span>
                           <select
                             className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -4098,7 +4113,7 @@ const findVehiculoConflictRecord = (
                           </select>
                         </label>
                         {!isCompactEditMode ? (
-                          <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                          <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                             <span>Supervisor</span>
                             <select
                               className="input-base h-9 border-sky-300 bg-sky-50 px-3 text-xs font-semibold shadow-sm focus:border-sky-500 focus:ring-sky-200"
@@ -4120,7 +4135,7 @@ const findVehiculoConflictRecord = (
                             </select>
                           </label>
                         ) : null}
-                        <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
+                        <label className="flex flex-col gap-0.5 text-[10px] font-medium text-slate-500">
                           <span>Sucursal</span>
                           <input
                             className="input-base h-9 border-slate-300 bg-slate-100 px-3 text-xs font-semibold text-slate-700 shadow-sm"
@@ -4146,10 +4161,10 @@ const findVehiculoConflictRecord = (
           </div>
 
           {submitError ? (
-            <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{submitError}</div>
+            <div className="mt-4 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-600">{submitError}</div>
           ) : null}
           {success ? (
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">{success}</div>
+            <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-600">{success}</div>
           ) : null}
 
           <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
@@ -4175,6 +4190,7 @@ const findVehiculoConflictRecord = (
         document.body
       ) : null}
       <Modal
+        compactText
         open={Boolean(pendingReassignmentPrompt)}
         title={
           pendingReassignmentPrompt?.field === 'auxiliar'
@@ -4224,6 +4240,7 @@ const findVehiculoConflictRecord = (
         ) : null}
       </Modal>
       <Modal
+        compactText
         open={Boolean(pendingConfirmation)}
         title="Confirmar marcado de hoy"
         onClose={handleCancelPendingConfirmation}

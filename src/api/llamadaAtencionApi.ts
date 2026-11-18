@@ -108,6 +108,7 @@ const mapRegistro = (row: Record<string, unknown>): LlamadaAtencionRegistro => {
     fechaSeguimiento: normalizeString(readValue(row, ['fechaSeguimiento', 'fechaseguimiento'])) || undefined,
     firmaTecnico: normalizeString(readValue(row, ['firmaTecnico', 'firmatecnico'])) || undefined,
     firmaTestigo: normalizeString(readValue(row, ['firmaTestigo', 'firmatestigo'])) || undefined,
+    sucursal: normalizeString(readValue(row, ['sucursal'])) || undefined,
   }
 }
 

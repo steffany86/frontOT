@@ -10,6 +10,13 @@ export const fetchCruceAgendaMakiro = async (fecha: string): Promise<CruceAgenda
   return normalizeArrayResponse<CruceAgendaMakiroRow>(data)
 }
 
+export const fetchCruceAgendaMakiroV2 = async (fecha: string): Promise<CruceAgendaMakiroRow[]> => {
+  const { data } = await api.get('/supervisor/cruce-ordenes-agenda-makiro-v2', {
+    params: { fecha },
+  })
+  return normalizeArrayResponse<CruceAgendaMakiroRow>(data)
+}
+
 export const marcarCruceVerificaBack = async (
   idHistorial: number,
   observacion: string

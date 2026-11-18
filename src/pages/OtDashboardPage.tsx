@@ -1639,12 +1639,12 @@ const OtDashboardPage = () => {
   const ordenesPasadasCount = ordenesPasadasQuery.data?.length ?? 0
 
   return (
-    <div className="bento-page">
-      <section className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-2 sm:p-3">
+    <div className="bento-page sup-v2-fs">
+      <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-50/70 p-2">
         <div className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h2 className="max-w-full break-words text-lg font-extrabold leading-tight tracking-tight text-slate-900 lg:text-2xl">OT's (
+            <h2 className="max-w-full break-words page-title">OT's (
               {grupoActivoEnPantalla || 'Grupo no determinado'}
             )
             </h2>
@@ -1652,9 +1652,9 @@ const OtDashboardPage = () => {
           {!isCortesTapTab && activeListQuery.isFetching ? <span className="text-xs text-slate-500">Actualizando...</span> : null}
         </div>
 
-        <div className="mt-2 rounded-2xl border border-slate-300 bg-white p-1.5 shadow-sm sm:p-2">
+        <div className="mt-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div className="inline-flex min-w-0 gap-2 overflow-x-auto">
+            <div className="inline-flex min-w-0 gap-1 overflow-x-auto">
               {OT_DASHBOARD_TABS.map((tab) => {
                 const active = estadoTab === tab.id
                 const count = tab.id === 'ordenes-pasadas' ? ordenesPasadasCount : null
@@ -1664,7 +1664,7 @@ const OtDashboardPage = () => {
                     type="button"
                     disabled={tab.id !== 'cortes-tap' && shouldBlockByMultipleRoutes}
                     onClick={() => handleEstadoTabChange(tab.id)}
-                    className={`shrink-0 rounded-xl px-3 py-2 text-sm font-semibold transition sm:px-4 ${
+                    className={`shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition ${
                       active
                         ? 'border border-blue-500/25 bg-blue-600 text-white shadow-sm'
                         : 'border border-transparent bg-white text-slate-600 hover:border-slate-300 hover:text-blue-600'
@@ -1674,7 +1674,7 @@ const OtDashboardPage = () => {
                       <span>{tab.label}</span>
                       {count !== null && count > 0 ? (
                         <span
-                          className={`min-w-5 rounded-full px-1.5 py-0.5 text-center text-[11px] font-black leading-none ${
+                          className={`min-w-4 rounded-full px-1 py-0.5 text-center text-[10px] font-bold leading-none ${
                             active ? 'bg-white text-blue-700' : 'bg-rose-600 text-white'
                           }`}
                         >
@@ -1687,10 +1687,10 @@ const OtDashboardPage = () => {
               })}
             </div>
             {!isCortesTapTab ? <div className="flex flex-wrap items-center gap-2 px-1 lg:justify-end">
-              <span className="px-2 text-sm font-medium text-slate-700 whitespace-nowrap">Fecha activa: {fechaActivaLabel}</span>
+              <span className="px-1 text-[11px] font-medium text-slate-700 whitespace-nowrap">Fecha activa: {fechaActivaLabel}</span>
               {!isOrdenesPasadasTab ? <Button
                 type="button"
-                className="h-9 whitespace-nowrap px-3"
+                className="h-7 whitespace-nowrap px-3"
                 title={manualDisabledReason || 'Registrar OT manual'}
                 disabled={manualIsDisabled}
                 onClick={async () => {
@@ -1756,7 +1756,7 @@ const OtDashboardPage = () => {
               <Button
                 variant="secondary"
                 type="button"
-                className="h-9 whitespace-nowrap"
+                className="h-7 whitespace-nowrap"
                 disabled={shouldBlockByMultipleRoutes}
                 onClick={() => setShowListFilters((current) => !current)}
               >
@@ -1767,11 +1767,11 @@ const OtDashboardPage = () => {
         </div>
 
         {!isCortesTapTab && showListFilters && !shouldBlockByMultipleRoutes ? (
-          <div className="mt-3 grid items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="mt-2 grid items-end gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
               <span>Nro OT</span>
               <input
-                className="input-base h-10 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                className="input-base h-8 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
                 type="text"
                 value={nroOtFilter}
                 onChange={(event) => setNroOtFilter(event.target.value.replace(/[^\d]/g, ''))}
@@ -1781,7 +1781,7 @@ const OtDashboardPage = () => {
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
               <span>Cod Cliente</span>
               <input
-                className="input-base h-10 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                className="input-base h-8 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
                 type="text"
                 value={codClienteFilter}
                 onChange={(event) => setCodClienteFilter(event.target.value.replace(/[^\d]/g, ''))}
@@ -1791,7 +1791,7 @@ const OtDashboardPage = () => {
             <label className="flex flex-col gap-1 text-xs text-slate-600 [&>span]:font-semibold [&>span]:text-slate-800">
               <span>Fecha</span>
               <input
-                className="input-base h-10 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
+                className="input-base h-8 border-slate-300 bg-white px-3 text-xs font-semibold text-slate-800 shadow-sm focus:border-sky-500 focus:ring-sky-200"
                 type="date"
                 value={fecha}
                 onChange={(event) => {
@@ -1811,7 +1811,7 @@ const OtDashboardPage = () => {
             <Button
               variant="secondary"
               type="button"
-              className="h-10 xl:self-end"
+              className="h-8 xl:self-end"
               onClick={() => {
                 setFechaFiltro(todayValue)
                 setNroOtFilter('')
@@ -1824,23 +1824,23 @@ const OtDashboardPage = () => {
           </div>
         ) : null}
 
-        {!isCortesTapTab ? <div className="mt-4 flex items-center justify-between">
-          <span className="text-sm font-semibold text-slate-700">{filteredCardEntries.length} registros</span>
+        {!isCortesTapTab ? <div className="mt-2 flex items-center justify-between">
+          <span className="text-[11px] font-semibold text-slate-700">{filteredCardEntries.length} registros</span>
         </div> : null}
 
-        {isCortesTapTab ? <CortesTapPanel /> : <div className="mt-4">
+        {isCortesTapTab ? <CortesTapPanel /> : <div className="mt-2">
           {navError ? (
-            <div className="mb-4 whitespace-pre-line break-words rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+            <div className="mb-2 whitespace-pre-line break-words rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">
               {navError}
             </div>
           ) : null}
           {advertenciaMultiplesRutas ? (
-            <div className="mb-4 whitespace-pre-line break-words rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            <div className="mb-2 whitespace-pre-line break-words rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
               {advertenciaMultiplesRutas}
             </div>
           ) : null}
           {bloqueoMultiplesRutasMensaje ? (
-            <div className="mb-4 whitespace-pre-line break-words rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-700">
+            <div className="mb-2 whitespace-pre-line break-words rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700">
               {bloqueoMultiplesRutasMensaje}
             </div>
           ) : null}
@@ -1886,13 +1886,13 @@ const OtDashboardPage = () => {
               Operacion bloqueada por multiples grupos asignados. Solicita quedar con un solo grupo y vuelve a ingresar.
             </div>
           ) : filteredCardEntries.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-14 text-center">
-              <p className="text-3xl font-extrabold uppercase tracking-wide text-slate-950">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-8 text-center">
+              <p className="text-sm font-bold uppercase text-slate-700">
                 NO HAY DATOS PARA LA FECHA
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {filteredCardEntries.map((card) => {
                 const isManualCard = card.isManual
                 const cardActionNotice =
@@ -1909,17 +1909,17 @@ const OtDashboardPage = () => {
                 return (
                   <article
                     key={`${card.ot || 'ot'}-${card.clienteNro || 'cliente'}-${card.index}`}
-                    className={`rounded-2xl border border-slate-200 bg-white p-2.5 shadow-sm sm:p-3 ${isManualCard ? 'border-yellow-300 bg-yellow-100 ring-1 ring-yellow-300' : ''}`}
+                    className={`rounded-xl border border-slate-200 bg-white p-1.5 shadow-sm ${isManualCard ? 'border-yellow-300 bg-yellow-100 ring-1 ring-yellow-300' : ''}`}
                   >
                     <div
-                      className={`rounded-2xl border p-3 sm:p-4 ${
+                      className={`rounded-lg border p-2 sm:p-2.5 ${
                         isManualCard ? 'border-yellow-300 bg-yellow-50' : 'border-slate-200 bg-white'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <h3 className="text-xs font-bold uppercase tracking-wide text-slate-500">Cliente</h3>
-                          <p className="mt-1 whitespace-nowrap text-2xl font-extrabold leading-none tracking-tight text-slate-900 sm:text-3xl">
+                          <h3 className="text-[10px] font-semibold uppercase text-slate-500">Cliente</h3>
+                          <p className="mt-0.5 whitespace-nowrap text-sm font-bold leading-none text-slate-900">
                             {getClienteLabel(card.row)}
                           </p>
                         </div>
@@ -1932,7 +1932,7 @@ const OtDashboardPage = () => {
                         </div>
                       </div>
 
-                      <div className="mt-3 space-y-1 text-sm break-words text-slate-700">
+                      <div className="mt-2 space-y-0.5 text-[11px] break-words text-slate-700">
                         {estadoTab === 'finalizadas' ? (
                           <>
                             <p>
@@ -1993,7 +1993,7 @@ const OtDashboardPage = () => {
                       </div>
 
                       {estadoTab === 'finalizadas' ? (
-                        <div className="mt-5 grid grid-cols-1 gap-2 [&>button]:w-full">
+                        <div className="mt-2 grid grid-cols-1 gap-1.5 [&>button]:w-full">
                           <Button
                             type="button"
                             variant="secondary"
@@ -2006,7 +2006,7 @@ const OtDashboardPage = () => {
                           </Button>
                         </div>
                       ) : (
-                        <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2 [&>button]:w-full">
+                        <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2 [&>button]:w-full">
                           <Button
                             type="button"
                             className={
@@ -2189,7 +2189,7 @@ const OtDashboardPage = () => {
                         </div>
                       )}
                       {cardActionNotice ? (
-                        <div className={`mt-3 rounded-lg border px-3 py-2 text-xs font-semibold ${cardActionNoticeClass}`}>
+                        <div className={`mt-2 rounded-lg border px-2 py-1 text-[11px] font-semibold ${cardActionNoticeClass}`}>
                           {cardActionNotice}
                         </div>
                       ) : null}
@@ -2205,6 +2205,7 @@ const OtDashboardPage = () => {
           title={detalleModalTitle}
           onClose={closeDetalleModal}
           containerClassName="w-full max-w-6xl"
+          compactText
           actions={
             <Button type="button" variant="secondary" onClick={closeDetalleModal} disabled={detalleModalLoading}>
               Cerrar
@@ -2212,11 +2213,11 @@ const OtDashboardPage = () => {
           }
         >
           {detalleModalLoading ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">Cargando detalle...</div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600">Cargando detalle...</div>
           ) : detalleModalError ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{detalleModalError}</div>
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{detalleModalError}</div>
           ) : (
-            <div className="max-h-[68vh] space-y-4 overflow-y-auto overflow-x-hidden pr-1">
+            <div className="max-h-[68vh] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
               {(() => {
                 const CABECERA_KEYS_TO_HIDE = [
                   'fechaRegistro',
@@ -2279,18 +2280,18 @@ const OtDashboardPage = () => {
                   })
                   return (
                     <section className="space-y-2">
-                      <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
+                      <h4 className="text-xs font-semibold text-slate-800">{title}</h4>
                       {rows.length === 0 ? (
-                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-8 text-center">
-                          <p className="text-xl font-extrabold uppercase tracking-wide text-slate-950">NO HAY DATOS PARA LA FECHA</p>
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-4 text-center">
+                          <p className="text-[11px] font-bold uppercase text-slate-700">NO HAY DATOS PARA LA FECHA</p>
                         </div>
                       ) : (
                         <div className="overflow-x-auto overflow-y-hidden rounded-lg border border-slate-200">
-                          <table className="min-w-[860px] text-xs">
+                          <table className="min-w-[860px] text-[11px]">
                             <thead className="bg-slate-100 text-slate-700">
                               <tr>
                                 {sortedColumnKeys.map((key) => (
-                                  <th key={`${title}-${key}`} className="whitespace-nowrap px-2 py-2 text-left font-semibold">
+                                  <th key={`${title}-${key}`} className="whitespace-nowrap px-2 py-1 text-left font-semibold">
                                     {resolveLabel(key)}
                                   </th>
                                 ))}
@@ -2300,7 +2301,7 @@ const OtDashboardPage = () => {
                               {rows.map((row, idx) => (
                                 <tr key={`${title}-row-${idx}`} className="border-t border-slate-100">
                                   {sortedColumnKeys.map((key) => (
-                                    <td key={`${title}-${idx}-${key}`} className="whitespace-nowrap px-2 py-2 text-slate-700">
+                                    <td key={`${title}-${idx}-${key}`} className="whitespace-nowrap px-2 py-1 text-slate-700">
                                       {row[key] ?? '-'}
                                     </td>
                                   ))}

@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDay, faCheckCircle, faDownload, faFilter, faRotateRight, faUserClock } from '@fortawesome/free-solid-svg-icons'
+import { faCheckCircle, faDownload, faFilter, faRotateRight } from '@fortawesome/free-solid-svg-icons'
 import type { Worksheet } from 'exceljs'
 import Button from '../components/common/Button'
-import Field from '../components/common/Field'
-import FormCard from '../components/common/FormCard'
 import ImageLightbox from '../components/common/ImageLightbox'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
@@ -53,6 +51,8 @@ const dateKeyFromRow = (row: SupervisionJornadaHistorico): string => {
 
 const normalizeRole = (role?: string): string => (role ?? '').trim().toLowerCase().replace(/[\s_]+/g, '')
 
+const FILTRO_INPUT_CLASS = 'h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none transition focus:ring-2 focus:ring-brand-100'
+
 type FiltroInicio = 'todos' | 'iniciaron' | 'rechazados' | 'no-iniciaron'
 type ModalJornadaModo = 'inicio' | 'cierre'
 
@@ -94,7 +94,7 @@ const estadoClass = (row: SupervisionJornadaHistorico): string => {
 }
 
 const jornadaRowClass = (row: SupervisionJornadaHistorico): string =>
-  esRechazado(row) ? 'bg-fuchsia-50/90' : noInicio(row) ? 'bg-red-100/90' : 'bg-green-50/90'
+  esRechazado(row) ? 'bg-fuchsia-50/90' : noInicio(row) ? 'bg-red-100/90' : ''
 
 const resolveInicioImageSrc = (value?: string): string | null => {
   const raw = value?.trim()
@@ -116,7 +116,7 @@ const JornadaImageCard = ({
   label,
   value,
   alt,
-  className = 'h-48 w-36 object-cover',
+  className = 'h-32 w-24 object-cover',
   onZoom,
 }: {
   label: string
@@ -127,18 +127,18 @@ const JornadaImageCard = ({
 }) => {
   const src = resolveInicioImageSrc(value)
   return (
-    <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4">
-      <p className="text-xs font-bold tracking-[0.35em] text-slate-700">{label}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2">
+      <p className="text-[10px] font-medium uppercase text-slate-500">{label}</p>
       {src ? (
         <button
           type="button"
-          className="mt-4 block rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-200"
+          className="mt-1.5 block rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
           onClick={() => onZoom(src)}
         >
           <img src={src} alt={alt} className={`rounded-xl border border-slate-300 ${className}`} />
         </button>
       ) : (
-        <p className="mt-3 text-2xl font-bold text-slate-900">-</p>
+        <p className="mt-0.5 font-semibold text-slate-900">-</p>
       )}
     </div>
   )
@@ -267,17 +267,17 @@ const DetailCard = ({ label, value, wide = false }: { label: string; value?: str
   const displayValue = value?.trim() || '-'
   const showAsStatus = isSiValue(displayValue) || isNoValue(displayValue)
   return (
-    <div className={`rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4 ${wide ? 'sm:col-span-2' : ''}`}>
-      <p className="text-xs font-bold tracking-[0.35em] text-slate-700">{label}</p>
+    <div className={`rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 ${wide ? 'sm:col-span-2' : ''}`}>
+      <p className="text-[10px] font-medium uppercase text-slate-500">{label}</p>
       {showAsStatus ? (
-        <p className={`mt-2 flex items-center gap-3 text-2xl font-bold ${isSiValue(displayValue) ? 'text-emerald-700' : 'text-red-700'}`}>
-          <span className={`flex h-8 w-8 items-center justify-center rounded-full ${isSiValue(displayValue) ? 'bg-emerald-700' : 'bg-red-700'} text-white`}>
-            <FontAwesomeIcon icon={faCheckCircle} className="text-lg" />
+        <p className={`mt-1 flex items-center gap-2 font-semibold ${isSiValue(displayValue) ? 'text-emerald-700' : 'text-red-700'}`}>
+          <span className={`flex h-5 w-5 items-center justify-center rounded-full ${isSiValue(displayValue) ? 'bg-emerald-700' : 'bg-red-700'} text-white`}>
+            <FontAwesomeIcon icon={faCheckCircle} className="text-[11px]" />
           </span>
           {displayValue}
         </p>
       ) : (
-        <p className="mt-3 whitespace-pre-wrap text-2xl font-bold leading-tight text-slate-900">{displayValue}</p>
+        <p className="mt-0.5 whitespace-pre-wrap font-semibold leading-tight text-slate-900">{displayValue}</p>
       )}
     </div>
   )
@@ -287,11 +287,11 @@ const GeoCard = ({ label, value }: { label: string; value?: string }) => {
   const coords = parseGeoCoords(value)
   const mapsUrl = coords ? `https://www.google.com/maps?q=${coords.lat},${coords.lng}` : null
   return (
-    <div className="rounded-[1.35rem] border border-slate-200 bg-slate-100 px-5 py-4 sm:col-span-2">
-      <p className="text-xs font-bold tracking-[0.35em] text-slate-700">{label}</p>
-      <p className="mt-3 break-words text-2xl font-bold leading-tight text-slate-900">{value?.trim() || '-'}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2 sm:col-span-2">
+      <p className="text-[10px] font-medium uppercase text-slate-500">{label}</p>
+      <p className="mt-0.5 break-words font-semibold leading-tight text-slate-900">{value?.trim() || '-'}</p>
       {mapsUrl ? (
-        <Button type="button" variant="secondary" className="mt-3" onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}>
+        <Button type="button" variant="secondary" className="mt-1.5" onClick={() => window.open(mapsUrl, '_blank', 'noopener,noreferrer')}>
           Abrir en Google Maps
         </Button>
       ) : null}
@@ -732,108 +732,141 @@ const HistoricoJornadasPage = () => {
   const detalleModo = detalleJornada?.modo ?? 'inicio'
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-600">
-            <FontAwesomeIcon icon={faUserClock} className="mr-2" />
-            Historicos jornadas
-          </p>
-          <h1 className="text-2xl font-bold text-slate-900">Inicios y cierres por tecnico</h1>
-        </div>
-        <Button type="button" variant="secondary" onClick={() => jornadasQuery.refetch()} disabled={jornadasQuery.isFetching}>
-          <FontAwesomeIcon icon={faRotateRight} className={jornadasQuery.isFetching ? 'mr-2 animate-spin' : 'mr-2'} />
-          Actualizar
-        </Button>
-      </div>
-
-      <FormCard title="Filtros" compact>
-        <div className="grid gap-3 md:grid-cols-6">
-          {usarRangoFechas ? (
-            <>
-              <Field label="Fecha desde">
-                <input className="input-base" type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value || formatLocalDateInput(new Date()))} />
-              </Field>
-              <Field label="Fecha hasta">
-                <input className="input-base" type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value || formatLocalDateInput(new Date()))} />
-              </Field>
-            </>
-          ) : (
-            <Field label="Fecha">
-              <input className="input-base" type="date" value={fecha} onChange={(event) => setFecha(event.target.value || formatLocalDateInput(new Date()))} />
-            </Field>
-          )}
-          <Field label="Rango">
-            <label className="flex h-[44px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700">
-              <input
-                type="checkbox"
-                checked={usarRangoFechas}
-                onChange={(event) => {
-                  const checked = event.target.checked
-                  setUsarRangoFechas(checked)
-                  if (checked) {
-                    setFechaDesde(fecha)
-                    setFechaHasta(fecha)
-                  }
-                }}
-              />
-              Usar rango
-            </label>
-          </Field>
-          {!isSupervisor ? (
-            <Field label="Sucursal">
-              <select
-                className="input-base"
-                value={sucursal}
-                onChange={(event) => {
-                  setSucursal(event.target.value)
-                  setIdTecnico('')
-                }}
-                disabled={sucursalesQuery.isLoading}
-              >
-                <option value="">Todas las sucursales</option>
-                {(sucursalesQuery.data?.data ?? []).map((item) => (
-                  <option key={item.idSucursal} value={item.sucursal}>
-                    {item.sucursal}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          ) : null}
-          <Field label="Tecnico">
-            <select className="input-base" value={idTecnico} onChange={(event) => setIdTecnico(event.target.value)}>
-              <option value="">Todos los tecnicos</option>
-              {tecnicoOptions.map((item) => (
-                <option key={item.id} value={item.id} className={item.usuarioRetirado ? 'text-red-700' : undefined}>
-                  {item.nombre} ({item.id}){item.usuarioRetirado ? ' - usuario retirado' : ''}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label="Inicio jornada">
-            <select className="input-base" value={filtroInicio} onChange={(event) => setFiltroInicio(event.target.value as FiltroInicio)}>
-              <option value="todos">Todos</option>
-              <option value="iniciaron">Solo iniciaron</option>
-              <option value="rechazados">Solo rechazados</option>
-              <option value="no-iniciaron">Solo no iniciaron</option>
-            </select>
-          </Field>
-          <div className="flex items-end">
-            <Button
+    <div className="bento-page supervision-page sup-v2-fs gap-2 text-[13px] sm:gap-2.5">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h3 className="page-title shrink-0">Historico de jornadas</h3>
+          <div className="ml-auto flex items-center gap-1.5">
+            <div className="flex gap-1.5">
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-blue-100 bg-blue-50/60 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500">Total</p>
+                <p className="text-base font-extrabold leading-none text-brand-600">{filteredRows.length}</p>
+              </div>
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-emerald-100 bg-emerald-50/70 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-emerald-700">Inicio</p>
+                <p className="text-base font-extrabold leading-none text-emerald-600">{filteredRows.filter((row) => inicioJornada(row)).length}</p>
+              </div>
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-amber-100 bg-amber-50/70 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-amber-700">Rech</p>
+                <p className="text-base font-extrabold leading-none text-amber-600">{filteredRows.filter((row) => esRechazado(row)).length}</p>
+              </div>
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-rose-100 bg-rose-50/70 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-rose-700">No ini</p>
+                <p className="text-base font-extrabold leading-none text-rose-600">{filteredRows.filter((row) => noInicio(row)).length}</p>
+              </div>
+            </div>
+            <button
               type="button"
-              variant="secondary"
-              className="w-full"
-              onClick={() => {
-                setIdTecnico('')
-                setFiltroInicio('todos')
-              }}
+              onClick={() => jornadasQuery.refetch()}
+              disabled={jornadasQuery.isFetching}
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-brand-600 disabled:cursor-wait disabled:opacity-60"
+              title="Actualizar"
             >
-              <FontAwesomeIcon icon={faFilter} className="mr-2" />
-              Limpiar filtros
-            </Button>
+              <FontAwesomeIcon icon={faRotateRight} className={jornadasQuery.isFetching ? 'animate-spin' : ''} aria-hidden="true" />
+              <span className="sr-only">Actualizar</span>
+            </button>
           </div>
         </div>
-      </FormCard>
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
+            <span className="group-open:hidden">Mostrar filtros</span>
+            <span className="hidden group-open:inline">Ocultar filtros</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="min-w-0 pb-1 pt-1.5">
+            <div className="grid items-end gap-2 sm:grid-cols-2 md:grid-cols-5">
+              {usarRangoFechas ? (
+                <>
+                  <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                    Fecha desde
+                    <input className={FILTRO_INPUT_CLASS} type="date" value={fechaDesde} onChange={(event) => setFechaDesde(event.target.value || formatLocalDateInput(new Date()))} />
+                  </label>
+                  <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                    Fecha hasta
+                    <input className={FILTRO_INPUT_CLASS} type="date" value={fechaHasta} onChange={(event) => setFechaHasta(event.target.value || formatLocalDateInput(new Date()))} />
+                  </label>
+                </>
+              ) : (
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Fecha
+                  <input className={FILTRO_INPUT_CLASS} type="date" value={fecha} onChange={(event) => setFecha(event.target.value || formatLocalDateInput(new Date()))} />
+                </label>
+              )}
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                Rango
+                <span className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5 text-xs font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={usarRangoFechas}
+                    onChange={(event) => {
+                      const checked = event.target.checked
+                      setUsarRangoFechas(checked)
+                      if (checked) {
+                        setFechaDesde(fecha)
+                        setFechaHasta(fecha)
+                      }
+                    }}
+                  />
+                  Usar rango
+                </span>
+              </label>
+              {!isSupervisor ? (
+                <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                  Sucursal
+                  <select
+                    className={FILTRO_INPUT_CLASS}
+                    value={sucursal}
+                    onChange={(event) => {
+                      setSucursal(event.target.value)
+                      setIdTecnico('')
+                    }}
+                    disabled={sucursalesQuery.isLoading}
+                  >
+                    <option value="">Todas las sucursales</option>
+                    {(sucursalesQuery.data?.data ?? []).map((item) => (
+                      <option key={item.idSucursal} value={item.sucursal}>
+                        {item.sucursal}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                Tecnico
+                <select className={FILTRO_INPUT_CLASS} value={idTecnico} onChange={(event) => setIdTecnico(event.target.value)}>
+                  <option value="">Todos los tecnicos</option>
+                  {tecnicoOptions.map((item) => (
+                    <option key={item.id} value={item.id} className={item.usuarioRetirado ? 'text-red-700' : undefined}>
+                      {item.nombre} ({item.id}){item.usuarioRetirado ? ' - usuario retirado' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+                Inicio jornada
+                <select className={FILTRO_INPUT_CLASS} value={filtroInicio} onChange={(event) => setFiltroInicio(event.target.value as FiltroInicio)}>
+                  <option value="todos">Todos</option>
+                  <option value="iniciaron">Solo iniciaron</option>
+                  <option value="rechazados">Solo rechazados</option>
+                  <option value="no-iniciaron">Solo no iniciaron</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={() => {
+                  setIdTecnico('')
+                  setFiltroInicio('todos')
+                }}
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-self-start justify-center rounded-md bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-brand-600"
+                title="Limpiar filtros"
+              >
+                <FontAwesomeIcon icon={faFilter} aria-hidden="true" />
+                <span className="sr-only">Limpiar filtros</span>
+              </button>
+            </div>
+          </div>
+        </details>
+      </section>
 
       {jornadasQuery.isError ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
@@ -841,22 +874,19 @@ const HistoricoJornadasPage = () => {
         </div>
       ) : null}
 
-      <FormCard
-        title="Detalle de jornadas"
-        description={usarRangoFechas ? `Rango seleccionado: ${fechaDesdeConsulta} a ${fechaHastaConsulta}` : `Fecha seleccionada: ${fecha}`}
-        actions={
+      <div className="glass-panel p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2 border-b border-slate-200 px-3 py-1.5">
+          <div>
+            <h3 className="page-title">Detalle de jornadas</h3>
+            <p className="text-xs text-slate-600">{usarRangoFechas ? `Rango seleccionado: ${fechaDesdeConsulta} a ${fechaHastaConsulta}` : `Fecha seleccionada: ${fecha}`}{' · '}{jornadasQuery.isFetching ? 'Cargando...' : `${filteredRows.length} registro(s)`}</p>
+          </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <span className="text-xs font-semibold text-slate-500">
-              <FontAwesomeIcon icon={faCalendarDay} className="mr-2" />
-              {jornadasQuery.isFetching ? 'Cargando...' : `${filteredRows.length} registro(s)`}
-            </span>
-            <Button type="button" variant="secondary" className="px-3 py-1.5 text-xs" onClick={exportarExcel} disabled={filteredRows.length === 0 || exportandoExcel}>
-              <FontAwesomeIcon icon={faDownload} className="mr-2" />
+            <Button type="button" variant="secondary" className="!px-3 !py-1.5 !text-xs" onClick={exportarExcel} disabled={filteredRows.length === 0 || exportandoExcel}>
+              <FontAwesomeIcon icon={faDownload} className="mr-1.5" />
               {exportandoExcel ? 'Exportando...' : 'Exportar Excel'}
             </Button>
           </div>
-        }
-      >
+        </div>
         <Table
           columns={columns}
           data={filteredRows}
@@ -866,10 +896,12 @@ const HistoricoJornadasPage = () => {
           desktopHeightClass="max-h-[calc(100dvh-20rem)]"
           density="compact"
           stickyHeader
+          flat
         />
-      </FormCard>
+      </div>
 
       <Modal
+        compactText
         open={Boolean(detalle)}
         title={detalleModo === 'cierre' ? 'Formulario de cierre de jornada' : 'Formulario de inicio de jornada'}
         onClose={() => setDetalleJornada(null)}
@@ -881,9 +913,9 @@ const HistoricoJornadasPage = () => {
         }
       >
         {detalle ? (
-          <div className="space-y-4">
+          <div className="space-y-2">
             {detalleLoading ? (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 font-semibold text-slate-600">
                 Cargando formulario...
               </div>
             ) : null}
@@ -894,13 +926,13 @@ const HistoricoJornadasPage = () => {
                   label="Firma inicio"
                   value={detalle.firmaInicio}
                   alt="Firma inicio"
-                  className="h-36 w-64 bg-white object-contain"
+                  className="h-24 w-44 bg-white object-contain"
                   onZoom={setZoomImageSrc}
                 />
                 {requiereFotoAuxiliar(detalle) || resolveAuxiliarDisplay(detalle) || resolveInicioImageSrc(detalle.imagenAuxiliar) ? (
                   <JornadaImageCard label="Imagen auxiliar" value={detalle.imagenAuxiliar} alt="Auxiliar inicio jornada" onZoom={setZoomImageSrc} />
                 ) : null}
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-2">
                   <DetailCard label="Tecnico" value={detalle.tecnicoNombre || detalle.idTecnico} />
                   <DetailCard label="Auxiliar" value={resolveAuxiliarDisplay(detalle)} />
                   {esRechazado(detalle) ? <DetailCard label="Motivo rechazo" value={detalle.observacionRechazado} wide /> : null}
@@ -919,7 +951,7 @@ const HistoricoJornadasPage = () => {
                 </div>
               </>
             ) : tieneCierreJornada(detalle) ? (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-2 sm:grid-cols-2">
                 <DetailCard label="Fecha cierre" value={formatDateTime(detalle.fechaCierre)} />
                 <DetailCard label="Codigo cliente" value={detalle.codigoClienteCierre} />
                 <DetailCard label="Dano material" value={detalle.danoMaterial} />
@@ -933,14 +965,14 @@ const HistoricoJornadasPage = () => {
                     label="Firma cierre"
                     value={detalle.firmaCierre}
                     alt="Firma cierre"
-                    className="h-36 w-64 bg-white object-contain"
+                    className="h-24 w-44 bg-white object-contain"
                     onZoom={setZoomImageSrc}
                   />
                 </div>
                 <GeoCard label="Ubicacion cierre georef" value={detalle.ubicacionCierreGeoref} />
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-center text-slate-500">
                 Sin formulario de cierre registrado.
               </div>
             )}

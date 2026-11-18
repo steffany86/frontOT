@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '../../context/AuthContext'
 import { fetchSucursales } from '../../services/authApi'
+import { useTecnologia } from '../../hooks/useTecnologia'
 import Button from '../common/Button'
 
 interface HeaderProps {
@@ -11,6 +12,7 @@ interface HeaderProps {
 const Header = ({ onMenuClick }: HeaderProps) => {
   const navigate = useNavigate()
   const { usuario, administrador, logout } = useAuth()
+  const { tecnologia } = useTecnologia()
   const sucursalesQuery = useQuery({
     queryKey: ['auth-sucursales-header'],
     queryFn: fetchSucursales,
@@ -64,6 +66,13 @@ const Header = ({ onMenuClick }: HeaderProps) => {
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
+        {tecnologia ? (
+          <span
+            className={`badge ${tecnologia === 'DTH' ? 'border-amber-300 text-amber-700' : 'border-sky-300 text-sky-700'}`}
+          >
+            {tecnologia}
+          </span>
+        ) : null}
         {administrador ? <span className="badge border-emerald-200 text-emerald-700">Administrador</span> : null}
         <Button variant="secondary" onClick={handleLogout} type="button" className="hidden lg:inline-flex">
           Cerrar sesion

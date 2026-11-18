@@ -37,7 +37,7 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJornadaClick }: SidebarProps) => {
   const navigate = useNavigate()
-  const { visibleNavigationItems, menusAsignados, usuario, logout } = useAuth()
+  const { visibleNavigationItems, menusAsignados, usuario, logout, tecnologia } = useAuth()
   const normalizeRole = (value?: string): string =>
     (value ?? '')
       .normalize('NFD')
@@ -46,17 +46,10 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
       .toLowerCase()
       .replace(/[\s_]+/g, '')
 
-  const cruceAgendaMakiroItem: NavigationItem = {
-    label: 'Cruce Agenda Makiro',
-    to: '/almacen/cruce-agenda-makiro',
-    routePatterns: ['/almacen/cruce-agenda-makiro'],
-    showInSidebar: true,
-    sidebarLabelFromMenu: false,
-  }
-  const cruceAgendaMakiroBackOfficeItem: NavigationItem = {
-    label: 'Cruce Agenda Makiro Back Office',
-    to: '/almacen/cruce-agenda-makiroBackOffice',
-    routePatterns: ['/almacen/cruce-agenda-makiroBackOffice'],
+  const cruceAgendaMakiroBackOfficeV2Item: NavigationItem = {
+    label: 'Cruce Agenda Makiro Back Office V2',
+    to: '/almacen/cruce-agenda-makiroBackOfficeV2',
+    routePatterns: ['/almacen/cruce-agenda-makiroBackOfficeV2'],
     showInSidebar: true,
     sidebarLabelFromMenu: false,
   }
@@ -64,17 +57,26 @@ const Sidebar = ({ isOpen = false, onClose, showCierreJornada = false, onCierreJ
   const sidebarItems = visibleNavigationItems.filter((item) => item.showInSidebar !== false)
   const roleNormalized = normalizeRole(usuario?.rol)
   const isSistemasRole = roleNormalized === 'sistemas'
-  const shouldForceCruceAgendaMakiro =
-    ['almacenero', 'auxiliardealmacen', 'supervisor', 'sistemas', 'admin', 'administrador'].includes(roleNormalized) &&
-    !sidebarItems.some((item) => item.to === cruceAgendaMakiroItem.to)
-  if (shouldForceCruceAgendaMakiro) {
-    sidebarItems.push(cruceAgendaMakiroItem)
-  }
-  const shouldForceCruceAgendaMakiroBackOffice =
+  const shouldForceCruceAgendaMakiroBackOfficeV2 =
+    tecnologia !== 'DTH' &&
     ['backoffice', 'backofficev', 'sistemas', 'admin', 'administrador'].includes(roleNormalized) &&
-    !sidebarItems.some((item) => item.to === cruceAgendaMakiroBackOfficeItem.to)
-  if (shouldForceCruceAgendaMakiroBackOffice) {
-    sidebarItems.push(cruceAgendaMakiroBackOfficeItem)
+    !sidebarItems.some((item) => item.to === cruceAgendaMakiroBackOfficeV2Item.to)
+  if (shouldForceCruceAgendaMakiroBackOfficeV2) {
+    sidebarItems.push(cruceAgendaMakiroBackOfficeV2Item)
+  }
+  const cruceAgendaMakiroSupervisorV2Item: NavigationItem = {
+    label: 'Cruce Agenda Makiro Supervisor V2',
+    to: '/almacen/cruce-agenda-makiroSupervisorV2',
+    routePatterns: ['/almacen/cruce-agenda-makiroSupervisorV2'],
+    showInSidebar: true,
+    sidebarLabelFromMenu: false,
+  }
+  const shouldForceCruceAgendaMakiroSupervisorV2 =
+    tecnologia !== 'DTH' &&
+    ['supervisor', 'sistemas', 'admin', 'administrador'].includes(roleNormalized) &&
+    !sidebarItems.some((item) => item.to === cruceAgendaMakiroSupervisorV2Item.to)
+  if (shouldForceCruceAgendaMakiroSupervisorV2) {
+    sidebarItems.push(cruceAgendaMakiroSupervisorV2Item)
   }
   const menuById = new Map(menusAsignados.map((menu) => [menu.idMenu, menu] as const))
 

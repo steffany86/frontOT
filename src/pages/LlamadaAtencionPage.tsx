@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDays, faCircleInfo, faClipboardCheck, faComments, faDownload, faFileLines, faFilter, faPrint, faSearch, faSignature, faTriangleExclamation, faUserGear, faUserGroup } from '@fortawesome/free-solid-svg-icons'
+import { faCalendarDays, faCircleInfo, faClipboardCheck, faComments, faDownload, faFileLines, faPrint, faSearch, faSignature, faTriangleExclamation, faUserGear, faUserGroup } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import ImageLightbox from '../components/common/ImageLightbox'
@@ -43,6 +43,7 @@ type LlamadaAtencionFiltro = {
   rangoFechas: boolean
   fechaDesde: string
   fechaHasta: string
+  sucursal: string
 }
 
 type FirmaStep = 'testigo' | 'tecnico'
@@ -70,6 +71,7 @@ const createDefaultFilter = (): LlamadaAtencionFiltro => ({
   rangoFechas: false,
   fechaDesde: '',
   fechaHasta: '',
+  sucursal: '',
 })
 
 const toOptionalText = (value: string): string | undefined => {
@@ -110,7 +112,6 @@ const LlamadaAtencionPage = () => {
   const [formSuccess, setFormSuccess] = useState<string | null>(null)
   const [filterDraft, setFilterDraft] = useState<LlamadaAtencionFiltro>(createDefaultFilter)
   const [activeFilter, setActiveFilter] = useState<LlamadaAtencionFiltro>(createDefaultFilter)
-  const mobileFiltersOpen = true
   const [registroModalOpen, setRegistroModalOpen] = useState(false)
   const [firmaModalOpen, setFirmaModalOpen] = useState(false)
   const [firmaStep, setFirmaStep] = useState<FirmaStep>('testigo')
@@ -190,7 +191,15 @@ const LlamadaAtencionPage = () => {
   const tecnicosModal = tecnicosModalQuery.data ?? []
   const tiposComunicacion = tiposComunicacionQuery.data ?? []
   const motivos = motivosQuery.data ?? []
-  const llamadas = llamadasQuery.data ?? []
+  const llamadasTodas = llamadasQuery.data ?? []
+  const sucursalOptions = useMemo(
+    () => Array.from(new Set(llamadasTodas.map((item) => item.sucursal?.trim() ?? '').filter(Boolean))).sort((a, b) => a.localeCompare(b, 'es')),
+    [llamadasTodas]
+  )
+  const llamadas = useMemo(
+    () => (activeFilter.sucursal ? llamadasTodas.filter((item) => (item.sucursal?.trim() ?? '') === activeFilter.sucursal) : llamadasTodas),
+    [activeFilter.sucursal, llamadasTodas]
+  )
 
   const tecnicoById = useMemo(() => {
     const map = new Map<string, (typeof tecnicos)[number]>()
@@ -308,11 +317,11 @@ const LlamadaAtencionPage = () => {
 
   const validateForm = (): string | null => {
     if (!form.idTecnico) return 'Selecciona un tercero o empleado.'
-    if (!form.fechaSeguimiento.trim()) return 'Fecha de seguimiento es requerida.'
+    if (!form.fechaSeguimiento.trim()) return 'Fecha de Evento es requerida.'
     if (!form.idTipoComunicacion) return 'Selecciona tipo de comunicacion.'
     if (!form.motivo.trim()) return 'Motivo es requerido.'
     if (form.fechaSeguimiento && Number.isNaN(new Date(form.fechaSeguimiento).getTime())) {
-      return 'Fecha de seguimiento invalida.'
+      return 'Fecha de Evento invalida.'
     }
     if (!form.firmaTecnico.trim()) return 'Firma del tercero o empleado es requerida.'
     return null
@@ -419,76 +428,165 @@ const LlamadaAtencionPage = () => {
     }
   }, [detalleModalOpen, detalleRegistro])
 
+  const [exportando, setExportando] = useState(false)
+
+  const filasListado = () =>
+    llamadas.map((row) => ({
+      id: String(row.idLlamadaAtencion || '-'),
+      fechaRegistro: formatDateOnly(row.fechaRegistro) || '-',
+      tecnico: describeTecnico(row) || '-',
+      sucursal: row.sucursal || '-',
+      tipo: row.tipoComunicacion || '-',
+      motivo: row.motivo || '-',
+      fechaEvento: formatDateTime(row.fechaSeguimiento) || '-',
+    }))
+
+  const exportarExcel = async () => {
+    setExportando(true)
+    try {
+      const ExcelJS = await import('exceljs')
+      const workbook = new ExcelJS.Workbook()
+      workbook.creator = 'TigoStar'
+      const sheet = workbook.addWorksheet('Llamadas de atencion')
+      sheet.columns = [
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'Fecha de registro', key: 'fechaRegistro', width: 18 },
+        { header: 'Tercero o empleado', key: 'tecnico', width: 36 },
+        { header: 'Sucursal', key: 'sucursal', width: 18 },
+        { header: 'Tipo', key: 'tipo', width: 20 },
+        { header: 'Motivo', key: 'motivo', width: 40 },
+        { header: 'Fecha de evento', key: 'fechaEvento', width: 22 },
+      ]
+      sheet.getRow(1).font = { bold: true }
+      filasListado().forEach((fila) => sheet.addRow(fila))
+      const buffer = await workbook.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `llamadas-atencion-${new Date().toISOString().slice(0, 10)}.xlsx`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      window.alert(getApiErrorMessage(error, 'No se pudo exportar el listado.'))
+    } finally {
+      setExportando(false)
+    }
+  }
+
+  const imprimirListado = () => {
+    const esc = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const filas = filasListado()
+      .map((f) => `<tr><td>${esc(f.id)}</td><td>${esc(f.fechaRegistro)}</td><td>${esc(f.tecnico)}</td><td>${esc(f.sucursal)}</td><td>${esc(f.tipo)}</td><td>${esc(f.motivo)}</td><td>${esc(f.fechaEvento)}</td></tr>`)
+      .join('')
+    const win = window.open('', '_blank')
+    if (!win) {
+      window.alert('El navegador bloqueo la ventana de impresion. Permite las ventanas emergentes.')
+      return
+    }
+    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Llamadas de atencion</title>
+<style>body{font-family:Arial,sans-serif;font-size:11px;margin:16px}h1{font-size:16px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #cbd5e1;padding:4px 6px;text-align:left;vertical-align:top}th{background:#f1f5f9}</style></head><body>
+<h1>Historial de Registros - Seguimiento y Control Operativo</h1><p>Registros: ${llamadas.length}</p>
+<table><thead><tr><th>ID</th><th>Fecha de registro</th><th>Tercero o empleado</th><th>Sucursal</th><th>Tipo</th><th>Motivo</th><th>Fecha de evento</th></tr></thead><tbody>${filas}</tbody></table></body></html>`)
+    win.document.close()
+    win.focus()
+    win.print()
+  }
+
   const selectedTecnico = form.idTecnico ? tecnicoById.get(normalizeId(form.idTecnico)) : undefined
   const selectedFilterTecnico = filterDraft.idTecnico ? tecnicoById.get(normalizeId(filterDraft.idTecnico)) : undefined
 
   return (
-    <div className="bento-page gap-2 sm:gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Seguimiento y Control Operativo</h2>
-          
+    <div className="bento-page sup-v2-fs gap-2 sm:gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h2 className="shrink-0 page-title">Seguimiento y Control Operativo</h2>
+          <div className="ml-auto flex items-center gap-1.5">
+            <div className="flex gap-1.5">
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-blue-100 bg-blue-50/60 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500">Total</p>
+                <p className="text-base font-extrabold leading-none text-brand-600">{llamadas.length}</p>
+              </div>
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-rose-100 bg-rose-50/70 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-rose-700">Llamadas</p>
+                <p className="text-base font-extrabold leading-none text-rose-600">{llamadas.filter((row) => String(row.tipoComunicacion || '').toLowerCase().includes('llamada')).length}</p>
+              </div>
+              <div className="min-w-[54px] sm:min-w-[68px] rounded-lg border border-slate-200 bg-slate-50 px-1.5 py-1 text-center sm:px-2.5">
+                <p className="text-[8px] font-bold uppercase tracking-tight sm:tracking-wide text-slate-500">Otros</p>
+                <p className="text-base font-extrabold leading-none text-slate-700">{llamadas.filter((row) => !String(row.tipoComunicacion || '').toLowerCase().includes('llamada')).length}</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div>
-          <Button type="button" onClick={openRegistroModal} className="h-10 px-5 text-xs">
-            Nueva Incidencia
-          </Button>
-        </div>
-      </div>
 
-      <div className="rounded-2xl border border-slate-300 bg-white p-3 shadow-sm">
-        <div className="mb-2 flex items-center gap-2">
-          <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
-          <h2 className="text-lg font-bold text-slate-900 sm:text-xl">Filtros</h2>
-        </div>
-        <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} gap-3 md:grid md:grid-cols-[1.3fr_1fr] md:items-end`}>
-          <Field label="Tercero o empleado">
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedFilterTecnico ? (
-                <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-sky-300 bg-sky-50 px-3 py-1.5 text-xs font-semibold text-sky-800">
-                  <span className="truncate">{selectedFilterTecnico.tecnico}</span>
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
+            <span className="group-open:hidden">Mostrar filtros</span>
+            <span className="hidden group-open:inline">Ocultar filtros</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="grid items-end gap-2 pb-1 pt-1.5 sm:grid-cols-2 md:grid-cols-4">
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500 sm:col-span-2">
+              Tercero o empleado
+              <div className="flex h-8 w-full items-center rounded-md bg-slate-100">
+                <button
+                  type="button"
+                  onClick={() => openTecnicoModal('filter')}
+                  className="h-full min-w-0 flex-1 truncate px-2.5 text-left text-slate-500"
+                >
+                  {selectedFilterTecnico ? selectedFilterTecnico.tecnico : 'ID o nombre del tercero o empleado...'}
+                </button>
+                {selectedFilterTecnico ? (
                   <button
                     type="button"
-                    className="rounded-full border border-sky-300 px-1.5 leading-none text-sky-700 transition hover:bg-sky-100"
+                    className="px-2 text-slate-500 hover:text-rose-600"
                     onClick={() => setFilterDraft((previous) => ({ ...previous, idTecnico: '' }))}
                     aria-label="Deseleccionar tercero o empleado"
                   >
                     x
                   </button>
-                </span>
-              ) : null}
-              <div className="flex w-full items-center rounded-xl border border-slate-200 bg-slate-100 p-1">
+                ) : null}
                 <button
                   type="button"
+                  className="mr-0.5 h-7 rounded-md bg-blue-600 px-2.5 text-white"
                   onClick={() => openTecnicoModal('filter')}
-                  className="h-9 flex-1 rounded-lg px-3 text-left text-sm text-slate-500"
-                >
-                  {selectedFilterTecnico ? selectedFilterTecnico.tecnico : 'ID o nombre del tercero o empleado...'}
-                </button>
-                <button
-                  type="button"
-                  className="rounded-lg bg-blue-600 px-3 py-1.5 text-white"
-                  onClick={() => openTecnicoModal('filter')}
+                  aria-label="Buscar tercero o empleado"
                 >
                   <FontAwesomeIcon icon={faSearch} />
                 </button>
               </div>
-            </div>
-          </Field>
-          <Field label="Rango de fechas">
-            <div className="grid gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+            </label>
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500">
+              Sucursal
+              <select
+                className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
+                value={filterDraft.sucursal}
+                onChange={(event) => setFilterDraft((previous) => ({ ...previous, sucursal: event.target.value }))}
+              >
+                <option value="">Todas</option>
+                {sucursalOptions.map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500">
+              Fecha
               <input
-                className="input-base bg-slate-100"
+                className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-slate-800 outline-none focus:ring-2 focus:ring-brand-100"
                 type="date"
                 value={filterDraft.fecha}
                 onChange={(event) => setFilterDraft((previous) => ({ ...previous, fecha: event.target.value }))}
               />
-              <Button type="button" onClick={handleFilterApply} className="h-10 px-6 text-xs">Buscar</Button>
-              <Button type="button" variant="secondary" onClick={handleFilterReset} className="h-10 px-6 text-xs">Limpiar</Button>
+            </label>
+            <div className="flex items-center gap-2">
+              <Button type="button" onClick={handleFilterApply} className="px-4">Buscar</Button>
+              <Button type="button" variant="secondary" onClick={handleFilterReset} className="px-4">Limpiar</Button>
             </div>
-          </Field>
-        </div>
-      </div>
+          </div>
+        </details>
+      </section>
 
       {formSuccess ? (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
@@ -496,15 +594,25 @@ const LlamadaAtencionPage = () => {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-slate-300 bg-white shadow-sm">
-        <div className="flex items-center justify-between border-b border-slate-200 px-3 py-3">
-          <div>
-            <h3 className="text-lg font-bold text-slate-900 sm:text-xl">Historial de Registros</h3>
-            <p className="text-xs text-slate-600">Registros encontrados: <span className="font-semibold">{llamadas.length}</span></p>
+      <div className="glass-panel p-3 sm:p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-3 py-1.5">
+          <div className="min-w-0">
+            <h3 className="page-title">Historial de Registros</h3>
+            <p className="text-xs text-slate-600">{llamadas.length} registro(s)</p>
           </div>
-          <div className="hidden items-center gap-2 md:flex">
-            <button className="rounded-xl border border-slate-300 px-3 py-2 text-slate-700"><FontAwesomeIcon icon={faDownload} /></button>
-            <button className="rounded-xl border border-slate-300 px-3 py-2 text-slate-700"><FontAwesomeIcon icon={faPrint} /></button>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button type="button" onClick={openRegistroModal} className="!px-3 !py-1.5 !text-xs">
+              <FontAwesomeIcon icon={faCalendarDays} className="mr-1.5" />
+              Nuevo
+            </Button>
+            <Button type="button" variant="secondary" className="!px-3 !py-1.5 !text-xs" onClick={() => void exportarExcel()} disabled={llamadas.length === 0 || exportando}>
+              <FontAwesomeIcon icon={faDownload} className="mr-1.5" />
+              {exportando ? 'Exportando...' : 'Exportar'}
+            </Button>
+            <Button type="button" variant="secondary" className="!px-3 !py-1.5 !text-xs" onClick={imprimirListado} disabled={llamadas.length === 0}>
+              <FontAwesomeIcon icon={faPrint} className="mr-1.5" />
+              Imprimir
+            </Button>
           </div>
         </div>
         {tecnicosQuery.isError || tiposComunicacionQuery.isError || motivosQuery.isError || llamadasQuery.isError ? (
@@ -551,6 +659,10 @@ const LlamadaAtencionPage = () => {
                       </span>
                     </div>
                     <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Sucursal</p>
+                      <p className="mt-1 text-slate-800">{registro.sucursal || '-'}</p>
+                    </div>
+                    <div>
                       <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Motivo</p>
                       <p className="mt-1 italic text-slate-800">"{registro.motivo || '-'}"</p>
                     </div>
@@ -580,6 +692,7 @@ const LlamadaAtencionPage = () => {
                     <th className="w-16 px-3 py-2 text-left">ID</th>
                     <th className="px-3 py-2 text-left">FECHA DE REGISTRO</th>
                     <th className="px-3 py-2 text-left">TERCERO O EMPLEADO</th>
+                    <th className="px-3 py-2 text-left">SUCURSAL</th>
                     <th className="px-3 py-2 text-left">TIPO</th>
                     <th className="px-3 py-2 text-left">MOTIVO</th>
                     <th className="px-3 py-2 text-left">FECHA DE EVENTO</th>
@@ -589,17 +702,18 @@ const LlamadaAtencionPage = () => {
                 <tbody>
                   {llamadas.map((row) => (
                     <tr key={row.idLlamadaAtencion} className="border-t border-slate-200">
-                      <td className="px-3 py-3 font-semibold text-slate-700">{row.idLlamadaAtencion || '-'}</td>
-                      <td className="whitespace-nowrap px-3 py-3">{formatDateOnly(row.fechaRegistro) || '-'}</td>
-                      <td className="px-3 py-3 font-semibold text-slate-800">{describeTecnico(row)}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-1.5 font-semibold text-slate-700">{row.idLlamadaAtencion || '-'}</td>
+                      <td className="whitespace-nowrap px-3 py-1.5">{formatDateOnly(row.fechaRegistro) || '-'}</td>
+                      <td className="px-3 py-1.5 font-semibold text-slate-800">{describeTecnico(row)}</td>
+                      <td className="whitespace-nowrap px-3 py-1.5">{row.sucursal || '-'}</td>
+                      <td className="px-3 py-1.5">
                         <span className={`rounded-full px-2 py-1 text-xs font-bold ${String(row.tipoComunicacion || '').toLowerCase().includes('llamada') ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-700'}`}>
                           {row.tipoComunicacion || '-'}
                         </span>
                       </td>
-                      <td className="px-3 py-3 italic text-slate-700">"{row.motivo || '-'}"</td>
-                      <td className="px-3 py-3">{formatDateTime(row.fechaSeguimiento) || '-'}</td>
-                      <td className="px-3 py-3">
+                      <td className="px-3 py-1.5 italic text-slate-700">"{row.motivo || '-'}"</td>
+                      <td className="px-3 py-1.5">{formatDateTime(row.fechaSeguimiento) || '-'}</td>
+                      <td className="px-3 py-1.5">
                         <Button type="button" variant="secondary" onClick={() => openDetalleModal(row)}>Ver detalle</Button>
                       </td>
                     </tr>
@@ -616,6 +730,7 @@ const LlamadaAtencionPage = () => {
         title="Nueva Incidencia"
         onClose={closeRegistroModal}
         maxWidthClass="max-w-4xl"
+        compactText
         contentClassName="pr-1"
         actions={
           <>
@@ -628,12 +743,12 @@ const LlamadaAtencionPage = () => {
           </>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-2">
           <p className="text-sm text-slate-600">Complete los datos para registrar la incidencia y los acuerdos establecidos.</p>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-1">
-              <div className="mb-4 flex items-center gap-2 text-blue-700">
+          <div className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 lg:col-span-1">
+              <div className="mb-2 flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faUserGroup} />
                 <h4 className="text-base font-semibold">Tercero / Empleado</h4>
               </div>
@@ -661,12 +776,12 @@ const LlamadaAtencionPage = () => {
               </Field>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 lg:col-span-1">
-              <div className="mb-4 flex items-center gap-2 text-blue-700">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 lg:col-span-1">
+              <div className="mb-2 flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faUserGear} />
                 <h4 className="text-base font-semibold">Informacion General</h4>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <Field label="Tipo de comunicacion">
                   <select
                     className="input-base"
@@ -699,7 +814,7 @@ const LlamadaAtencionPage = () => {
                     ))}
                   </select>
                 </Field>
-                <Field label="Fecha seguimiento">
+                <Field label="Fecha de Evento">
                   <input
                     className="input-base"
                     type="datetime-local"
@@ -711,8 +826,8 @@ const LlamadaAtencionPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
-            <div className="mb-4 flex items-center gap-2 text-blue-700">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3">
+            <div className="mb-2 flex items-center gap-2 text-blue-700">
               <FontAwesomeIcon icon={faFileLines} />
               <h4 className="text-base font-semibold">Detalle de Incidencia</h4>
             </div>
@@ -726,9 +841,9 @@ const LlamadaAtencionPage = () => {
             </Field>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-4 flex items-center gap-2 text-blue-700">
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <div className="mb-2 flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faComments} />
                 <h4 className="text-base font-semibold">Comentario del Colaborador</h4>
               </div>
@@ -742,8 +857,8 @@ const LlamadaAtencionPage = () => {
               </Field>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <div className="mb-4 flex items-center gap-2 text-blue-700">
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <div className="mb-2 flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faClipboardCheck} />
                 <h4 className="text-base font-semibold">Acuerdos y Compromisos</h4>
               </div>
@@ -758,7 +873,7 @@ const LlamadaAtencionPage = () => {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div className="rounded-2xl border border-slate-200 bg-white p-3">
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-blue-700">
                 <FontAwesomeIcon icon={faSignature} />
@@ -769,7 +884,7 @@ const LlamadaAtencionPage = () => {
               </Button>
             </div>
             <p className="text-xs text-slate-600">Ingresa primero firma del testigo y luego del tercero o empleado.</p>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
               <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs">
                 <span className="font-semibold text-slate-700">Testigo:</span>{' '}
                 <span className={form.firmaTestigo ? 'text-emerald-700' : 'text-slate-500'}>
@@ -786,7 +901,7 @@ const LlamadaAtencionPage = () => {
           </div>
 
           {selectedTecnico ? (
-            <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-slate-700">
+            <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
               <p className="font-semibold text-slate-900">{selectedTecnico.tecnico}</p>
               <p className="mt-1 text-xs text-slate-600">
                 Cod. Empleado: {selectedTecnico.codEmpleado || '-'} | Cuenta SF: {selectedTecnico.cuentaSf || '-'} | Habilidad:{' '}
@@ -916,35 +1031,30 @@ const LlamadaAtencionPage = () => {
         }
       >
         {detalleRegistro ? (
-          <div className="space-y-5">
-            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 px-5 py-4">
-              <p className="text-lg font-semibold text-blue-800">Resumen del registro</p>
-              <p className="text-sm text-slate-700">Visualiza la informacion completa de la incidencia para el seguimiento del colaborador.</p>
-            </div>
-
+          <div className="space-y-3">
             <div className="grid gap-3 md:grid-cols-3">
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGroup} className="mr-2 text-slate-700" />Tercero o empleado</p><p className="mt-1 text-xl font-semibold leading-tight text-blue-800">{describeTecnico(detalleRegistro)}</p></div>
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha registro</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaRegistro) || '-'}</p></div>
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faComments} className="mr-2 text-slate-700" />Tipo comunicacion</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{detalleRegistro.tipoComunicacion || '-'}</p></div>
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGear} className="mr-2 text-slate-700" />Supervisor</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{detalleRegistro.supervisorNombre || detalleRegistro.idUsuarioSupervisor || '-'}</p></div>
-              <div className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha seguimiento</p><p className="mt-1 text-xl font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaSeguimiento) || '-'}</p></div>
+              <div className="rounded-xl border border-[#cfd8ee] bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGroup} className="mr-2 text-slate-700" />Tercero o empleado</p><p className="mt-0.5 text-sm font-semibold leading-tight text-blue-800">{describeTecnico(detalleRegistro)}</p></div>
+              <div className="rounded-xl border border-[#cfd8ee] bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha registro</p><p className="mt-0.5 text-sm font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaRegistro) || '-'}</p></div>
+              <div className="rounded-xl border border-[#cfd8ee] bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faComments} className="mr-2 text-slate-700" />Tipo comunicacion</p><p className="mt-0.5 text-sm font-semibold leading-tight text-slate-900">{detalleRegistro.tipoComunicacion || '-'}</p></div>
+              <div className="rounded-xl border border-[#cfd8ee] bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faUserGear} className="mr-2 text-slate-700" />Supervisor</p><p className="mt-0.5 text-sm font-semibold leading-tight text-slate-900">{detalleRegistro.supervisorNombre || detalleRegistro.idUsuarioSupervisor || '-'}</p></div>
+              <div className="rounded-xl border border-[#cfd8ee] bg-white p-3"><p className="text-[10px] font-semibold uppercase tracking-wide text-slate-600"><FontAwesomeIcon icon={faCalendarDays} className="mr-2 text-slate-700" />Fecha de Evento</p><p className="mt-0.5 text-sm font-semibold leading-tight text-slate-900">{formatDateTime(detalleRegistro.fechaSeguimiento) || '-'}</p></div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-4">
-                <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><h4 className="mb-3 font-semibold text-slate-900"><FontAwesomeIcon icon={faTriangleExclamation} className="mr-2 text-red-600" />Motivo del Incidente</h4><div className="min-h-[96px] rounded-xl bg-slate-100 p-4 text-sm text-slate-800">{detalleRegistro.motivo || '-'}</div></section>
-                <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><h4 className="mb-3 font-semibold text-slate-900"><FontAwesomeIcon icon={faFileLines} className="mr-2 text-blue-700" />Descripcion Detallada</h4><div className="min-h-[96px] rounded-xl bg-slate-100 p-4 text-sm text-slate-800">{detalleRegistro.descripcion || '-'}</div></section>
-                <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><h4 className="mb-3 font-semibold text-slate-900"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 text-red-600" />Acuerdos Establecidos</h4><div className="min-h-[96px] rounded-xl bg-slate-100 p-4 text-sm text-slate-800">{detalleRegistro.acuerdos || '-'}</div></section>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-3">
+                <section className="rounded-xl border border-[#cfd8ee] bg-white p-3"><h4 className="mb-1.5 text-xs font-semibold text-slate-900"><FontAwesomeIcon icon={faTriangleExclamation} className="mr-2 text-red-600" />Motivo del Incidente</h4><div className="min-h-[48px] rounded-lg bg-slate-100 p-2.5 text-xs text-slate-800">{detalleRegistro.motivo || '-'}</div></section>
+                <section className="rounded-xl border border-[#cfd8ee] bg-white p-3"><h4 className="mb-1.5 text-xs font-semibold text-slate-900"><FontAwesomeIcon icon={faFileLines} className="mr-2 text-blue-700" />Descripcion Detallada</h4><div className="min-h-[48px] rounded-lg bg-slate-100 p-2.5 text-xs text-slate-800">{detalleRegistro.descripcion || '-'}</div></section>
+                <section className="rounded-xl border border-[#cfd8ee] bg-white p-3"><h4 className="mb-1.5 text-xs font-semibold text-slate-900"><FontAwesomeIcon icon={faClipboardCheck} className="mr-2 text-red-600" />Acuerdos Establecidos</h4><div className="min-h-[48px] rounded-lg bg-slate-100 p-2.5 text-xs text-slate-800">{detalleRegistro.acuerdos || '-'}</div></section>
               </div>
-              <div className="space-y-4">
-                <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><h4 className="mb-3 font-semibold text-slate-900"><FontAwesomeIcon icon={faComments} className="mr-2 text-slate-800" />Comentario del Colaborador</h4><div className="min-h-[250px] rounded-xl bg-slate-100 p-4 text-sm text-slate-800">{detalleRegistro.comentarioColaborador || '-'}</div></section>
-                <section className="rounded-2xl border border-[#cfd8ee] bg-white p-4"><h4 className="mb-3 font-semibold text-slate-900"><FontAwesomeIcon icon={faCircleInfo} className="mr-2 text-slate-800" />Testigo Presencial</h4><div className="min-h-[96px] rounded-xl bg-slate-100 p-4 text-sm text-slate-800">{detalleRegistro.testigo || '-'}</div></section>
+              <div className="space-y-3">
+                <section className="rounded-xl border border-[#cfd8ee] bg-white p-3"><h4 className="mb-1.5 text-xs font-semibold text-slate-900"><FontAwesomeIcon icon={faComments} className="mr-2 text-slate-800" />Comentario del Colaborador</h4><div className="min-h-[120px] rounded-lg bg-slate-100 p-2.5 text-xs text-slate-800">{detalleRegistro.comentarioColaborador || '-'}</div></section>
+                <section className="rounded-xl border border-[#cfd8ee] bg-white p-3"><h4 className="mb-1.5 text-xs font-semibold text-slate-900"><FontAwesomeIcon icon={faCircleInfo} className="mr-2 text-slate-800" />Testigo Presencial</h4><div className="min-h-[48px] rounded-lg bg-slate-100 p-2.5 text-xs text-slate-800">{detalleRegistro.testigo || '-'}</div></section>
               </div>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma testigo</p>{detalleFirmaTestigoSrc ? (<img src={detalleFirmaTestigoSrc} alt="Firma testigo" className="h-36 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTestigoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
-              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma tercero o empleado</p>{detalleFirmaTecnicoSrc ? (<img src={detalleFirmaTecnicoSrc} alt="Firma tercero o empleado" className="h-36 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTecnicoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma testigo</p>{detalleFirmaTestigoSrc ? (<img src={detalleFirmaTestigoSrc} alt="Firma testigo" className="h-24 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTestigoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
+              <div className="rounded-xl border border-slate-200 bg-white p-3"><p className="mb-2 text-xs font-semibold uppercase text-slate-500">Firma tercero o empleado</p>{detalleFirmaTecnicoSrc ? (<img src={detalleFirmaTecnicoSrc} alt="Firma tercero o empleado" className="h-24 w-full cursor-zoom-in rounded-lg border border-slate-200 object-contain bg-slate-50" onClick={() => setZoomImageSrc(detalleFirmaTecnicoSrc)} />) : (<p className="text-xs text-slate-500">Sin firma disponible.</p>)}</div>
             </div>
           </div>
         ) : null}

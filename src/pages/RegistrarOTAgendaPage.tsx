@@ -1659,7 +1659,7 @@ const RegistrarOTAgendaPage = () => {
   const goToNextStep = () => goToFormStep(Math.min(FORM_STEPS.length - 1, formStep + 1))
 
   return (
-    <div className="bento-page overflow-x-hidden">
+    <div className="bento-page sup-v2-fs overflow-x-hidden">
       <div className="px-1">
         <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl">RegistrarOrdenAgenda</h2>
       </div>
@@ -2037,10 +2037,10 @@ const RegistrarOTAgendaPage = () => {
             </div>
 
             <div className="md:col-span-6 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-600">
-              <p className="text-sm font-bold text-slate-800">Ubicacion de venta</p>
+              <p className="text-sm font-bold text-slate-800">Ubicacion del cliente</p>
               <p className="mt-2">lat={latitudVenta ?? 'N/D'}, lon={longitudVenta ?? 'N/D'}</p>
               <p className={ventaLocationTouched ? 'mt-1 font-semibold text-emerald-700' : 'mt-1 font-semibold text-amber-700'}>
-                {ventaLocationTouched ? 'Ubicacion de venta confirmada.' : 'Debes seleccionar la ubicacion de venta en el mapa.'}
+                {ventaLocationTouched ? 'Ubicacion del cliente confirmada.' : 'Debes seleccionar la ubicacion del cliente en el mapa.'}
               </p>
               <Button
                 className="mt-2 w-full"
@@ -2049,7 +2049,7 @@ const RegistrarOTAgendaPage = () => {
                 onClick={abrirModalUbicacionVenta}
                 disabled={!mapaCentro}
               >
-                {ventaLocationTouched ? 'Ajustar ubicacion de venta' : 'Seleccionar ubicacion de venta'}
+                {ventaLocationTouched ? 'Ajustar ubicacion del cliente' : 'Seleccionar ubicacion del cliente'}
               </Button>
               {!mapaCentro ? <p className="mt-2 text-amber-700">Esperando tu ubicacion para habilitar el mapa...</p> : null}
             </div>
@@ -2167,9 +2167,10 @@ const RegistrarOTAgendaPage = () => {
 
       <Modal
         open={ventaMapaModalOpen}
-        title="Ubicacion de venta"
+        title="Ubicacion del cliente"
         onClose={() => setVentaMapaModalOpen(false)}
         maxWidthClass="max-w-2xl"
+        fullScreenMobile
         actions={
           <>
             <Button type="button" variant="secondary" onClick={() => setVentaMapaModalOpen(false)}>
@@ -2182,10 +2183,12 @@ const RegistrarOTAgendaPage = () => {
         }
       >
         <p className="mb-2 text-xs text-slate-500">
-          Busca una direccion, toca el mapa o arrastra el marcador para ajustar el punto exacto de la venta.
+          Busca una direccion, toca el mapa o arrastra el marcador para ajustar el punto exacto del cliente.
         </p>
         {mapaCentro && ventaDraft ? (
-          <MapaSeleccionUbicacion center={mapaCentro} value={ventaDraft} onChange={setVentaDraft} height={360} />
+          <div className="h-[calc(100dvh-13rem)] min-h-[300px] sm:h-[360px]">
+            <MapaSeleccionUbicacion center={mapaCentro} value={ventaDraft} onChange={setVentaDraft} height="100%" />
+          </div>
         ) : null}
       </Modal>
 

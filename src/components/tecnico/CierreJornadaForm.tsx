@@ -19,8 +19,8 @@ type CierreJornadaFormProps = {
   onClosed?: () => void
 }
 
-const fieldIconClass = 'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700'
-const choiceCardClass = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'
+const fieldIconClass = 'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700'
+const choiceCardClass = 'rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm'
 
 const declaracionJuradaCierreJornada = [
   'Bajo juramento declaro que la informacion consignada en este cierre de jornada corresponde fielmente a las actividades realizadas. Confirmo que no he omitido informacion relacionada con accidentes, incidentes, danos materiales, lesiones, condiciones inseguras o participacion de personal no autorizado.',
@@ -115,8 +115,9 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
       <Modal
+        compactText
         open={supervisorConfirmacionModalOpen}
         onClose={() => setSupervisorConfirmacionModalOpen(false)}
         title="Cierre no permitido"
@@ -126,20 +127,20 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
           </Button>
         }
       >
-        <div className="space-y-3 text-sm font-semibold text-slate-700">
+        <div className="space-y-3 text-[11px] font-semibold text-slate-700">
           <p>No se puede registrar el cierre hasta que el supervisor confirme el dia de ayer.</p>
           <p className="font-black uppercase text-slate-900">SUPERVISOR: {supervisorPendienteLabel}</p>
           <p className="font-black uppercase text-amber-700">POR FAVOR LLENAR LOS DATOS EN EL DIA</p>
         </div>
       </Modal>
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-      <div className="grid gap-4 md:grid-cols-2">
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">{error}</div> : null}
+      <div className="grid gap-2 md:grid-cols-2">
         <div className={choiceCardClass}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faHashtag} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Cliente</p>
+            <p className="text-xs font-bold text-slate-900">Cliente</p>
           </div>
           <Field label="Codigo cliente">
             <input
@@ -154,11 +155,11 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
         </div>
 
         <div className={choiceCardClass}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faLocationCrosshairs} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Ubicacion</p>
+            <p className="text-xs font-bold text-slate-900">Ubicacion</p>
           </div>
           <Field label="Ubicacion georeferenciada">
             <UbicacionAutoCapture
@@ -172,13 +173,13 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
         </div>
 
         <div className={choiceCardClass}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faBriefcaseMedical} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Dano material</p>
+            <p className="text-xs font-bold text-slate-900">Dano material</p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Field label="Hubo dano material">
               <select className="input-base" value={danoMaterial} onChange={(event) => setDanoMaterial(event.target.value as SiNo)}>
                 <option value="SI">SI</option>
@@ -187,20 +188,20 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             </Field>
             {danoMaterial === 'SI' ? (
               <Field label="Observacion dano material">
-                <textarea className="input-base min-h-24 resize-y" value={observacionMaterial} onChange={(event) => setObservacionMaterial(event.target.value)} />
+                <textarea className="input-base min-h-14 resize-y" value={observacionMaterial} onChange={(event) => setObservacionMaterial(event.target.value)} />
               </Field>
             ) : null}
           </div>
         </div>
 
         <div className={choiceCardClass}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faPersonFalling} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Dano persona</p>
+            <p className="text-xs font-bold text-slate-900">Dano persona</p>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Field label="Hubo dano persona">
               <select className="input-base" value={danoPersona} onChange={(event) => setDanoPersona(event.target.value as SiNo)}>
                 <option value="SI">SI</option>
@@ -209,20 +210,20 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             </Field>
             {danoPersona === 'SI' ? (
               <Field label="Observacion dano persona">
-                <textarea className="input-base min-h-24 resize-y" value={observacionPersona} onChange={(event) => setObservacionPersona(event.target.value)} />
+                <textarea className="input-base min-h-14 resize-y" value={observacionPersona} onChange={(event) => setObservacionPersona(event.target.value)} />
               </Field>
             ) : null}
           </div>
         </div>
 
         <div className={`${choiceCardClass} md:col-span-2`}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faClipboardList} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Novedades de trabajo</p>
+            <p className="text-xs font-bold text-slate-900">Novedades de trabajo</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             <Field label="Hubo novedades">
               <select className="input-base" value={novedadesTrabajo} onChange={(event) => setNovedadesTrabajo(event.target.value as SiNo)}>
                 <option value="SI">SI</option>
@@ -231,7 +232,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
             </Field>
             {novedadesTrabajo === 'SI' ? (
               <Field label="Observacion novedades">
-                <textarea className="input-base min-h-24 resize-y" value={observacionNovedades} onChange={(event) => setObservacionNovedades(event.target.value)} />
+                <textarea className="input-base min-h-14 resize-y" value={observacionNovedades} onChange={(event) => setObservacionNovedades(event.target.value)} />
               </Field>
             ) : (
               <div className="hidden md:block" />
@@ -240,21 +241,21 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
         </div>
 
         <div className={`${choiceCardClass} md:col-span-2 ${mostrarErrorDeclaracion ? 'border-rose-500 ring-2 ring-rose-100' : ''}`}>
-          <div className="mb-3 flex items-center gap-3">
+          <div className="mb-1.5 flex items-center gap-2">
             <span className={fieldIconClass}>
               <FontAwesomeIcon icon={faFileSignature} />
             </span>
-            <p className="text-sm font-bold text-slate-900">Declaracion Jurada de cierre de Jornada</p>
+            <p className="text-xs font-bold text-slate-900">Declaracion Jurada de cierre de Jornada</p>
           </div>
-          <div className="grid gap-4">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+          <div className="grid gap-2">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-5 text-slate-700">
               {declaracionJuradaCierreJornada.map((parrafo) => (
-                <p key={parrafo} className="mb-3 last:mb-0">
+                <p key={parrafo} className="mb-2 last:mb-0">
                   {parrafo}
                 </p>
               ))}
             </div>
-            <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
+            <label className={`flex items-start gap-2 rounded-lg border p-2 text-[11px] font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
               <input
                 type="checkbox"
                 className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}
@@ -277,7 +278,7 @@ const CierreJornadaForm = ({ idInicio, supervisorPendiente, submitLabel = 'Regis
           </div>
         </div>
       </div>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="flex items-center gap-2 text-xs font-semibold text-slate-500">
           <FontAwesomeIcon icon={faTriangleExclamation} className="text-amber-500" />
           Revise los datos antes de registrar el cierre.

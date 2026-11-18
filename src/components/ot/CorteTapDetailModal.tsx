@@ -92,7 +92,7 @@ const toDataUrl = (file: File): Promise<string> =>
 const Field = ({ label, value }: { label: string; value: string }) => (
   <div>
     <dt className="text-[11px] font-bold uppercase text-slate-500">{label}</dt>
-    <dd className="mt-0.5 break-words font-medium text-slate-800">{value || '-'}</dd>
+    <dd className="break-words font-medium text-slate-800">{value || '-'}</dd>
   </div>
 )
 
@@ -308,21 +308,22 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
       title={`Detalle Corte TAP${readText(row, ['CodigoCliente_OT1']) ? ` - ${readText(row, ['CodigoCliente_OT1'])}` : ''}`}
       onClose={saving ? () => undefined : onClose}
       maxWidthClass="max-w-4xl"
+      compactText
     >
       {detailQuery.isLoading ? (
         <div className="py-12 text-center font-medium text-slate-500">Cargando detalle...</div>
       ) : detailQuery.isError ? (
-        <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">No se pudo cargar el detalle.</div>
+        <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">No se pudo cargar el detalle.</div>
       ) : (
-        <div className="space-y-2 sm:space-y-3">
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 border-b border-slate-200 pb-2 sm:grid-cols-3 sm:gap-3 sm:pb-3">
+        <div className="space-y-1.5">
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-1 border-b border-slate-200 pb-1.5 sm:grid-cols-3">
             <Field label="Cliente" value={readText(row, ['CodigoCliente_OT1'])} />
             <Field label="TOR" value={readText(row, ['TOR_OT1'])} />
             <div>
               <dt className="text-[11px] font-bold uppercase text-slate-500">Estado</dt>
-              <div className="mt-1 flex items-center gap-2">
+              <div className="flex items-center gap-2">
                 <select
-                  className="input-base min-w-36 py-1.5 text-sm"
+                  className="input-base min-w-36 py-1 text-[11px]"
                   value={estadoEditable}
                   onChange={(event) => setEstadoEditable(event.target.value as CorteTapEstado)}
                   disabled={saving || estadoBloqueado || digitadorBloqueado}
@@ -337,14 +338,14 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
             <Field label="Etapa digitador" value={digitado ? 'COMPLETADA' : 'PENDIENTE'} />
           </dl>
 
-          {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">{error}</div> : null}
-          {success ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-700">{success}</div> : null}
+          {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">{error}</div> : null}
+          {success ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-emerald-700">{success}</div> : null}
 
           {mode === 'digitador' ? (
             <section>
-              <h4 className="text-base font-bold text-slate-900">Datos de digitacion</h4>
+              <h4 className="text-xs font-bold text-slate-900">Datos de digitacion</h4>
               <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                <label className="text-sm font-semibold text-slate-700">
+                <label className="text-[11px] font-semibold text-slate-700">
                   Zona HFC
                   <input
                     className={`input-base mt-1 ${zonaHfc && !zonaHfcCompleta ? 'border-rose-500' : ''}`}
@@ -365,7 +366,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                   label="Distrito determinado"
                   value={resolucionZonaHfcQuery.isFetching ? 'Consultando...' : resolucionZonaHfcQuery.data?.distrito || readText(row, ['Distrito_D2'])}
                 />
-                <label className="text-sm font-semibold text-slate-700 sm:col-span-3">
+                <label className="text-[11px] font-semibold text-slate-700 sm:col-span-3">
                   Nodo / TAP / Boca antiguo
                   <input
                     className={`input-base mt-1 ${nodoTapBocaAntiguo && !nodoTapBocaAntiguoCompleto ? 'border-rose-500' : ''}`}
@@ -380,14 +381,14 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                 {nodoTapBocaAntiguo && !nodoTapBocaAntiguoCompleto ? <span className="text-xs font-medium text-rose-600 sm:col-span-3">Usa: NODO SCZ0001 RAMAL D 001 BOCA 1.</span> : null}
               </div>
               {zonaHfcCompleta && resolucionZonaHfcQuery.isError ? (
-                <div className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-rose-700">
+                <div className="mt-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-rose-700">
                   No se encontro Zona y Distrito para {zonaHfc.trim().toUpperCase()}.
                 </div>
               ) : null}
               {tecnicoCompleto ? (
-                  <div className="mt-3 border-t border-slate-200 pt-3">
-                  <h4 className="text-base font-bold text-slate-900">Datos cargados por el tecnico</h4>
-                  <dl className="mt-1.5 grid gap-1.5 rounded-lg bg-slate-100 p-2 sm:gap-2 sm:p-3 sm:grid-cols-2">
+                  <div className="mt-2 border-t border-slate-200 pt-2">
+                  <h4 className="text-xs font-bold text-slate-900">Datos cargados por el tecnico</h4>
+                  <dl className="mt-1.5 grid grid-cols-2 gap-1.5 rounded-lg bg-slate-100 p-2">
                     <Field label="Orden de trabajo" value={readText(row, ['OrdenTrabajo_T3'])} />
                     <Field label="Fecha de ejecucion" value={formatDateTime(readValue(row, ['FechaEjecucion_T3']))} />
                     <Field label="Usuario tecnico" value={readText(row, ['UsuarioTec_T3'])} />
@@ -412,10 +413,10 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                   </div>
                 </div>
               ) : null}
-              <label className="mt-3 block text-sm font-semibold text-slate-700">
+              <label className="mt-2 block text-[11px] font-semibold text-slate-700">
                 Observacion
                 <textarea
-                  className="input-base mt-1 min-h-24 resize-y"
+                  className="input-base mt-1 min-h-16 resize-y"
                   value={observacion}
                   onChange={(event) => setObservacion(event.target.value)}
                   disabled={mode !== 'digitador' || saving || cerrado || digitadorBloqueado}
@@ -423,7 +424,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                   placeholder="Escribe una observacion"
                 />
               </label>
-              {!digitadorBloqueado ? <div className="mt-3 flex justify-end">
+              {!digitadorBloqueado ? <div className="mt-2 flex justify-end">
                 <Button
                   type="button"
                   onClick={() => guardarTodoMutation.mutate()}
@@ -434,7 +435,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                 </Button>
               </div> : null}
               {digitado && estado !== 'PENDIENTE' && !finalizado && !cancelado && !pasoFinal ? (
-                <div className="mt-3 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-2 flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-2 sm:flex-row sm:items-center sm:justify-between">
                   <p className="font-medium text-emerald-800">
                     {tecnicoCompleto ? 'El tecnico completo los datos finales.' : 'La digitacion esta completa.'} El Corte TAP esta listo para finalizar.
                   </p>
@@ -445,14 +446,14 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                 </div>
               ) : null}
               {finalizado ? (
-                <div className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 font-bold text-emerald-800">
+                <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 font-bold text-emerald-800">
                   Corte TAP finalizado.
                 </div>
               ) : null}
             </section>
           ) : (
             <section>
-              <div className="grid gap-1.5 rounded-lg bg-slate-100 p-2 sm:gap-2 sm:p-3 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-1.5 rounded-lg bg-slate-100 p-2">
                 <Field label="Nodo / TAP / Boca antiguo" value={nodoTapBocaAntiguo} />
                 <Field label="Zona HFC" value={readText(row, ['Zona_HFC_D2'])} />
                 <Field label="Zona" value={readText(row, ['Zona_D2'])} />
@@ -460,30 +461,30 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
               </div>
 
               {!digitado ? (
-                <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 font-medium text-amber-800">
+                <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 font-medium text-amber-800">
                   Pendiente de modificacion por el digitador.
                 </div>
               ) : (
                 <>
-                  <h4 className="mt-3 text-base font-bold text-slate-900">Ejecucion tecnica</h4>
+                  <h4 className="mt-2 text-xs font-bold text-slate-900">Ejecucion tecnica</h4>
                   <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    <label className="text-sm font-semibold text-slate-700">
+                    <label className="text-[11px] font-semibold text-slate-700">
                       Orden de trabajo
                       <input className="input-base mt-1" value={ordenTrabajo} onChange={(event) => setOrdenTrabajo(event.target.value.replace(/\D/g, ''))} inputMode="numeric" pattern="[0-9]*" disabled={cerrado} />
                     </label>
-                    <label className="text-sm font-semibold text-slate-700">
+                    <label className="text-[11px] font-semibold text-slate-700">
                       Fecha de ejecucion
                       <input className="input-base mt-1 bg-slate-100" type="datetime-local" value={fechaEjecucion} readOnly aria-readonly="true" />
                     </label>
-                    <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                    <label className="text-[11px] font-semibold text-slate-700 sm:col-span-2">
                       Observacion
-                      <textarea className="input-base mt-1 min-h-24 resize-y" value={observacion} onChange={(event) => setObservacion(event.target.value)} disabled={cerrado} />
+                      <textarea className="input-base mt-1 min-h-16 resize-y" value={observacion} onChange={(event) => setObservacion(event.target.value)} disabled={cerrado} />
                     </label>
                     {[1, 2].map((slot) => {
                       const photo = slot === 1 ? foto1 : foto2
                       return (
                         <div key={slot}>
-                          <label className="text-sm font-semibold text-slate-700">Foto {slot}{slot === 1 ? ' (se requiere al menos una)' : ''}</label>
+                          <label className="text-[11px] font-semibold text-slate-700">Foto {slot}{slot === 1 ? ' (se requiere al menos una)' : ''}</label>
                           {photo ? <img className="mt-1 h-28 w-full rounded-lg border border-slate-200 object-contain" src={photo} alt={`Foto ${slot} del Corte TAP`} /> : null}
                           {!cerrado ? (
                             <label className="mt-1 inline-flex cursor-pointer items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 font-semibold text-slate-700 hover:border-brand-400">
@@ -497,7 +498,7 @@ const CorteTapDetailModal = ({ id, mode, onClose }: Props) => {
                     })}
                   </div>
                   {!cerrado ? (
-                    <div className="mt-3 flex justify-end">
+                    <div className="mt-2 flex justify-end">
                       <Button
                         type="button"
                         onClick={() => ejecucionMutation.mutate()}

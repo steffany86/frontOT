@@ -39,6 +39,7 @@ const MainLayout = () => {
         </main>
       </div>
       <Modal
+        compactText
         open={openCierreModal}
         onClose={() => setOpenCierreModal(false)}
         title="Cierre de jornada"

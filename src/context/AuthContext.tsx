@@ -8,10 +8,10 @@ import {
   useState,
   type PropsWithChildren,
 } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { matchPath } from 'react-router-dom'
 import { navigationItems, type NavigationItem } from '../config/navigation'
-import { fetchMe, fetchPermisos, login as loginRequest } from '../services/authApi'
+import { fetchMe, fetchPermisos, fetchSucursales, login as loginRequest } from '../services/authApi'
 import { getApiErrorMessage, isAuthError, listenMaintenanceActive, setUnauthorizedHandler } from '../services/httpClient'
 import Modal from '../components/common/Modal'
 import { useSessionStore } from '../store/sessionStore'
@@ -30,7 +30,14 @@ type UsuarioSesion = {
   ultimaModificacion?: string
 }
 
+export type Tecnologia = 'HFC' | 'DTH'
+
+// Las paginas DTH viven bajo /dth... (ej. /dth/prueba). Un usuario de sucursal DTH solo entra a esas rutas.
+export const isDthPath = (pathname: string): boolean => /^\/dth(\/|$)/i.test(pathname.trim())
+const DTH_COMMON_PATHS = ['/', '/cambiar-password', '/403']
+
 type AuthContextValue = {
+  tecnologia: Tecnologia | null
   token: string | null
   usuario: UsuarioSesion | null
   permisos: PermisosUsuario | null
@@ -77,17 +84,8 @@ const normalizeRoleName = (value: string): string =>
     .toLowerCase()
     .replace(/[\s_]+/g, '')
 
-const almaceneroCruceNavigationItem: NavigationItem = {
-  label: 'Cruce Agenda Makiro',
-  to: '/almacen/cruce-agenda-makiro',
-  routePatterns: ['/almacen/cruce-agenda-makiro'],
-  allowedRoles: ['almacenero', 'auxiliar de almacen', 'sistemas', 'admin', 'administrador'],
-  showInSidebar: true,
-  sidebarLabelFromMenu: false,
-}
-
-const hasCruceAgendaAccessByRole = (roleName: string): boolean =>
-  ['almacenero', 'auxiliardealmacen', 'supervisor', 'sistemas', 'admin', 'administrador'].includes(normalizeRoleName(roleName))
+const hasCruceAgendaSupervisorAccessByRole = (roleName: string): boolean =>
+  ['supervisor', 'sistemas', 'admin', 'administrador'].includes(normalizeRoleName(roleName))
 
 const hasCruceAgendaBackOfficeAccessByRole = (roleName: string): boolean =>
   ['backoffice', 'backofficev', 'sistemas', 'admin', 'administrador'].includes(normalizeRoleName(roleName))
@@ -119,6 +117,22 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   const initialSession = useMemo(() => getSessionStorage(), [])
   const [token, setToken] = useState<string | null>(initialSession?.sessionToken ?? null)
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(() => mapSessionToUser(initialSession))
+  const sucursalesQuery = useQuery({
+    queryKey: ['auth-sucursales-header'],
+    queryFn: fetchSucursales,
+    staleTime: 5 * 60 * 1000,
+    enabled: Boolean(token),
+  })
+  const tecnologia = useMemo<Tecnologia | null>(() => {
+    const idSucursal = Number(usuario?.idSucursal ?? 0)
+    if (!idSucursal) return null
+    const match = (sucursalesQuery.data?.data ?? []).find((s) => {
+      const r = s as unknown as Record<string, unknown>
+      return Number(r.idSucursal ?? r.IdSucursal ?? r.id_sucursal ?? r.Id_Sucursal) === idSucursal
+    })
+    const raw = String(match?.tecnologia ?? '').trim().toUpperCase()
+    return raw === 'HFC' || raw === 'DTH' ? raw : null
+  }, [sucursalesQuery.data, usuario?.idSucursal])
   const [permisos, setPermisos] = useState<PermisosUsuario | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState<boolean>(Boolean(initialSession?.sessionToken))
   const [maintenanceModal, setMaintenanceModal] = useState<{ open: boolean; message: string }>({
@@ -317,6 +331,9 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
 
   const canAccessNavigationItem = useCallback(
     (item: NavigationItem): boolean => {
+      const itemEsDth = isDthPath(item.to)
+      if (itemEsDth && tecnologia !== 'DTH') return false
+      if (!itemEsDth && tecnologia === 'DTH') return false
       const currentRole = normalizeRoleName(roleName)
       if (
         item.allowedRoles?.length &&
@@ -347,33 +364,34 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       }
       return true
     },
-    [pageNamesAsignadas, permisos, roleName]
+    [pageNamesAsignadas, permisos, roleName, tecnologia]
   )
 
   const visibleNavigationItems = useMemo(() => {
-    const items = navigationItems.filter((item) => canAccessNavigationItem(item))
-    if (hasCruceAgendaAccessByRole(roleName) && !items.some((item) => item.to === almaceneroCruceNavigationItem.to)) {
-      return [...items, almaceneroCruceNavigationItem]
-    }
-    return items
-  }, [canAccessNavigationItem, roleName])
+    return navigationItems.filter((item) => canAccessNavigationItem(item))
+  }, [canAccessNavigationItem])
 
   const defaultPrivatePath = useMemo(() => {
+    if (tecnologia === 'DTH') {
+      return visibleNavigationItems[0]?.to ?? '/403'
+    }
     if (isSistemasRole(roleName)) {
       return '/sistemas/produccion'
     }
-    if (hasCruceAgendaAccessByRole(roleName)) {
-      return '/almacen/cruce-agenda-makiro'
+    if (hasCruceAgendaSupervisorAccessByRole(roleName)) {
+      return '/almacen/cruce-agenda-makiroSupervisorV2'
     }
     if (hasCruceAgendaBackOfficeAccessByRole(roleName)) {
-      return '/almacen/cruce-agenda-makiroBackOffice'
+      return '/almacen/cruce-agenda-makiroBackOfficeV2'
     }
     return visibleNavigationItems[0]?.to ?? '/403'
-  }, [roleName, visibleNavigationItems])
+  }, [roleName, tecnologia, visibleNavigationItems])
 
   const canAccessPath = useCallback(
     (pathname: string): boolean => {
       if (!token) return false
+      if (tecnologia === 'DTH' && !isDthPath(pathname) && !DTH_COMMON_PATHS.includes(pathname.trim() || '/')) return false
+      if (tecnologia !== 'DTH' && isDthPath(pathname)) return false
       if (isSistemasRole(roleName) && isSistemasPath(pathname)) return true
       if (!permisos) return false
       const normalizedPath = pathname.trim() || '/'
@@ -382,20 +400,21 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         item.routePatterns.some((pattern) => Boolean(matchPath({ path: pattern, end: true }, normalizedPath)))
       )
 
-      if (normalizedPath === '/almacen/cruce-agenda-makiro' && hasCruceAgendaAccessByRole(roleName)) {
+      if (normalizedPath === '/almacen/cruce-agenda-makiroBackOfficeV2' && hasCruceAgendaBackOfficeAccessByRole(roleName)) {
         return true
       }
-      if (normalizedPath === '/almacen/cruce-agenda-makiroBackOffice' && hasCruceAgendaBackOfficeAccessByRole(roleName)) {
+      if (normalizedPath === '/almacen/cruce-agenda-makiroSupervisorV2' && hasCruceAgendaSupervisorAccessByRole(roleName)) {
         return true
       }
       if (!matchedNavigationItem) return true
       return canAccessNavigationItem(matchedNavigationItem)
     },
-    [canAccessNavigationItem, permisos, roleName, token]
+    [canAccessNavigationItem, permisos, roleName, tecnologia, token]
   )
 
   const value = useMemo<AuthContextValue>(
     () => ({
+      tecnologia,
       token,
       usuario,
       permisos,
@@ -407,7 +426,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       administrador,
       isAuthenticated: Boolean(token),
       mustChangePassword,
-      isBootstrapping,
+      isBootstrapping: isBootstrapping || (Boolean(token) && sucursalesQuery.isLoading),
       visibleNavigationItems,
       defaultPrivatePath,
       signIn,
@@ -424,6 +443,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       defaultPrivatePath,
       hasValidRole,
       isBootstrapping,
+      sucursalesQuery.isLoading,
       menuIds,
       menusAsignados,
       mustChangePassword,
@@ -433,6 +453,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
       refreshPermisos,
       markPasswordChanged,
       signIn,
+      tecnologia,
       token,
       logout,
       usuario,

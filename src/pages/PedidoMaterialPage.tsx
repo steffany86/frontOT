@@ -1,7 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Button from '../components/common/Button'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faTrashCan } from '@fortawesome/free-solid-svg-icons'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import Modal from '../components/common/Modal'
 import Table, { type Column } from '../components/common/Table'
 import { fetchTodosLosProductos } from '../api/catalogApi'
@@ -77,7 +80,6 @@ const PedidoMaterialPage = () => {
   })
 
   const materialOptions = useMemo(() => {
-    const term = normalize(material)
     const seen = new Set<number>()
     const options = ((productosQuery.data ?? []) as Record<string, unknown>[])
       .map((row) => ({ idProducto: readProductoId(row), material: readProductoLabel(row) }))
@@ -88,9 +90,8 @@ const PedidoMaterialPage = () => {
         return true
       })
       .sort((a, b) => a.material.localeCompare(b.material, 'es', { sensitivity: 'base' }))
-    if (!term) return options
-    return options.filter((item) => normalize(item.material).includes(term))
-  }, [material, productosQuery.data])
+    return options
+  }, [productosQuery.data])
 
   const exactMaterial = useMemo(() => {
     const term = normalize(material)
@@ -193,31 +194,25 @@ const PedidoMaterialPage = () => {
   }, [estadoFiltro, pedidoFiltro, pedidosQuery.data])
 
   return (
-    <div className="mx-auto max-w-7xl space-y-4 px-3 pb-8 sm:px-5 lg:px-6">
+    <PageLayout title="Pedidos de material" subtitle={canCreate ? 'Lista de compras por nombre y cantidad.' : 'Pedidos de todos los tecnicos.'}>
       {canCreate ? (
-        <FormCard title="Pedido de material" description="Lista de compras por nombre y cantidad." overflowVisible>
-          <div className="mx-auto max-w-3xl rounded-sm border-2 border-black bg-[#fffdf4] p-3 font-mono text-slate-950 shadow-sm sm:p-5">
-            <div className="mb-4 border-b-2 border-dashed border-black pb-3 text-center">
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em]">TIGO HOGAR</p>
-              <h3 className="mt-1 text-lg font-black uppercase tracking-[0.08em]">Pedido tecnico</h3>
-              <p className="mt-1 text-[11px] uppercase tracking-[0.12em]">Solicitud de material</p>
-              <div className="mt-3 text-left text-[11px] uppercase">
-                <p>Estado: BORRADOR</p>
+        <FormCard title="Nuevo pedido" overflowVisible>
+          <div className="mx-auto max-w-3xl rounded-xl border border-slate-200 bg-white p-3 text-slate-900 shadow-sm">
+            <div className="mb-2 border-b border-slate-200 pb-2">
+              <div className="text-[11px]">
+                <span className="rounded-full bg-amber-100 px-2 py-0.5 font-bold text-amber-700">Borrador</span>
               </div>
             </div>
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_150px_auto]">
+            <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_150px_auto]">
               <div className="relative min-w-0">
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">Material</label>
+                <label className="mb-1 block text-[10px] font-medium text-slate-500">Material</label>
                 <input
-                  className="input-base rounded-sm !border-black bg-white py-2 font-mono text-sm"
+                  className="input-base cursor-pointer rounded-md bg-slate-100 py-1 pr-7 text-[11px]"
                   value={material}
-                  onChange={(event) => {
-                    setMaterial(event.target.value)
-                    setSelectedMaterial(null)
-                    setSelectorOpen(true)
-                  }}
-                  onFocus={() => setSelectorOpen(true)}
+                  readOnly
+                  onClick={() => setSelectorOpen((open) => !open)}
+                  onBlur={() => setSelectorOpen(false)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault()
@@ -225,15 +220,31 @@ const PedidoMaterialPage = () => {
                     }
                     if (event.key === 'Escape') setSelectorOpen(false)
                   }}
-                  placeholder="Buscar o escribir material"
+                  placeholder="Selecciona un material"
                 />
+                {material ? (
+                  <button
+                    type="button"
+                    className="absolute right-1.5 top-[1.55rem] flex h-5 w-5 items-center justify-center rounded-full text-slate-400 hover:bg-slate-200 hover:text-slate-700"
+                    title="Limpiar material"
+                    aria-label="Limpiar material"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => {
+                      setMaterial('')
+                      setSelectedMaterial(null)
+                      setSelectorOpen(true)
+                    }}
+                  >
+                    ×
+                  </button>
+                ) : null}
                 {selectorOpen && materialOptions.length > 0 ? (
-                  <div className="absolute left-0 right-0 top-[4.25rem] z-30 max-h-[28rem] overflow-y-auto rounded-sm border-2 border-black bg-[#fffdf4] shadow-xl">
+                  <div className="absolute left-0 right-0 top-[3.5rem] z-30 max-h-[28rem] overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-xl">
                     {materialOptions.map((option) => (
                       <button
                         key={`${option.idProducto}-${option.material}`}
                         type="button"
-                        className="block w-full border-b border-dashed border-slate-400 px-3 py-2 text-left font-mono text-sm font-bold text-slate-800 last:border-b-0 hover:bg-slate-100"
+                        className="block w-full border-b border-slate-100 px-2 py-1.5 text-left text-[11px] font-bold text-slate-800 last:border-b-0 hover:bg-slate-100"
                         onMouseDown={(event) => event.preventDefault()}
                         onClick={() => {
                           setMaterial(option.material)
@@ -248,9 +259,9 @@ const PedidoMaterialPage = () => {
                 ) : null}
               </div>
               <div>
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">Cantidad</label>
+                <label className="mb-1 block text-[10px] font-medium text-slate-500">Cantidad</label>
                 <input
-                  className="input-base rounded-sm !border-black bg-white py-2 text-right font-mono text-sm"
+                  className="input-base rounded-md bg-slate-100 py-1 text-right text-[11px]"
                   type="number"
                   min="1"
                   step="1"
@@ -273,38 +284,38 @@ const PedidoMaterialPage = () => {
               </div>
             </div>
 
-            <div className="mt-5 overflow-hidden border-2 border-black">
-              <div className="grid grid-cols-[minmax(0,1fr)_80px_72px] border-b-2 border-black bg-[#efefe5] px-2 py-2 text-[11px] font-black uppercase tracking-[0.12em] sm:grid-cols-[minmax(0,1fr)_120px_90px]">
+            <div className="mt-3 overflow-hidden rounded-lg border border-slate-200">
+              <div className="grid grid-cols-[minmax(0,1fr)_44px_56px] border-b border-slate-200 bg-slate-100 px-2 py-1 text-[11px] font-bold uppercase text-slate-600 sm:grid-cols-[minmax(0,1fr)_52px_56px]">
                 <span>Material</span>
-                <span className="text-right">Cantidad</span>
+                <span className="text-right">Cant</span>
                 <span className="text-right">Accion</span>
               </div>
               {items.length ? (
-                <div className="divide-y divide-dashed divide-slate-500">
+                <div className="divide-y divide-slate-100">
                   {items.map((item, index) => (
-                    <div key={`${item.material}-${index}`} className="grid grid-cols-[minmax(0,1fr)_80px_72px] items-center gap-2 px-2 py-2 text-[12px] uppercase sm:grid-cols-[minmax(0,1fr)_120px_90px]">
-                      <span className="min-w-0 break-words font-bold tracking-[0.08em] text-slate-900">{item.material}</span>
-                      <span className="text-right font-bold text-slate-900">{quantity(item.cantidad)}</span>
+                    <div key={`${item.material}-${index}`} className="grid grid-cols-[minmax(0,1fr)_44px_56px] items-center gap-2 px-2 py-1 text-[11px] sm:grid-cols-[minmax(0,1fr)_52px_56px]">
+                      <span className="min-w-0 break-words text-slate-800">{item.material}</span>
+                      <span className="text-right text-slate-800">{quantity(item.cantidad)}</span>
                       <span className="text-right">
-                        <Button type="button" variant="ghost" className="rounded-sm px-1.5 py-1 font-mono text-[11px]" onClick={() => removeItem(index)}>
-                          Quitar
+                        <Button type="button" variant="ghost" className="h-6 w-6 !p-0 text-slate-500 hover:text-red-600" title="Quitar" aria-label="Quitar" onClick={() => removeItem(index)}>
+                          <FontAwesomeIcon icon={faTrashCan} aria-hidden="true" />
                         </Button>
                       </span>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="px-4 py-10 text-center">
-                  <p className="text-base font-black uppercase tracking-[0.12em] text-slate-900 sm:text-xl">Agrega materiales al pedido.</p>
+                <div className="px-3 py-5 text-center">
+                  <p className="text-[11px] font-semibold text-slate-500">Agrega materiales al pedido.</p>
                 </div>
               )}
             </div>
 
-            <div className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+            <div className="mt-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
               <div>
-                <label className="mb-1 block text-[11px] font-bold uppercase tracking-[0.14em] text-slate-700">Observacion</label>
+                <label className="mb-1 block text-[10px] font-medium text-slate-500">Observacion</label>
                 <input
-                  className="input-base rounded-sm !border-black bg-white py-2 font-mono text-sm"
+                  className="input-base rounded-md bg-slate-100 py-1 text-[11px]"
                   value={observacion}
                   onChange={(event) => setObservacion(event.target.value)}
                   placeholder="Opcional"
@@ -314,30 +325,30 @@ const PedidoMaterialPage = () => {
                 {mutation.isPending ? 'Guardando...' : 'Registrar pedido'}
               </Button>
             </div>
-            <p className="mt-5 border-t-2 border-dashed border-black pt-3 text-center text-[11px] font-bold uppercase tracking-[0.16em]">
+            <p className="mt-3 border-t border-slate-200 pt-2 text-center text-[10px] font-medium text-slate-400">
               Somos y seguiremos siendo parte de ti
             </p>
           </div>
         </FormCard>
       ) : null}
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div> : null}
-      {success ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{success}</div> : null}
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-600">{error}</div> : null}
+      {success ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">{success}</div> : null}
 
       <FormCard title="Pedidos" description={canCreate ? "Tus pedidos registrados." : "Pedidos de todos los tecnicos."}>
-        <div className="mb-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px]">
+        <div className="mb-2 grid gap-2 md:grid-cols-[minmax(0,1fr)_190px]">
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Filtro</label>
+            <label className="mb-1 block text-[10px] font-medium text-slate-500">Filtro</label>
             <input
-              className="input-base rounded-xl py-2 text-sm"
+              className="input-base rounded-xl py-1 text-[11px]"
               value={pedidoFiltro}
               onChange={(event) => setPedidoFiltro(event.target.value)}
               placeholder="Buscar por tecnico, pedido o material"
             />
           </div>
           <div>
-            <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</label>
-            <select className="input-base rounded-xl py-2 text-sm" value={estadoFiltro} onChange={(event) => setEstadoFiltro(event.target.value)}>
+            <label className="mb-1 block text-[10px] font-medium text-slate-500">Estado</label>
+            <select className="input-base rounded-xl py-1 text-[11px]" value={estadoFiltro} onChange={(event) => setEstadoFiltro(event.target.value)}>
               <option value="">Todos</option>
               <option value="PENDIENTE">Pendiente</option>
               <option value="ENTREGADO">Entregado</option>
@@ -346,9 +357,9 @@ const PedidoMaterialPage = () => {
           </div>
         </div>
         {pedidosQuery.isLoading ? (
-          <p className="text-sm text-slate-500">Cargando pedidos...</p>
+          <p className="text-[11px] text-slate-500">Cargando pedidos...</p>
         ) : pedidosQuery.isError ? (
-          <p className="text-sm text-rose-600">{getApiErrorMessage(pedidosQuery.error, 'No se pudieron cargar los pedidos.')}</p>
+          <p className="text-[11px] text-rose-600">{getApiErrorMessage(pedidosQuery.error, 'No se pudieron cargar los pedidos.')}</p>
         ) : (
           <Table columns={pedidosColumns} data={pedidosFiltrados} emptyLabel="No hay pedidos registrados." pageSize={10} />
         )}
@@ -362,30 +373,30 @@ const PedidoMaterialPage = () => {
       >
         {detallePedido ? (
           <div className="space-y-3">
-            <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm sm:grid-cols-3">
-              <div><span className="block text-xs font-bold uppercase text-slate-500">Fecha</span>{formatDate(detallePedido.fecha)}</div>
-              <div><span className="block text-xs font-bold uppercase text-slate-500">Tecnico</span>{detallePedido.tecnico || '-'}</div>
-              <div><span className="block text-xs font-bold uppercase text-slate-500">Estado</span>{detallePedido.estado || 'PENDIENTE'}</div>
+            <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 text-[11px] sm:grid-cols-3">
+              <div><span className="block text-[10px] font-bold uppercase text-slate-500">Fecha</span>{formatDate(detallePedido.fecha)}</div>
+              <div><span className="block text-[10px] font-bold uppercase text-slate-500">Tecnico</span>{detallePedido.tecnico || '-'}</div>
+              <div><span className="block text-[10px] font-bold uppercase text-slate-500">Estado</span>{detallePedido.estado || 'PENDIENTE'}</div>
             </div>
             <div className="overflow-hidden rounded-xl border border-slate-200">
-              <div className="grid grid-cols-[minmax(0,1fr)_110px] bg-slate-100 px-3 py-2 text-xs font-bold uppercase text-slate-600">
+              <div className="grid grid-cols-[minmax(0,1fr)_110px] bg-slate-100 px-3 py-1 text-[11px] font-bold uppercase text-slate-600">
                 <span>Material</span>
                 <span className="text-right">Cantidad</span>
               </div>
               {detallePedido.items.length ? detallePedido.items.map((item, index) => (
-                <div key={`${item.material}-${index}`} className="grid grid-cols-[minmax(0,1fr)_110px] gap-2 border-t border-slate-200 px-3 py-2 text-sm">
+                <div key={`${item.material}-${index}`} className="grid grid-cols-[minmax(0,1fr)_110px] gap-2 border-t border-slate-200 px-3 py-1 text-[11px]">
                   <span className="break-words font-semibold text-slate-800">{item.material || 'Material sin nombre'}</span>
                   <span className="text-right text-slate-700">{quantity(item.cantidad)}</span>
                 </div>
               )) : (
-                <div className="border-t border-slate-200 px-3 py-6 text-center text-sm text-slate-500">Sin detalle.</div>
+                <div className="border-t border-slate-200 px-3 py-3 text-center text-[11px] text-slate-500">Sin detalle.</div>
               )}
             </div>
-            {detallePedido.observacion ? <p className="text-sm text-slate-600"><span className="font-bold">Observacion:</span> {detallePedido.observacion}</p> : null}
+            {detallePedido.observacion ? <p className="text-[11px] text-slate-600"><span className="font-bold">Observacion:</span> {detallePedido.observacion}</p> : null}
           </div>
         ) : null}
       </Modal>
-    </div>
+    </PageLayout>
   )
 }
 

@@ -403,75 +403,73 @@ const CentralGruposPage = () => {
   }
 
   return (
-    <div className="bento-page">
-      <div className="bento-page-head rounded-2xl border border-[#dbe5fa] bg-white/95 px-4 py-3 shadow-sm sm:px-5">
-        <h2>Grupos</h2>
-        <p>
-          Sucursal activa del login: {loginSucursal ?? 'Cargando...'}.
-        </p>
-      </div>
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm sm:px-4">
+        <h2 className="page-title">Grupos</h2>
+        <p className="text-slate-500">Sucursal activa del login: {loginSucursal ?? 'Cargando...'}.</p>
+      </section>
 
       {!canManageGroups ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-700">
           No tienes permisos para gestionar grupos.
         </div>
       ) : null}
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-      {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div> : null}
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{error}</div> : null}
+      {feedback ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">{feedback}</div> : null}
 
       <FormCard
         title="Acciones de grupos"
         description="Gestiona grupos existentes y sus responsables."
       >
-        <div className="flex flex-wrap gap-3">
-          <Button type="button" className="h-11 rounded-2xl px-5" onClick={() => setOpenSupervisorModal(true)} disabled={!canManageGroups || grupos.length === 0}>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" className="h-8" onClick={() => setOpenSupervisorModal(true)} disabled={!canManageGroups || grupos.length === 0}>
             Asignar grupo existente a supervisor
           </Button>
-          <Button type="button" variant="secondary" className="h-11 rounded-2xl px-5" onClick={() => setOpenMananaModal(true)} disabled={!canManageGroups}>
+          <Button type="button" variant="secondary" className="h-8" onClick={() => setOpenMananaModal(true)} disabled={!canManageGroups}>
             Ver cuadrillas de manana
           </Button>
         </div>
       </FormCard>
 
       <FormCard title="Lista de grupos y técnicos" description={`Grupos: ${grupos.length} | Técnicos asignados: ${totalTecnicosAsignados}`}>
-        {gruposQuery.isLoading ? <p className="text-sm text-slate-500">Cargando grupos...</p> : null}
+        {gruposQuery.isLoading ? <p className="text-slate-500">Cargando grupos...</p> : null}
 
         {!gruposQuery.isLoading && grupos.length === 0 ? (
-          <p className="text-sm text-slate-500">Sin grupos creados.</p>
+          <p className="text-slate-500">Sin grupos creados.</p>
         ) : null}
 
         {!gruposQuery.isLoading && grupos.length > 0 ? (
-          <div className="grid gap-5">
+          <div className="grid gap-2">
             {gruposPorSupervisor.map((bloque) => (
               <section
                 key={`sup-${bloque.supervisor}`}
-                className="overflow-hidden rounded-[24px] border border-[#dbe5fa] bg-white shadow-[0_8px_18px_rgba(15,23,42,0.05)] transition hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
               >
-                <div className="flex w-full items-center justify-between gap-3 px-5 py-4">
+                <div className="flex w-full items-center justify-between gap-2 px-3 py-2">
                   <button
                     type="button"
                     className="flex-1 text-left"
                     onClick={() => toggleSupervisorExpandido(bloque.supervisor)}
                   >
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">Supervisor</p>
-                    <h3 className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">{bloque.supervisor}</h3>
-                    <p className="mt-1 text-sm font-medium text-[#4b628d]">Grupos asignados: {bloque.grupos.length}</p>
+                    <p className="text-[10px] font-medium uppercase text-slate-500">Supervisor</p>
+                    <h3 className="text-sm font-bold text-slate-900">{bloque.supervisor}</h3>
+                    <p className="text-slate-500">Grupos asignados: {bloque.grupos.length}</p>
                   </div>
                   </button>
                   <div className="flex items-center gap-2">
                     <Button
                       type="button"
                       variant="secondary"
-                      className="!rounded-full !border-blue-200 !bg-white !px-4 !py-2 !text-xs !font-bold !text-blue-700 hover:!bg-blue-50"
+                      className="!rounded-lg !px-3 !py-1"
                       onClick={() => abrirEditarSupervisor(bloque.supervisor)}
                     >
                       editar
                     </Button>
                     <button
                       type="button"
-                      className="rounded-full bg-[#0b1f52] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#132c6c]"
+                      className="rounded-lg bg-blue-700 px-3 py-1 font-bold text-white transition hover:bg-blue-800"
                       onClick={() => toggleSupervisorExpandido(bloque.supervisor)}
                     >
                       {supervisoresExpandido.includes(bloque.supervisor.trim().toLowerCase()) ? 'Ocultar grupos' : 'Ver grupos'}
@@ -479,20 +477,20 @@ const CentralGruposPage = () => {
                   </div>
                 </div>
                 {supervisoresExpandido.includes(bloque.supervisor.trim().toLowerCase()) ? (
-                <div className="grid gap-4 border-t border-[#e1e9fb] bg-[#f9fbff] px-5 py-5 lg:grid-cols-2">
+                <div className="grid gap-2 border-t border-slate-200 bg-slate-50 px-3 py-2 lg:grid-cols-2">
                   {bloque.grupos.map((grupo) => (
-                    <article key={grupo.idGrupo} className="rounded-2xl border border-[#dbe5fa] bg-white p-5 text-slate-900">
-                <div className="space-y-5">
-                  <div className="rounded-xl border border-slate-200 bg-white p-4">
+                    <article key={grupo.idGrupo} className="rounded-xl border border-slate-200 bg-white p-2.5 text-slate-900">
+                <div className="space-y-2">
+                  <div className="rounded-lg border border-slate-200 bg-white p-2.5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-600">Grupo</p>
-                        <h4 className="text-lg font-bold text-slate-900">{grupo.nombre}</h4>
+                        <p className="text-[10px] font-medium uppercase text-blue-600">Grupo</p>
+                        <h4 className="text-xs font-bold text-slate-900">{grupo.nombre}</h4>
                       </div>
-                      <span className="rounded-full bg-blue-600 px-3 py-1 text-xs font-bold text-white">#{grupo.idGrupo}</span>
+                      <span className="rounded-full bg-blue-600 px-2 py-0.5 font-bold text-white">#{grupo.idGrupo}</span>
                     </div>
                     {grupo.supervisorAusente ? (
-                      <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-700">
+                      <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 font-semibold text-amber-700">
                         Supervisor ausente. Colaborador temporal: {grupo.tecnicoTemporalBackup ?? 'sin definir'}
                       </p>
                     ) : null}
@@ -500,11 +498,11 @@ const CentralGruposPage = () => {
 
                   <div>
                     {grupo.tecnicos.length === 0 ? (
-                      <p className="text-sm text-slate-500">- Sin integrantes</p>
+                      <p className="text-slate-500">- Sin integrantes</p>
                     ) : (
                       <ul className="grid gap-2">
                         {grupo.tecnicos.map((tecnico) => (
-                          <li key={`${grupo.idGrupo}-${tecnico.idUsuarioTecnico}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700">
+                          <li key={`${grupo.idGrupo}-${tecnico.idUsuarioTecnico}`} className="rounded-lg border border-slate-200 bg-white px-3 py-1 font-medium text-slate-700">
                             {tecnico.tecnico}
                           </li>
                         ))}
@@ -512,7 +510,7 @@ const CentralGruposPage = () => {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-1 gap-3 pt-2 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 pt-1 sm:grid-cols-2">
                     {grupo.supervisorAusente ? (
                       <Button
                         type="button"
@@ -548,6 +546,7 @@ const CentralGruposPage = () => {
       </FormCard>
 
       <Modal
+        compactText
         open={openMananaModal}
         onClose={() => setOpenMananaModal(false)}
         title="Cuadrillas de manana"
@@ -558,34 +557,34 @@ const CentralGruposPage = () => {
           </Button>
         }
       >
-        <div className="space-y-4">
-          {gruposMananaQuery.isLoading ? <p className="text-sm text-slate-500">Cargando proyeccion...</p> : null}
+        <div className="space-y-2">
+          {gruposMananaQuery.isLoading ? <p className="text-slate-500">Cargando proyeccion...</p> : null}
           {gruposMananaQuery.isError ? (
-            <p className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">
               No se pudo cargar la proyeccion de manana.
             </p>
           ) : null}
           {!gruposMananaQuery.isLoading && !gruposMananaQuery.isError && gruposManana.length === 0 ? (
-            <p className="text-sm text-slate-500">Sin grupos para mostrar.</p>
+            <p className="text-slate-500">Sin grupos para mostrar.</p>
           ) : null}
           {!gruposMananaQuery.isLoading && gruposMananaPorSupervisor.length > 0 ? (
-            <div className="grid gap-3">
+            <div className="grid gap-2">
               {gruposMananaPorSupervisor.map((bloque) => (
-                <section key={`manana-${bloque.supervisor}`} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <section key={`manana-${bloque.supervisor}`} className="rounded-xl border border-slate-200 bg-white p-2.5">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">Supervisor</p>
-                      <h4 className="text-lg font-extrabold text-[#081a4b]">{bloque.supervisor}</h4>
+                      <p className="text-[10px] font-medium uppercase text-slate-500">Supervisor</p>
+                      <h4 className="text-xs font-bold text-slate-900">{bloque.supervisor}</h4>
                     </div>
-                    <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 font-bold text-blue-700">
                       {bloque.grupos.length} grupo(s)
                     </span>
                   </div>
-                  <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  <div className="mt-2 grid gap-2 md:grid-cols-2">
                     {bloque.grupos.map((grupo) => (
-                      <div key={`manana-grupo-${grupo.idGrupo}-${grupo.grupo}`} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                        <p className="text-sm font-bold text-slate-900">{grupo.grupo}</p>
-                        <p className="text-xs font-medium text-slate-500">
+                      <div key={`manana-grupo-${grupo.idGrupo}-${grupo.grupo}`} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+                        <p className="font-bold text-slate-900">{grupo.grupo}</p>
+                        <p className="font-medium text-slate-500">
                           Tecnicos: {grupo.cantidadTecnicos}
                           {grupo.fuente === 'conformacion' ? ' | fuente: conformacion actual' : ''}
                         </p>
@@ -600,6 +599,7 @@ const CentralGruposPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={openCrearModal}
         onClose={() => setOpenCrearModal(false)}
         title="Crear grupo"
@@ -626,6 +626,7 @@ const CentralGruposPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={openSupervisorModal}
         onClose={() => setOpenSupervisorModal(false)}
         title="Asignar supervisor"
@@ -641,7 +642,7 @@ const CentralGruposPage = () => {
           </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <Field label="Grupo">
             <select className="input-base" value={idGrupoSupervisor} onChange={(event) => setIdGrupoSupervisor(event.target.value)}>
               <option value="">Selecciona grupo</option>
@@ -667,6 +668,7 @@ const CentralGruposPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={openCambioSupervisorModal}
         onClose={() => {
           setOpenCambioSupervisorModal(false)
@@ -685,7 +687,7 @@ const CentralGruposPage = () => {
           </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <Field label="Supervisor origen (ausente)">
             <select
               className="input-base"
@@ -757,6 +759,7 @@ const CentralGruposPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={openBackupModal}
         onClose={() => setOpenBackupModal(false)}
         title={backupMode === 'ausente' ? 'Supervisor ausente' : 'Cambiar colaborador temporal'}
@@ -805,6 +808,7 @@ const CentralGruposPage = () => {
       </Modal>
 
       <Modal
+        compactText
         open={openTecnicoModal}
         onClose={() => setOpenTecnicoModal(false)}
         title="Asignar tecnico"
@@ -820,7 +824,7 @@ const CentralGruposPage = () => {
           </>
         }
       >
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-2 md:grid-cols-2">
           <Field label="Grupo">
             <select className="input-base" value={idGrupoTecnico} onChange={(event) => setIdGrupoTecnico(event.target.value)}>
               <option value="">Selecciona grupo</option>

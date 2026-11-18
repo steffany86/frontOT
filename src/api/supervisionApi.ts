@@ -618,6 +618,13 @@ export const fetchBackofficeSucursalesSupervision = async (): Promise<string[]> 
   return Array.from(new Set(sucursales)).sort((a, b) => a.localeCompare(b))
 }
 
+export const fetchMisSucursalesSupervision = async (): Promise<string[]> => {
+  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/mis-sucursales`)
+  const rows = normalizeArrayResponse<unknown>(data)
+  const sucursales = rows.map((value) => normalizeString(value)).filter((value): value is string => Boolean(value))
+  return Array.from(new Set(sucursales)).sort((a, b) => a.localeCompare(b))
+}
+
 export const fetchBackofficeNombresSupervisorSupervision = async (
   sucursal?: string,
   estado: 'pendiente' | 'completado' = 'pendiente'

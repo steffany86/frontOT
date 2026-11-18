@@ -67,6 +67,7 @@ const TecnicoInicioJornadaGuard = () => {
     <>
       <Outlet />
       <Modal
+        compactText
         open={requiereCierrePendiente}
         onClose={handleLogout}
         title="Cierre de jornada pendiente"
@@ -77,16 +78,16 @@ const TecnicoInicioJornadaGuard = () => {
           </Button>
         }
       >
-        <div className="mb-4 flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
+        <div className="mb-2 flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+          <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700">
             <FontAwesomeIcon icon={faClockRotateLeft} />
           </span>
           <div>
-            <p className="text-sm font-extrabold">Tiene una jornada anterior sin cierre.</p>
-            <p className="mt-2 text-2xl font-black uppercase tracking-wide text-amber-950">{fechaCierrePendiente}</p>
-            <p className="mt-2 text-sm font-black uppercase tracking-wide text-amber-950">SUPERVISOR: {supervisorPendiente}</p>
-            <p className="mt-1 text-xs font-black uppercase tracking-wide text-amber-800">SE RECOMIENDA LLENAR FORMULARIO A TIEMPO</p>
-            <p className="mt-1 text-sm font-semibold">Por favor, antes de iniciar, llenar los campos de cierre.</p>
+            <p className="text-xs font-bold">Tiene una jornada anterior sin cierre.</p>
+            <p className="mt-1 text-sm font-bold uppercase text-amber-950">{fechaCierrePendiente}</p>
+            <p className="mt-0.5 text-[11px] font-bold uppercase text-amber-950">SUPERVISOR: {supervisorPendiente}</p>
+            <p className="mt-0.5 text-[10px] font-bold uppercase text-amber-800">SE RECOMIENDA LLENAR FORMULARIO A TIEMPO</p>
+            <p className="mt-0.5 text-[11px] font-semibold">Por favor, antes de iniciar, llenar los campos de cierre.</p>
           </div>
         </div>
         <CierreJornadaForm
@@ -99,6 +100,7 @@ const TecnicoInicioJornadaGuard = () => {
         />
       </Modal>
       <Modal
+        compactText
         open={pendiente}
         onClose={handleLogout}
         title={observacionRechazado ? "Inicio de jornada rechazado" : "Inicio de Jornada Obligatorio"}

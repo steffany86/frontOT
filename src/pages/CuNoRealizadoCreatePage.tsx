@@ -3,6 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import Button from '../components/common/Button'
 import Field from '../components/common/Field'
 import FormCard from '../components/common/FormCard'
+import PageLayout from '../components/common/PageLayout'
 import { createCuNoRealizado } from '../api/cuApi'
 import { todayISO } from '../utils/dates'
 
@@ -31,15 +32,11 @@ const CuNoRealizadoCreatePage = () => {
   }
 
   return (
-    <div className="bento-page">
-      <div className="bento-page-head">
-        <h2 className="text-2xl font-semibold text-slate-900">Registrar CU no realizado</h2>
-        <p className="text-sm text-slate-500">Completa los datos del cargo usuario pendiente.</p>
-      </div>
+    <PageLayout title="Registrar CU no realizado" subtitle="Completa los datos del cargo usuario pendiente.">
 
       <form onSubmit={handleSubmit}>
         <FormCard title="Datos del CU" description="Información requerida para el registro.">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2 md:grid-cols-2">
             <Field label="Fecha">
               <input className="input-base" type="date" value={fecha} onChange={(event) => setFecha(event.target.value)} />
             </Field>
@@ -57,25 +54,25 @@ const CuNoRealizadoCreatePage = () => {
             </Field>
             <Field label="Descripción">
               <textarea
-                className="input-base h-24 resize-none"
+                className="input-base h-16 resize-none"
                 value={descripcion}
                 onChange={(event) => setDescripcion(event.target.value)}
               />
             </Field>
           </div>
-          <div className="mt-6 flex justify-end">
+          <div className="mt-3 flex justify-end">
             <Button type="submit" disabled={mutation.isPending}>
               {mutation.isPending ? 'Registrando...' : 'Guardar CU'}
             </Button>
           </div>
           {mutation.isSuccess ? (
-            <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-600">
+            <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-600">
               CU registrado correctamente.
             </div>
           ) : null}
         </FormCard>
       </form>
-    </div>
+    </PageLayout>
   )
 }
 

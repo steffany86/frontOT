@@ -62,7 +62,7 @@ const OtAnularPage = () => {
   }
 
   return (
-    <div className="bento-page">
+    <div className="bento-page sup-v2-fs">
       <div className="bento-page-head">
         <h2 className="text-2xl font-semibold text-slate-900">Anular OT</h2>
         <p className="text-sm text-slate-500">Confirma antes de anular una orden.</p>

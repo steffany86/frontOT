@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faCalendarDay, faFilter, faFloppyDisk, faRotateRight, faTableList } from '@fortawesome/free-solid-svg-icons'
+import { faCalendarDay, faFilter, faFloppyDisk, faRotateRight } from '@fortawesome/free-solid-svg-icons'
 import Button from '../components/common/Button'
 import FormCard from '../components/common/FormCard'
 import Modal from '../components/common/Modal'
@@ -137,17 +137,16 @@ const DigitadorCruceNoFinalizadoPage = () => {
   }
 
   return (
-    <div className="-mt-2 space-y-3 px-3 py-3 text-[13px] sm:px-4 sm:py-4">
-      <section className="rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm sm:p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex min-w-0 items-center gap-3 text-blue-700">
-            <FontAwesomeIcon icon={faTableList} className="shrink-0" />
-            <h1 className="min-w-0 text-xl font-bold text-slate-900 sm:text-2xl">Cruce de ordenes no finalizadas</h1>
+    <div className="bento-page sup-v2-fs gap-2">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <h1 className="min-w-0 truncate page-title">Cruce de ordenes no finalizadas</h1>
           </div>
           <Button
             type="button"
             variant="secondary"
-            className="px-3 py-2 text-xs"
+            className="h-8"
             onClick={() => { query.refetch(); pendientesCountQuery.refetch(); marcadosCountQuery.refetch() }}
             disabled={query.isFetching}
           >
@@ -156,7 +155,7 @@ const DigitadorCruceNoFinalizadoPage = () => {
           </Button>
         </div>
 
-        <div className="flex items-center gap-1 border-t border-slate-200 px-1 pt-3 mt-3">
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-200 px-2 py-1.5 sm:px-3">
           {vistaTabs.map((item) => {
             const active = vista === item.key
             return (
@@ -164,7 +163,7 @@ const DigitadorCruceNoFinalizadoPage = () => {
                 key={item.key}
                 type="button"
                 onClick={() => { setVista(item.key); setPage(1) }}
-                className={`inline-flex items-center gap-2 rounded-t-lg px-3 py-2 text-xs font-bold transition ${
+                className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
                   active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -177,43 +176,43 @@ const DigitadorCruceNoFinalizadoPage = () => {
           })}
         </div>
 
-        <details className="group mt-2 border-t border-slate-200 pt-1" open>
-          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1 py-1.5 text-xs font-semibold text-slate-700 outline-none transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-blue-200">
+        <details className="group border-t border-slate-200 px-2 py-1 sm:px-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between rounded-lg px-1.5 py-1.5 font-semibold text-slate-700 outline-none transition hover:bg-slate-50">
             <span className="group-open:hidden">Mostrar filtros</span>
             <span className="hidden group-open:inline">Ocultar filtros</span>
-            <span className="text-lg leading-none text-blue-600 transition group-open:rotate-45">+</span>
+            <span className="text-base leading-none text-blue-600 transition group-open:rotate-45">+</span>
           </summary>
-          <div className="grid gap-2 pt-2 md:grid-cols-3">
-            <label className="text-xs font-semibold text-slate-700">
+          <div className="grid items-end gap-2 pb-1 pt-1.5 md:grid-cols-3">
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500">
               Fecha desde
-              <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                <FontAwesomeIcon icon={faCalendarDay} className="text-blue-600" />
+              <div className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5">
+                <FontAwesomeIcon icon={faCalendarDay} className="text-slate-400" />
                 <input
                   type="date"
-                  className="w-full bg-transparent text-xs outline-none"
+                  className="w-full bg-transparent text-slate-800 outline-none"
                   value={fechaDesde}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => { setFechaDesde(event.target.value); setPage(1); setDrafts({}); setFeedback(null) }}
                 />
               </div>
             </label>
-            <label className="text-xs font-semibold text-slate-700">
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500">
               Fecha hasta
-              <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                <FontAwesomeIcon icon={faCalendarDay} className="text-blue-600" />
+              <div className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5">
+                <FontAwesomeIcon icon={faCalendarDay} className="text-slate-400" />
                 <input
                   type="date"
-                  className="w-full bg-transparent text-xs outline-none"
+                  className="w-full bg-transparent text-slate-800 outline-none"
                   value={fechaHasta}
                   onChange={(event: ChangeEvent<HTMLInputElement>) => { setFechaHasta(event.target.value); setPage(1); setDrafts({}); setFeedback(null) }}
                 />
               </div>
             </label>
-            <label className="text-xs font-semibold text-slate-700">
+            <label className="flex w-full flex-col gap-0.5 font-medium text-slate-500">
               Buscar
-              <div className="mt-1 flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5">
-                <FontAwesomeIcon icon={faFilter} className="text-blue-600" />
+              <div className="flex h-8 items-center gap-2 rounded-md bg-slate-100 px-2.5">
+                <FontAwesomeIcon icon={faFilter} className="text-slate-400" />
                 <input
-                  className="w-full bg-transparent text-xs outline-none"
+                  className="w-full bg-transparent text-slate-800 outline-none"
                   value={busqueda}
                   onChange={(event) => setBusqueda(event.target.value)}
                   placeholder="OT, cliente, tecnico o estado..."
@@ -224,28 +223,26 @@ const DigitadorCruceNoFinalizadoPage = () => {
         </details>
       </section>
 
-      {feedback ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div> : null}
-      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-      {query.isError ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{getApiErrorMessage(query.error, 'No se pudo cargar el cruce.')}</div> : null}
+      {feedback ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-emerald-700">{feedback}</div> : null}
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{error}</div> : null}
+      {query.isError ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700">{getApiErrorMessage(query.error, 'No se pudo cargar el cruce.')}</div> : null}
 
       <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-3 py-2 sm:px-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-bold text-slate-900 sm:text-base">Listado de ordenes</h2>
-            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">{query.data?.total ?? 0} registros</span>
-          </div>
+        <div className="border-b border-slate-200 px-3 py-1.5 sm:px-4">
+          <h2 className="page-title">Listado de Ordenes</h2>
+          <p className="text-xs text-slate-600">{query.data?.total ?? 0} registro(s)</p>
         </div>
         <div className="space-y-1.5 p-2 sm:p-3">
-          {query.isLoading ? <div className="px-3 py-8 text-center text-sm text-slate-500">Cargando ordenes...</div> : null}
-          {!query.isLoading && rows.length === 0 ? <div className="px-3 py-8 text-center text-sm text-slate-500">No hay ordenes para la fecha seleccionada.</div> : null}
+          {query.isLoading ? <div className="px-3 py-4 text-center text-slate-500">Cargando ordenes...</div> : null}
+          {!query.isLoading && rows.length === 0 ? <div className="px-3 py-4 text-center text-slate-500">No hay ordenes para la fecha seleccionada.</div> : null}
           {rows.map((row, index) => {
             const id = rowId(row)
             const draft = drafts[id] ?? { fechaEjecuacionDigitacion: fechaDesde, estadoDigitacion: '', observacionDigitacion: '' }
             const editable = vista === 'pendientes' && (read(row, ['puedeActualizarDigitacion']).toLowerCase() === 'true' || id > 0)
             return (
-              <article key={`${id}-${index}`} className={`rounded-2xl border border-slate-200 bg-white p-2 shadow-sm sm:p-3 ${vista === 'marcados' ? 'border-l-4 border-l-emerald-400' : 'border-l-4 border-l-amber-400'}`}>
+              <article key={`${id}-${index}`} className={`rounded-xl border border-slate-200 bg-white p-2 shadow-sm ${vista === 'marcados' ? 'border-l-4 border-l-emerald-400' : 'border-l-4 border-l-amber-400'}`}>
                 <div className="grid gap-2 lg:grid-cols-[minmax(0,0.75fr)_minmax(0,1.4fr)]">
-                  <div className="grid min-w-0 grid-cols-1 gap-y-1 text-xs">
+                  <div className="grid min-w-0 grid-cols-1 gap-y-0.5">
                     {[
                       ['OT', read(row, ['OT_int', 'OrdenTrabajo']) || '-'],
                       ['Cliente', read(row, ['cliente_nro', 'CodigoCliente']) || '-'],
@@ -253,26 +250,26 @@ const DigitadorCruceNoFinalizadoPage = () => {
                       ['Sucursal', read(row, ['Sucursal', 'sucursal']) || '-'],
                       ['Estado actual', read(row, ['estado', 'Estado']) || '-'],
                       ['Tipo cruce', read(row, ['TipoCruce', 'tipoCruce']) || '-'],
-                    ].map(([label, value]) => <div key={label} className="min-w-0"><p className="truncate text-[7px] font-extrabold uppercase tracking-wide text-slate-600">{label}</p><p className="truncate text-[11px] font-bold text-slate-800" title={value}>{value}</p></div>)}
+                    ].map(([label, value]) => <div key={label} className="min-w-0"><p className="truncate text-[10px] font-medium uppercase text-slate-500">{label}</p><p className="truncate font-semibold text-slate-800" title={value}>{value}</p></div>)}
                   </div>
                   <div className="grid gap-0 rounded-xl border border-slate-200 bg-slate-50/70 p-0 sm:grid-cols-2">
-                    <label className="text-[10px] font-extrabold text-slate-600">Fecha
-                      <input className="input-base mt-1 text-xs" type="date" value={draft.fechaEjecuacionDigitacion} onChange={(event) => updateDraft(id, 'fechaEjecuacionDigitacion', event.target.value)} disabled={!editable} />
+                    <label className="font-medium text-slate-500">Fecha
+                      <input className="input-base mt-0.5" type="date" value={draft.fechaEjecuacionDigitacion} onChange={(event) => updateDraft(id, 'fechaEjecuacionDigitacion', event.target.value)} disabled={!editable} />
                     </label>
-                    <label className="text-[10px] font-extrabold text-slate-600">Estado
-                      <select className="input-base mt-1 text-xs" value={draft.estadoDigitacion} onChange={(event) => updateDraft(id, 'estadoDigitacion', event.target.value)} disabled={!editable || estadosQuery.isLoading}>
+                    <label className="font-medium text-slate-500">Estado
+                      <select className="input-base mt-0.5" value={draft.estadoDigitacion} onChange={(event) => updateDraft(id, 'estadoDigitacion', event.target.value)} disabled={!editable || estadosQuery.isLoading}>
                         <option value="">Selecciona un estado</option>
                         {estadoOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                       </select>
                     </label>
-                    <label className="-mt-2 text-[10px] font-extrabold text-slate-600 sm:col-span-2">Obs.
-                      <textarea className="input-base mt-0 min-h-12 resize-y text-xs" value={draft.observacionDigitacion} onChange={(event) => updateDraft(id, 'observacionDigitacion', event.target.value)} placeholder="Escribe la observacion" disabled={!editable} />
+                    <label className="-mt-2 font-medium text-slate-500 sm:col-span-2">Obs.
+                      <textarea className="input-base mt-0 min-h-12 resize-y" value={draft.observacionDigitacion} onChange={(event) => updateDraft(id, 'observacionDigitacion', event.target.value)} placeholder="Escribe la observacion" disabled={!editable} />
                     </label>
-                    <div className="-mt-2 flex flex-wrap items-center justify-between gap-3 sm:col-span-2">
+                    <div className="-mt-2 flex flex-wrap items-center justify-between gap-2 sm:col-span-2">
                       <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="secondary" className="!rounded-xl !px-3 !py-1.5 !text-xs" onClick={() => setDetalle(row)}>Ver detalle</Button>
+                        <Button type="button" variant="secondary" className="!rounded-lg !px-3 !py-1" onClick={() => setDetalle(row)}>Ver detalle</Button>
                         {vista === 'pendientes' ? (
-                          <Button type="button" className="!rounded-xl !px-3 !py-1.5 !text-xs" onClick={() => mutation.mutate({ id, payload: draft })} disabled={!editable || mutation.isPending}><FontAwesomeIcon icon={faFloppyDisk} /> {mutation.isPending ? 'Guardando...' : 'Guardar'}</Button>
+                          <Button type="button" className="!rounded-lg !px-3 !py-1" onClick={() => mutation.mutate({ id, payload: draft })} disabled={!editable || mutation.isPending}><FontAwesomeIcon icon={faFloppyDisk} /> {mutation.isPending ? 'Guardando...' : 'Guardar'}</Button>
                         ) : null}
                       </div>
                     </div>
@@ -283,7 +280,7 @@ const DigitadorCruceNoFinalizadoPage = () => {
           })}
         </div>
         {(query.data?.totalPages ?? 1) > 1 ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-3 py-3 sm:px-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 px-3 py-2 sm:px-4">
             <p className="text-xs text-slate-500">Pagina {query.data?.page ?? page} de {query.data?.totalPages ?? 1}</p>
             <div className="flex gap-2">
               <Button type="button" variant="secondary" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page <= 1 || query.isFetching}>Anterior</Button>
@@ -293,14 +290,14 @@ const DigitadorCruceNoFinalizadoPage = () => {
         ) : null}
       </section>
 
-      <Modal open={Boolean(detalle)} title="Detalle de orden" onClose={() => setDetalle(null)}>
-        <div className="grid gap-3 sm:grid-cols-2">
+      <Modal open={Boolean(detalle)} title="Detalle de orden" onClose={() => setDetalle(null)} compactText>
+        <div className="grid gap-2 sm:grid-cols-2">
           {detalle ? Object.entries(detalle)
             .filter(([key]) => !['puedeActualizarDigitacion', 'Id_BO_CITA_MAKIRO_Historial'].includes(key))
             .map(([key, value]) => (
-              <div key={key} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
-                <p className="break-all text-[9px] font-bold uppercase tracking-wide text-slate-500">{key}</p>
-                <p className="max-h-32 overflow-auto whitespace-pre-wrap break-words text-sm font-semibold text-slate-700">{String(value ?? '-')}</p>
+              <div key={key} className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5">
+                <p className="break-all text-[10px] font-medium uppercase text-slate-500">{key}</p>
+                <p className="max-h-32 overflow-auto whitespace-pre-wrap break-words font-semibold text-slate-700">{String(value ?? '-')}</p>
               </div>
             )) : null}
         </div>

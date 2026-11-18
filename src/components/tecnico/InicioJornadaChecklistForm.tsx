@@ -46,15 +46,15 @@ const readFileAsDataUrl = (file: File): Promise<string> =>
   })
 
 const SectionHeader = ({ icon, title }: { icon: typeof faUserShield; title: string }) => (
-  <div className="mb-4 flex items-center gap-2">
+  <div className="mb-2 flex items-center gap-2">
     <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
       <FontAwesomeIcon icon={icon} className="text-sm" />
     </span>
-    <h4 className="text-xl font-bold text-blue-700">{title}</h4>
+    <h4 className="text-xs font-bold text-blue-700">{title}</h4>
   </div>
 )
 
-const cardClass = 'rounded-2xl border border-slate-200 bg-white p-4 shadow-sm'
+const cardClass = 'rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm'
 
 const declaracionJuradaInicioJornada = [
   'A través del presente, bajo juramento declaro expresamente que toda la información registrada en este formulario es veraz y corresponde a la realidad. Confirmo, bajo juramento, que únicamente el personal aquí identificado participará en la ejecución de las órdenes de trabajo asignadas así como en cualquier actividad relacionada con Makiro y/o Tigo, que dicho personal dispone y utilizará permanentemente durante la ejecución de las ordenes de trabajo, los Equipos de Protección Personal (EPP) exigidos, que se realizará el Análisis Preliminar de Riesgos (APR) previo a cada intervención y que todos los integrantes de la cuadrilla cuentan con las competencias, capacitaciones y autorizaciones requeridas para desarrollar las actividades encomendadas.',
@@ -234,25 +234,25 @@ const InicioJornadaChecklistForm = ({
   }
 
   return (
-    <div className="grid gap-4 bg-slate-50 p-1">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="grid gap-2 bg-slate-50 p-1">
+      <div className="rounded-xl border border-slate-200 bg-white p-2.5 shadow-sm">
         <h3 className="text-3xl font-extrabold text-slate-900">Registro de Jornada</h3>
-        <p className="mt-1 text-sm text-slate-600">Complete los requisitos de seguridad antes de iniciar.</p>
-        <p className="mt-3 text-sm font-semibold text-slate-700">Nombre tecnico: {nombreTecnico?.trim() || '-'}</p>
+        <p className="mt-0.5 text-[11px] text-slate-600">Complete los requisitos de seguridad antes de iniciar.</p>
+        <p className="mt-2 text-[11px] font-semibold text-slate-700">Nombre tecnico: {nombreTecnico?.trim() || '-'}</p>
         {auxiliarDisplay ? (
-          <p className="mt-1 text-sm font-semibold text-slate-700">
+          <p className="mt-0.5 text-[11px] font-semibold text-slate-700">
             Auxiliar: {auxiliarDisplay} {idAuxiliar && nombreAuxiliar?.trim() ? `(ID: ${idAuxiliar})` : ''}
           </p>
         ) : null}
         {observacionRechazado?.trim() ? (
-          <div className="mt-3 flex gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-rose-900">
+          <div className="mt-2 flex gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-900">
             <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-rose-100 text-rose-700">
               <FontAwesomeIcon icon={faTriangleExclamation} />
             </span>
             <div>
-              <p className="text-sm font-extrabold">Tu inicio de jornada anterior fue rechazado.</p>
-              <p className="mt-1 text-sm font-semibold">Motivo del rechazo:</p>
-              <p className="mt-2 whitespace-pre-wrap rounded-xl bg-white/70 px-3 py-2 text-sm font-medium text-rose-950">
+              <p className="text-xs font-bold">Tu inicio de jornada anterior fue rechazado.</p>
+              <p className="mt-0.5 text-[11px] font-semibold">Motivo del rechazo:</p>
+              <p className="mt-1 whitespace-pre-wrap rounded-lg bg-white/70 px-2 py-1 text-[11px] font-medium text-rose-950">
                 {observacionRechazado.trim()}
               </p>
             </div>
@@ -260,12 +260,12 @@ const InicioJornadaChecklistForm = ({
         ) : null}
       </div>
 
-      {error ? <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div> : null}
-      {feedback ? <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{feedback}</div> : null}
+      {error ? <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] text-rose-700">{error}</div> : null}
+      {feedback ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">{feedback}</div> : null}
 
       <div className={cardClass}>
         <SectionHeader icon={faUserShield} title="Informacion General" />
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           <Field label="Encargado (Supervisor)">
             <input className="input-base bg-slate-100" value={nombreSupervisor?.trim() || 'Supervisor no encontrado'} readOnly />
           </Field>
@@ -291,7 +291,7 @@ const InicioJornadaChecklistForm = ({
             >
               <div className="relative max-w-full overflow-hidden">
                 <input
-                  className={`input-base w-full min-w-0 max-w-full pr-10 text-sm sm:text-base ${mostrarErrorFecha ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
+                  className={`input-base w-full min-w-0 max-w-full pr-10 text-[11px] ${mostrarErrorFecha ? 'border-rose-500 bg-rose-50 focus:border-rose-500 focus:ring-rose-200' : ''}`}
                   style={{ WebkitAppearance: 'none' }}
                   type="date"
                   min={fechaMinima}
@@ -321,7 +321,7 @@ const InicioJornadaChecklistForm = ({
           {puedeMarcarTrabajoSolo ? (
             <div ref={trabajoSoloRef}>
               <label
-                className={`flex items-center gap-3 rounded-xl border p-3 text-sm font-semibold ${
+                className={`flex items-center gap-2 rounded-lg border p-2 text-[11px] font-semibold ${
                   mostrarErrorTrabajoSolo ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-slate-200 bg-slate-50 text-slate-800'
                 }`}
               >
@@ -348,7 +348,7 @@ const InicioJornadaChecklistForm = ({
 
       <div className={cardClass}>
         <SectionHeader icon={faCircleCheck} title="Capacitacion" />
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           <Field label="Estan capacitados y cuentan con curso?">
             <select className="input-base" value={capacitado} onChange={(event) => setCapacitado(event.target.value as SiNo)}>
               <option value="SI">SI</option>
@@ -364,10 +364,10 @@ const InicioJornadaChecklistForm = ({
         </div>
       </div>
 
-      <div ref={imagenRef} className={`rounded-2xl border border-dashed bg-white p-4 shadow-sm ${mostrarErrorImagen ? 'border-rose-500 ring-2 ring-rose-100' : 'border-blue-300'}`}>
+      <div ref={imagenRef} className={`rounded-xl border border-dashed bg-white p-2.5 shadow-sm ${mostrarErrorImagen ? 'border-rose-500 ring-2 ring-rose-100' : 'border-blue-300'}`}>
         <SectionHeader icon={faCamera} title="Registro Visual" />
         <Field label="Foto de perfil con su equipo" error={mostrarErrorImagen ? 'Debe cargar o tomar una foto.' : undefined}>
-          <div className="grid gap-3">
+          <div className="grid gap-2">
             <div className={`flex min-h-48 items-center justify-center rounded-2xl border p-3 ${mostrarErrorImagen ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-slate-100/80'}`}>
               {imagen ? (
                 <img src={imagen} alt="Foto seleccionada" className="h-44 w-full cursor-zoom-in rounded-xl object-cover" onClick={() => setZoomImageSrc(imagen)} />
@@ -402,7 +402,7 @@ const InicioJornadaChecklistForm = ({
         </Field>
         {requiereImagenAuxiliar ? (
           <Field label={`Foto del auxiliar ${auxiliarDisplay}`} error={mostrarErrorImagenAuxiliar ? 'Debe cargar o tomar una foto del auxiliar.' : undefined}>
-            <div ref={imagenAuxiliarRef} className="mt-4 grid gap-3">
+            <div ref={imagenAuxiliarRef} className="mt-4 grid gap-2">
               <div className={`flex min-h-48 items-center justify-center rounded-2xl border p-3 ${mostrarErrorImagenAuxiliar ? 'border-rose-500 bg-rose-50' : 'border-slate-200 bg-slate-100/80'}`}>
                 {imagenAuxiliar ? (
                   <img
@@ -451,7 +451,7 @@ const InicioJornadaChecklistForm = ({
 
       <div className={cardClass}>
         <SectionHeader icon={faHelmetSafety} title="Equipos de Proteccion (EPP)" />
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           <Field label="Cuentan con botiquin?">
             <select className="input-base" value={botiquin} onChange={(event) => setBotiquin(event.target.value as SiNo)}>
               <option value="SI">SI</option>
@@ -481,7 +481,7 @@ const InicioJornadaChecklistForm = ({
 
       <div className={cardClass}>
         <SectionHeader icon={faTriangleExclamation} title="Evaluacion de Riesgo" />
-        <div className="grid gap-4">
+        <div className="grid gap-2">
           <Field label="Analisis preliminar (APR)">
             <select className="input-base" value={apr} onChange={(event) => setApr(event.target.value as SiNo)}>
               <option value="SI">SI</option>
@@ -505,16 +505,16 @@ const InicioJornadaChecklistForm = ({
 
       <div className={cardClass}>
         <SectionHeader icon={faFileSignature} title="Declaración Jurada de inicio de Jornada" />
-        <div className="grid gap-4">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+        <div className="grid gap-2">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[11px] leading-5 text-slate-700">
             {declaracionJuradaInicioJornada.map((parrafo) => (
-              <p key={parrafo} className="mb-3 last:mb-0">
+              <p key={parrafo} className="mb-2 last:mb-0">
                 {parrafo}
               </p>
             ))}
           </div>
           <div ref={declaracionRef}>
-            <label className={`flex items-start gap-3 rounded-xl border p-3 text-sm font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
+            <label className={`flex items-start gap-2 rounded-lg border p-2 text-[11px] font-semibold ${mostrarErrorDeclaracion ? 'border-rose-500 bg-rose-50 text-rose-800 ring-2 ring-rose-100' : 'border-blue-100 bg-blue-50/70 text-slate-800'}`}>
               <input
                 type="checkbox"
                 className={`mt-1 h-4 w-4 rounded ${mostrarErrorDeclaracion ? 'border-rose-500 text-rose-600 focus:ring-rose-500' : 'border-slate-300 text-blue-700 focus:ring-blue-600'}`}

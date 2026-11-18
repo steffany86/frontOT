@@ -39,6 +39,7 @@ export type LlamadaAtencionRegistro = {
   fechaSeguimiento?: string
   firmaTecnico?: string
   firmaTestigo?: string
+  sucursal?: string
 }
 
 export type LlamadaAtencionListParams = {

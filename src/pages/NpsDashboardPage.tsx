@@ -145,11 +145,11 @@ const SemiGauge = ({
     plugins: { legend: { display: false }, tooltip: { enabled: false } },
   } as const
   return (
-    <div className="relative mx-auto h-32 w-full max-w-[170px] overflow-hidden">
+    <div className="relative mx-auto h-20 w-full max-w-[120px] overflow-hidden">
       <Doughnut data={{ datasets: [{ data, backgroundColor: [color, restColor], borderWidth: 0 }] }} options={options} />
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-8">
-        <p className="text-2xl font-semibold leading-none text-blue-900 sm:text-3xl">{value}</p>
-        {subtitle ? <p className="mt-1 text-xs font-medium text-slate-400">{subtitle}</p> : null}
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center pt-5">
+        <p className="text-base font-semibold leading-none text-blue-900">{value}</p>
+        {subtitle ? <p className="mt-0.5 text-[10px] font-medium text-slate-400">{subtitle}</p> : null}
       </div>
     </div>
   )
@@ -497,47 +497,40 @@ const NpsDashboardPage = () => {
   )
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-[28px] border border-[#dbe5fa] bg-white px-5 py-4 shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
-        <h1 className="text-2xl font-extrabold tracking-tight text-[#081a4b] sm:text-3xl">NPS - Calificaciones</h1>
-        <p className="mt-1 text-base font-medium tracking-tight text-[#36547f]">Tigo Hogar</p>
-        <div className="mt-3 hidden items-center gap-2 md:flex">
-          <button
-            type="button"
-            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${modo === 'nps_respuestas' ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-200 bg-white text-blue-700'}`}
-            onClick={() => setModo('nps_respuestas')}
-          >
-            NPS Respuestas
-          </button>
-          <button
-            type="button"
-            className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${modo === 'nps_invitado' ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-200 bg-white text-blue-700'}`}
-            onClick={() => setModo('nps_invitado')}
-          >
-            NPS Invitado
-          </button>
+    <div className="bento-page supervision-page gap-2 text-[13px] sm:gap-2.5">
+      <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 sm:px-4">
+          <h2 className="shrink-0 page-title">NPS - Calificaciones</h2>
+          <span className="text-xs font-medium text-slate-500">Tigo Hogar</span>
         </div>
-        <div className="mt-3 grid grid-cols-2 gap-2 md:hidden">
-          <button
-            type="button"
-            className={`rounded-xl border px-3 py-2 text-xs font-semibold ${modo === 'nps_respuestas' ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-200 bg-white text-blue-700'}`}
-            onClick={() => setModo('nps_respuestas')}
-          >
-            NPS Respuestas
-          </button>
-          <button
-            type="button"
-            className={`rounded-xl border px-3 py-2 text-xs font-semibold ${modo === 'nps_invitado' ? 'border-blue-500 bg-blue-600 text-white' : 'border-blue-200 bg-white text-blue-700'}`}
-            onClick={() => setModo('nps_invitado')}
-          >
-            NPS Invitado
-          </button>
+        <div className="flex flex-wrap items-center gap-1 border-t border-slate-200 px-2 py-1.5 sm:px-3">
+          {(
+            [
+              { key: 'nps_respuestas' as const, label: 'NPS Respuestas', icon: faChartColumn },
+              { key: 'nps_invitado' as const, label: 'NPS Invitado', icon: faClipboardList },
+            ]
+          ).map((tab) => {
+            const active = modo === tab.key
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setModo(tab.key)}
+                className={`inline-flex items-center gap-1.5 rounded-t-lg px-2.5 py-1.5 text-xs font-bold transition ${
+                  active ? 'bg-blue-700 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                <FontAwesomeIcon icon={tab.icon} />
+                {tab.label}
+              </button>
+            )
+          })}
         </div>
-      </div>
+      </section>
 
-      <div className="z-30 rounded-3xl border border-slate-200/70 bg-gradient-to-r from-white/95 via-white/90 to-slate-50/90 p-4 shadow-[0_14px_34px_rgba(15,23,42,0.12)] backdrop-blur-xl md:sticky md:top-3">
+      <div className="z-30 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm md:sticky md:top-3">
       <div className="mb-3 flex items-center justify-between md:hidden">
-        <p className="text-sm font-semibold text-slate-700">Filtros NPS</p>
+        <p className="text-xs font-semibold text-slate-700">Filtros NPS</p>
         <button
           type="button"
           className="rounded-xl border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700"
@@ -546,17 +539,17 @@ const NpsDashboardPage = () => {
           {mobileFiltersOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
         </button>
       </div>
-      <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} gap-3 md:grid md:grid-cols-5`}>
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faCalendarDays} className="text-slate-400" />Fecha inicio</span>
-          <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} disabled={modo === 'nps_invitado'} className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100" />
+      <div className={`${mobileFiltersOpen ? 'grid' : 'hidden'} items-end gap-2 md:grid md:grid-cols-5`}>
+        <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-medium"><FontAwesomeIcon icon={faCalendarDays} className="text-slate-400" />Fecha inicio</span>
+          <input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} disabled={modo === 'nps_invitado'} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60" />
         </label>
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faCalendarDays} className="text-slate-400" />Fecha fin</span>
-          <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} disabled={modo === 'nps_invitado'} className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100" />
+        <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-medium"><FontAwesomeIcon icon={faCalendarDays} className="text-slate-400" />Fecha fin</span>
+          <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} disabled={modo === 'nps_invitado'} className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60" />
         </label>
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faBuilding} className="text-slate-400" />Sucursal</span>
+        <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-medium"><FontAwesomeIcon icon={faBuilding} className="text-slate-400" />Sucursal</span>
           <select
             value={idSucursal ?? 'todos'}
             onChange={(e) => {
@@ -568,15 +561,15 @@ const NpsDashboardPage = () => {
               setIdTecnico(undefined)
               setTecnicoNombre(undefined)
             }}
-            className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+            className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!isCentral}
           >
             <option value="todos">Todos</option>
             {sucursales.map((s) => <option key={s.idSucursal} value={s.idSucursal}>{normalizeSucursalLabel(s.sucursal)}</option>)}
           </select>
         </label>
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faUserTie} className="text-slate-400" />Encargado/Supervisor</span>
+        <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-medium"><FontAwesomeIcon icon={faUserTie} className="text-slate-400" />Encargado/Supervisor</span>
           <select
             value={isCentral ? (idSupervisor ? `ID:${idSupervisor}` : (supervisorNombre ? `NM:${supervisorNombre}` : '')) : (idSupervisor ?? '')}
             onChange={(e) => {
@@ -603,7 +596,7 @@ const NpsDashboardPage = () => {
               setIdTecnico(undefined)
               setTecnicoNombre(undefined)
             }}
-            className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+            className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={filtrosQuery.isLoading || isTecnico || isSupervisor}
           >
             <option value="">Todos</option>
@@ -618,8 +611,8 @@ const NpsDashboardPage = () => {
             })}
           </select>
         </label>
-        <label className="text-sm text-slate-700">
-          <span className="mb-1 inline-flex items-center gap-2 font-medium"><FontAwesomeIcon icon={faScrewdriverWrench} className="text-slate-400" />Técnico</span>
+        <label className="flex w-full flex-col gap-0.5 text-[10px] font-medium text-slate-500">
+          <span className="inline-flex items-center gap-1.5 font-medium"><FontAwesomeIcon icon={faScrewdriverWrench} className="text-slate-400" />Técnico</span>
           <select
             value={tecnicoNombre ?? ''}
             onChange={(e) => {
@@ -627,7 +620,7 @@ const NpsDashboardPage = () => {
               setIdTecnico(undefined)
               setTecnicoNombre(raw || undefined)
             }}
-            className="input-base mt-1 w-full rounded-2xl border-slate-200 bg-white/90 shadow-sm focus:border-blue-300 focus:ring-2 focus:ring-blue-100"
+            className="h-8 w-full rounded-md bg-slate-100 px-2.5 text-xs text-slate-800 outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={filtrosQuery.isLoading || isTecnico}
           >
             <option value="">Todos</option>
@@ -716,7 +709,7 @@ const NpsDashboardPage = () => {
                   <div className="rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-4 shadow-sm">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faScrewdriverWrench} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Tecnologia</p>
+                      <p className="text-sm font-semibold text-slate-800">Tecnologia</p>
                     </div>
                     <div className="relative h-[180px]">
                       <Doughnut
@@ -724,7 +717,7 @@ const NpsDashboardPage = () => {
                         options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, color: '#334155' } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-lg font-bold text-slate-800 shadow-sm">{techTotal}</span>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">{techTotal}</span>
                       </div>
                     </div>
                     <div className="mt-2 grid gap-1 text-xs text-slate-700">
@@ -743,7 +736,7 @@ const NpsDashboardPage = () => {
                   <div className="rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-4 shadow-sm">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-cyan-100 p-2 text-cyan-700"><FontAwesomeIcon icon={faUserTie} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Tipo de Tecnico</p>
+                      <p className="text-sm font-semibold text-slate-800">Tipo de Tecnico</p>
                     </div>
                     <div className="relative h-[180px]">
                       <Doughnut
@@ -751,7 +744,7 @@ const NpsDashboardPage = () => {
                         options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, color: '#334155' } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-lg font-bold text-slate-800 shadow-sm">{tipoTotal}</span>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">{tipoTotal}</span>
                       </div>
                     </div>
                     <div className="mt-2 grid gap-1 text-xs text-slate-700">
@@ -770,7 +763,7 @@ const NpsDashboardPage = () => {
                   <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-white to-violet-50 p-4 shadow-sm">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-violet-100 p-2 text-violet-700"><FontAwesomeIcon icon={faClipboardList} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Respuestas Recibidas</p>
+                      <p className="text-sm font-semibold text-slate-800">Respuestas Recibidas</p>
                     </div>
                     <div className="relative h-[180px]">
                       <Doughnut
@@ -778,15 +771,15 @@ const NpsDashboardPage = () => {
                         options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, color: '#334155' } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-8">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-lg font-bold text-slate-800 shadow-sm">{respTotal}</span>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">{respTotal}</span>
                       </div>
                     </div>
-                    <p className="mt-2 text-center text-sm font-semibold text-slate-700">Total: {respTotal}</p>
+                    <p className="mt-2 text-center text-xs font-semibold text-slate-700">Total: {respTotal}</p>
                   </div>
                   <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-white to-amber-50 p-4 shadow-sm">
                     <div className="mb-3 flex items-center gap-2">
                       <span className="rounded-lg bg-amber-100 p-2 text-amber-600"><FontAwesomeIcon icon={faChartColumn} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Invitaciones Maximas</p>
+                      <p className="text-sm font-semibold text-slate-800">Invitaciones Maximas</p>
                     </div>
                     <div className="space-y-3">
                       {weeklyMax.map((r, idx) => (
@@ -801,7 +794,7 @@ const NpsDashboardPage = () => {
                         </div>
                       ))}
                     </div>
-                    <p className="mt-4 text-sm font-semibold text-slate-700">Mayor: {respTop ? `${respTop[0]} (${respTop[1]})` : '-'}</p>
+                    <p className="mt-4 text-xs font-semibold text-slate-700">Mayor: {respTop ? `${respTop[0]} (${respTop[1]})` : '-'}</p>
                   </div>
                 </div>
 
@@ -809,7 +802,7 @@ const NpsDashboardPage = () => {
                   <div className="mb-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="rounded-lg bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faBuilding} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Invitaciones Vigentes</p>
+                      <p className="text-sm font-semibold text-slate-800">Invitaciones Vigentes</p>
                     </div>
                   </div>
                   <div className="h-[250px]">
@@ -832,7 +825,7 @@ const NpsDashboardPage = () => {
                   <div className="min-w-0 rounded-2xl border border-blue-100 bg-gradient-to-br from-white to-blue-50 p-3 shadow-sm sm:p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faScrewdriverWrench} /></span>
-                      <p className="text-base font-semibold text-slate-800 sm:text-lg">Tecnologia</p>
+                      <p className="text-sm font-semibold text-slate-800">Tecnologia</p>
                     </div>
                     <div className="relative h-[215px] sm:h-[235px]">
                       <Doughnut
@@ -840,14 +833,14 @@ const NpsDashboardPage = () => {
                         options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, boxHeight: 10, padding: 12, color: '#334155', usePointStyle: true } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-xl font-bold text-slate-800 shadow-sm">{techTotal}</span>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">{techTotal}</span>
                       </div>
                     </div>
                   </div>
                   <div className="min-w-0 rounded-2xl border border-cyan-100 bg-gradient-to-br from-white to-cyan-50 p-3 shadow-sm sm:p-4">
                     <div className="mb-2 flex items-center gap-2">
                       <span className="rounded-lg bg-cyan-100 p-2 text-cyan-700"><FontAwesomeIcon icon={faUserTie} /></span>
-                      <p className="text-base font-semibold text-slate-800 sm:text-lg">Tipo de Técnico</p>
+                      <p className="text-sm font-semibold text-slate-800">Tipo de Técnico</p>
                     </div>
                     <div className="relative h-[215px] sm:h-[235px]">
                       <Doughnut
@@ -855,7 +848,7 @@ const NpsDashboardPage = () => {
                         options={{ responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom' as const, labels: { boxWidth: 10, boxHeight: 10, padding: 12, color: '#334155', usePointStyle: true } } } }}
                       />
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <span className="rounded-full bg-white/90 px-3 py-1 text-xl font-bold text-slate-800 shadow-sm">{tipoTotal}</span>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-sm font-bold text-slate-800 shadow-sm">{tipoTotal}</span>
                       </div>
                     </div>
                   </div>
@@ -864,7 +857,7 @@ const NpsDashboardPage = () => {
                 <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <span className="rounded-lg bg-slate-100 p-2 text-slate-600"><FontAwesomeIcon icon={faCalendarDays} /></span>
-                    <p className="text-lg font-semibold text-slate-800">Detalle de Invitaciones Vigentes</p>
+                    <p className="text-sm font-semibold text-slate-800">Detalle de Invitaciones Vigentes</p>
                   </div>
                   <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-2 md:hidden">
                     {invitado.vigentes.map((r, idx) => (
@@ -918,7 +911,7 @@ const NpsDashboardPage = () => {
                   <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                     <div className="flex items-center gap-2">
                       <span className="rounded-lg bg-emerald-100 p-2 text-emerald-700"><FontAwesomeIcon icon={faThumbsUp} /></span>
-                      <p className="text-lg font-semibold text-slate-800">Encuestas Completadas</p>
+                      <p className="text-sm font-semibold text-slate-800">Encuestas Completadas</p>
                     </div>
                     <input
                       value={tecnicoSearch}
@@ -928,7 +921,7 @@ const NpsDashboardPage = () => {
                     />
                   </div>
                   <div className="max-h-[420px] overflow-auto rounded-xl border border-slate-200">
-                    <table className="min-w-full text-sm">
+                    <table className="min-w-full text-xs">
                       <thead className="sticky top-0 bg-slate-50 text-slate-600">
                         <tr>
                           <th className="p-3 text-left">Tecnico</th>
@@ -970,40 +963,40 @@ const NpsDashboardPage = () => {
         </>
       ) : (
       <>
-      <div className="grid gap-3 md:grid-cols-5">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faClipboardList} /></span>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Total encuestas</p>
+      <div className="grid gap-2 md:grid-cols-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-[11px] text-blue-600"><FontAwesomeIcon icon={faClipboardList} /></span>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Total encuestas</p>
           </div>
-          <p className="text-3xl leading-none text-slate-800 sm:text-4xl">{metrics.total}</p>
+          <p className="text-xl leading-none text-slate-800">{metrics.total}</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faThumbsUp} /></span>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Promotores</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-[11px] text-blue-600"><FontAwesomeIcon icon={faThumbsUp} /></span>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Promotores</p>
           </div>
-          <p className="text-3xl leading-none text-blue-800 sm:text-4xl">{metrics.prom}</p>
-          <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.prom / metrics.total) * 100 : 0)} del total</p>
+          <p className="text-xl leading-none text-blue-800">{metrics.prom}</p>
+          <p className="mt-1 text-[10px] text-slate-400">{pct(metrics.total ? (metrics.prom / metrics.total) * 100 : 0)} del total</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="rounded-xl bg-red-100 p-2 text-red-600"><FontAwesomeIcon icon={faThumbsDown} /></span>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Detractores</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 text-[11px] text-red-600"><FontAwesomeIcon icon={faThumbsDown} /></span>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Detractores</p>
           </div>
-          <p className="text-3xl leading-none text-red-700 sm:text-4xl">{metrics.det}</p>
-          <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.det / metrics.total) * 100 : 0)} del total</p>
+          <p className="text-xl leading-none text-red-700">{metrics.det}</p>
+          <p className="mt-1 text-[10px] text-slate-400">{pct(metrics.total ? (metrics.det / metrics.total) * 100 : 0)} del total</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="rounded-xl bg-slate-100 p-2 text-slate-500"><FontAwesomeIcon icon={faUserGroup} /></span>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Pasivos</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-slate-100 text-[11px] text-slate-500"><FontAwesomeIcon icon={faUserGroup} /></span>
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Pasivos</p>
           </div>
-          <p className="text-3xl leading-none text-slate-600 sm:text-4xl">{metrics.pas}</p>
-          <p className="mt-2 text-sm text-slate-400">{pct(metrics.total ? (metrics.pas / metrics.total) * 100 : 0)} del total</p>
+          <p className="text-xl leading-none text-slate-600">{metrics.pas}</p>
+          <p className="mt-1 text-[10px] text-slate-400">{pct(metrics.total ? (metrics.pas / metrics.total) * 100 : 0)} del total</p>
         </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">NPS Score</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-slate-400">NPS Score</p>
           <SemiGauge
             value={pct(metrics.npsPct)}
             ratio={Math.max(0, Math.min(1, metrics.npsPct / 100))}
@@ -1014,51 +1007,51 @@ const NpsDashboardPage = () => {
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <span className="rounded-xl bg-amber-100 p-2 text-amber-500"><FontAwesomeIcon icon={faChartColumn} /></span>
+      <div className="rounded-xl border border-slate-200 bg-white p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 text-[11px] text-amber-500"><FontAwesomeIcon icon={faChartColumn} /></span>
             <div>
-              <p className="text-xl font-semibold text-slate-700">Tasa de Cumplimiento de Citas</p>
-              <p className="text-sm text-slate-400">Proporción de citas completadas sobre las programadas</p>
+              <p className="text-xs font-semibold text-slate-800">Tasa de Cumplimiento de Citas</p>
+              <p className="text-xs text-slate-400">Proporción de citas completadas sobre las programadas</p>
             </div>
           </div>
-          <p className="text-2xl font-semibold text-blue-600 sm:text-3xl">{pct(metrics.agendaPct)}</p>
+          <p className="text-lg font-semibold text-blue-600">{pct(metrics.agendaPct)}</p>
         </div>
-        <div className="h-3 rounded-full bg-slate-200">
-          <div className="h-3 rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, metrics.agendaPct))}%` }} />
+        <div className="h-2 rounded-full bg-slate-200">
+          <div className="h-2 rounded-full bg-blue-600" style={{ width: `${Math.max(0, Math.min(100, metrics.agendaPct))}%` }} />
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
-        <div className="rounded-xl border bg-white p-4 lg:col-span-1">
-          <div className="mb-3 flex items-center gap-3">
-            <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faBuilding} /></span>
-            <p className="text-2xl font-semibold text-slate-800">Sucursales</p>
+      <div className="grid gap-2 lg:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-white p-3 lg:col-span-1">
+          <div className="mb-1.5 flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-[11px] text-blue-600"><FontAwesomeIcon icon={faBuilding} /></span>
+            <p className="text-xs font-semibold text-slate-800">Sucursales</p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {metrics.citySeries.slice(0, 3).map((c, idx) => {
               const color = idx === 0 ? 'bg-blue-600' : idx === 1 ? 'bg-amber-500' : 'bg-violet-500'
               return (
                 <div key={c.label}>
-                  <div className="mb-1 flex justify-between text-lg text-slate-700">
+                  <div className="mb-0.5 flex justify-between text-[11px] text-slate-700">
                     <span>{c.label || '-'}</span>
-                    <span>{c.total} <span className="text-sm text-slate-400">({pct(metrics.total ? (c.total / metrics.total) * 100 : 0)})</span></span>
+                    <span>{c.total} <span className="text-xs text-slate-400">({pct(metrics.total ? (c.total / metrics.total) * 100 : 0)})</span></span>
                   </div>
-                  <div className="h-3 rounded-full bg-slate-200"><div className={`h-3 rounded-full ${color}`} style={{ width: `${(c.total / maxCity) * 100}%` }} /></div>
+                  <div className="h-2 rounded-full bg-slate-200"><div className={`h-2 rounded-full ${color}`} style={{ width: `${(c.total / maxCity) * 100}%` }} /></div>
                 </div>
               )
             })}
           </div>
-          <div className="mt-8 flex items-center justify-between text-xl text-slate-700">
+          <div className="mt-3 flex items-center justify-between text-xs text-slate-700">
             <span>Total general</span><span>{metrics.total}</span>
           </div>
         </div>
-        <div className="rounded-xl border bg-white p-4 lg:col-span-2">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <span className="rounded-xl bg-blue-100 p-2 text-blue-600"><FontAwesomeIcon icon={faChartColumn} /></span>
-              <p className="text-2xl font-semibold text-slate-800">Tendencia Diaria</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3 lg:col-span-2">
+          <div className="mb-1 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 text-[11px] text-blue-600"><FontAwesomeIcon icon={faChartColumn} /></span>
+              <p className="text-xs font-semibold text-slate-800">Tendencia Diaria</p>
             </div>
             {monthPages.length > 1 ? (
               <div className="flex items-center gap-2">
@@ -1082,38 +1075,38 @@ const NpsDashboardPage = () => {
               </div>
             ) : null}
           </div>
-          <div className="h-[260px]">
+          <div className="h-[200px]">
             <Bar data={trendChartData} options={trendChartOptions} />
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        <div className="rounded-xl border bg-white p-4">
-          <p className="mb-2 text-sm font-semibold text-slate-800">Tecnología</p>
+      <div className="grid gap-2 lg:grid-cols-2">
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="mb-1.5 text-xs font-semibold text-slate-800">Tecnología</p>
           <div className="space-y-2">
             {metrics.techSeries.map((t) => (
               <div key={t.label}>
-                <div className="mb-1 flex justify-between text-xs"><span>{t.label || '-'}</span><span>{t.total}</span></div>
-                <div className="h-3 rounded bg-slate-100"><div className="h-3 rounded bg-blue-600" style={{ width: `${(t.total / maxTech) * 100}%` }} /></div>
+                <div className="mb-0.5 flex justify-between text-[11px]"><span>{t.label || '-'}</span><span>{t.total}</span></div>
+                <div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-blue-600" style={{ width: `${(t.total / maxTech) * 100}%` }} /></div>
               </div>
             ))}
           </div>
         </div>
-        <div className="rounded-xl border bg-white p-4">
-          <p className="mb-2 text-sm font-semibold text-slate-800">Sucursales / Ciudad</p>
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="mb-1.5 text-xs font-semibold text-slate-800">Sucursales / Ciudad</p>
           <div className="space-y-2">
             {metrics.citySeries.slice(0, 8).map((c) => (
               <div key={c.label}>
-                <div className="mb-1 flex justify-between text-xs"><span>{c.label || '-'}</span><span>{c.total}</span></div>
-                <div className="h-3 rounded bg-slate-100"><div className="h-3 rounded bg-emerald-600" style={{ width: `${(c.total / maxCity) * 100}%` }} /></div>
+                <div className="mb-0.5 flex justify-between text-[11px]"><span>{c.label || '-'}</span><span>{c.total}</span></div>
+                <div className="h-2 rounded bg-slate-100"><div className="h-2 rounded bg-emerald-600" style={{ width: `${(c.total / maxCity) * 100}%` }} /></div>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="rounded-xl border bg-white p-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-3">
         <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <p className="text-sm font-semibold tracking-wide text-slate-400 uppercase">Detalle por técnico</p>
           <div className="relative w-full md:w-[420px]">
@@ -1121,7 +1114,7 @@ const NpsDashboardPage = () => {
               value={tecnicoSearch}
               onChange={(e) => setTecnicoSearch(e.target.value)}
               placeholder="Buscar técnico..."
-              className="input-base w-full pr-8 text-sm"
+              className="input-base w-full pr-8 text-xs"
             />
             {tecnicoSearch.trim() && tecnicoSuggestions.length > 0 ? (
               <div className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-white shadow">
@@ -1156,7 +1149,7 @@ const NpsDashboardPage = () => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="truncate text-base font-medium uppercase text-slate-700">
+                      <p className="truncate text-xs font-medium uppercase text-slate-700">
                         {r.tecnico || '-'}
                         {r.historico ? <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 align-middle text-[11px] font-semibold normal-case text-amber-700">Historico</span> : null}
                       </p>
@@ -1201,7 +1194,7 @@ const NpsDashboardPage = () => {
           <p className="text-xs text-slate-500">Total: {detractoresRows.length}</p>
         </div>
         <div className="max-h-[340px] overflow-auto rounded-md border">
-          <table className="min-w-full text-sm">
+          <table className="min-w-full text-xs">
             <thead className="sticky top-0 bg-white">
               <tr className="border-b text-left text-slate-600">
                 <th className="p-2">Fecha</th>
@@ -1220,13 +1213,17 @@ const NpsDashboardPage = () => {
                   <td className="p-2 whitespace-nowrap">{r.tecnico}</td>
                   <td className="p-2 whitespace-nowrap">{r.ciudad}</td>
                   <td className="p-2 text-red-700 font-semibold whitespace-nowrap">{r.ltr}</td>
-                  <td className="p-2 min-w-[420px] text-[14px] leading-6 text-slate-700">{r.comentario}</td>
+                  <td className="p-2 min-w-[420px] text-xs leading-5 text-slate-700">{r.comentario}</td>
                 </tr>
               ))}
               {detractoresRows.length === 0 ? (
                 <tr>
                   <td className="px-4 py-10 text-center" colSpan={6}>
-                    <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">{noNpsMessage}</p>
+                    <p className="text-2xl font-extrabold uppercase tracking-wide text-slate-950">
+                      {rows.length > 0
+                        ? `NO HAY DETRACTORES DEL ${formatDateRangeText(fechaInicio)} AL ${formatDateRangeText(fechaFin)}`
+                        : noNpsMessage}
+                    </p>
                   </td>
                 </tr>
               ) : null}
@@ -1235,7 +1232,7 @@ const NpsDashboardPage = () => {
         </div>
       </div>
 
-      {(dashboardQuery.isLoading || filtrosQuery.isLoading) ? <p className="text-sm text-slate-500">Cargando NPS...</p> : null}
+      {(dashboardQuery.isLoading || filtrosQuery.isLoading) ? <p className="text-xs text-slate-500">Cargando NPS...</p> : null}
       {dashboardQuery.isError ? <p className="text-sm text-red-600">No se pudo cargar NPS.</p> : null}
       </>
       )
