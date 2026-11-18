@@ -13,6 +13,8 @@ import type {
 } from '../types/supervision'
 
 const SUPERVISION_BASE_PATH = '/supervisor/supervision'
+// Las jornadas (historico, imagenes, aprobar/rechazar) del supervisor viven en V2; el controlador V1 queda deshabilitado.
+const JORNADAS_SUPERVISOR_BASE_PATH = '/supervisor/supervision_v2'
 
 const normalizeString = (value: unknown): string => {
   if (value === undefined || value === null) return ''
@@ -367,13 +369,13 @@ const mapInicioPendiente = (row: Record<string, unknown>): SupervisionInicioPend
 })
 
 export const fetchIniciosJornadaPendientesSupervision = async (): Promise<SupervisionInicioPendiente[]> => {
-  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/jornadas/pendientes`)
+  const { data } = await api.get(`${JORNADAS_SUPERVISOR_BASE_PATH}/jornadas/pendientes`)
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapInicioPendiente).filter((item) => item.idInicio)
 }
 
 export const fetchIniciosJornadaConfirmadosHoySupervision = async (): Promise<SupervisionInicioPendiente[]> => {
-  const { data } = await api.get(`${SUPERVISION_BASE_PATH}/jornadas/confirmadas-hoy`)
+  const { data } = await api.get(`${JORNADAS_SUPERVISOR_BASE_PATH}/jornadas/confirmadas-hoy`)
   const rows = normalizeArrayResponse<Record<string, unknown>>(data)
   return rows.map(mapInicioPendiente).filter((item) => item.idInicio)
 }
@@ -474,7 +476,7 @@ export type JornadaHistoricoParams = {
 
 export const fetchHistoricoJornadas = async (params: JornadaHistoricoParams): Promise<SupervisionJornadaHistorico[]> => {
   const scope = params.scope === 'supervisor' ? 'supervisor' : 'backoffice'
-  const path = scope === 'supervisor' ? `${SUPERVISION_BASE_PATH}/jornadas/historico` : '/backoffice/supervision/jornadas/historico'
+  const path = scope === 'supervisor' ? `${JORNADAS_SUPERVISOR_BASE_PATH}/jornadas/historico` : '/backoffice/supervision/jornadas/historico'
   const query = Object.fromEntries(
     Object.entries({
       fecha: params.fecha?.trim() || undefined,
@@ -493,7 +495,7 @@ export const fetchHistoricoJornadaDetalle = async (
   idInicio: string,
   scope: 'supervisor' | 'backoffice' = 'backoffice'
 ): Promise<SupervisionJornadaHistorico> => {
-  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const basePath = scope === 'supervisor' ? JORNADAS_SUPERVISOR_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/detalle`)
   return mapJornadaHistorico(normalizeObjectResponse<Record<string, unknown>>(data))
 }
@@ -503,7 +505,7 @@ export const fetchInicioJornadaImagen = async (
   scope: 'supervisor' | 'backoffice' = 'supervisor',
   miniatura = true
 ): Promise<Blob> => {
-  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const basePath = scope === 'supervisor' ? JORNADAS_SUPERVISOR_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen`, {
     params: { miniatura },
     responseType: 'blob',
@@ -516,7 +518,7 @@ export const fetchInicioJornadaImagenAuxiliar = async (
   scope: 'supervisor' | 'backoffice' = 'supervisor',
   miniatura = true
 ): Promise<Blob> => {
-  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const basePath = scope === 'supervisor' ? JORNADAS_SUPERVISOR_BASE_PATH : '/backoffice/supervision'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/imagen-auxiliar`, {
     params: { miniatura },
     responseType: 'blob',
@@ -529,7 +531,7 @@ export const fetchInicioJornadaFirma = async (
   tipo: 'inicio' | 'cierre',
   scope: 'supervisor' | 'backoffice' = 'supervisor'
 ): Promise<Blob> => {
-  const basePath = scope === 'supervisor' ? SUPERVISION_BASE_PATH : '/backoffice/supervision'
+  const basePath = scope === 'supervisor' ? JORNADAS_SUPERVISOR_BASE_PATH : '/backoffice/supervision'
   const endpoint = tipo === 'inicio' ? 'firma-inicio' : 'firma-cierre'
   const { data } = await api.get(`${basePath}/jornadas/${idInicio}/${endpoint}`, {
     responseType: 'blob',
@@ -538,11 +540,11 @@ export const fetchInicioJornadaFirma = async (
 }
 
 export const aprobarInicioJornadaPendiente = async (idInicio: string): Promise<void> => {
-  await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/aprobar`)
+  await api.post(`${JORNADAS_SUPERVISOR_BASE_PATH}/jornadas/${idInicio}/aprobar`)
 }
 
 export const rechazarInicioJornadaPendiente = async (idInicio: string, observacionRechazado: string): Promise<void> => {
-  await api.post(`${SUPERVISION_BASE_PATH}/jornadas/${idInicio}/rechazar`, { observacionRechazado })
+  await api.post(`${JORNADAS_SUPERVISOR_BASE_PATH}/jornadas/${idInicio}/rechazar`, { observacionRechazado })
 }
 
 export const fetchSupervisores = async (sucursal?: string): Promise<Array<{ idSupervisor: string; nombre: string }>> => {

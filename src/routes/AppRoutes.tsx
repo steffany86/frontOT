@@ -20,7 +20,6 @@ import CuNoRealizadoDetailPage from '../pages/CuNoRealizadoDetailPage'
 import CuNoRealizadoCreatePage from '../pages/CuNoRealizadoCreatePage'
 import ConformacionCuadrillaPage from '../pages/ConformacionCuadrillaPage'
 import LlamadaAtencionPage from '../pages/LlamadaAtencionPage'
-import SupervisorSupervisionPage from '../pages/SupervisorSupervisionPage'
 import SupervisorSupervisionV2Page from '../pages/SupervisorSupervisionV2Page'
 import SupervisionV2ConfiguracionPage from '../pages/SupervisionV2ConfiguracionPage'
 import ConfiguracionesPage from '../pages/ConfiguracionesPage'
@@ -97,7 +96,7 @@ const AppRoutes = () => {
           <Route path="/supervisor/conformacion-cuadrilla/crear" element={<Navigate to="/supervisor/conformacion-cuadrilla" replace />} />
           <Route path="/supervisor/conformacion-cuadrilla/editar" element={<Navigate to="/supervisor/conformacion-cuadrilla" replace />} />
           <Route path="/supervisor/llamada-atencion" element={<LlamadaAtencionPage />} />
-          <Route path="/supervisor/supervision" element={<SupervisorSupervisionPage />} />
+          <Route path="/supervisor/supervision" element={<Navigate to="/supervisor/supervision_v2" replace />} />
           <Route path="/supervisor/supervision_v2" element={<SupervisorSupervisionV2Page />} />
           <Route path="/supervisor/supervision_v2Configuracion" element={<SupervisionV2ConfiguracionPage />} />
           <Route path="/sistemas/configuraciones" element={<ConfiguracionesPage />} />
